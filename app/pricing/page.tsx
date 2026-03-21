@@ -87,62 +87,8 @@ export default function PricingPage() {
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6 max-w-7xl mx-auto">
-            {/* STANDART */}
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              whileHover={{ y: -10, transition: { duration: 0.3 } }}
-              className="h-full"
-            >
-              <Card className="border-gray-200 h-full flex flex-col">
-                <CardHeader className="text-center">
-                  <CardTitle className="text-xl">STANDART</CardTitle>
-                  <div className="text-2xl font-bold text-gray-900 mb-1">
-                    2.799.000 UZS
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
-                  <ul className="space-y-2">
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">STM darslari</span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">Ayollik Fiqhi darslari</span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">Bonus dars "Yoni-steam"</span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">
-                        3 oy davomida kurs materiallariga kirish
-                      </span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">1 to'liq hayz xaritasi kuzatuvi</span>
-                    </li>
-                    <li className="flex items-start">
-                      <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                      <span className="text-sm">
-                        Foydalanuvchi Sertifikati (o'rgatish huquqisiz)
-                      </span>
-                    </li>
-                  </ul>
-                  <Link href={`${user ? `https://t.me/stm_kurs?text=Assalomu alaykum yaxshimisiz. Men ${user.first_name} ${user.first_name} sizning STANDART kursingizni sotib olmoqchiman.` : '/auth'}`} className="block pt-4">
-                    <Button className="w-full bg-red-800 hover:bg-red-900">
-                      Sotib olish
-                    </Button>
-                  </Link>
-                </CardContent>
-              </Card>
-            </motion.div>
+          <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-5xl mx-auto">
+
 
             {/* OPTIMAL */}
             <motion.div

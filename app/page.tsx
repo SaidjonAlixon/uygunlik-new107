@@ -692,7 +692,7 @@ export default function HomePage() {
                 transition={{ duration: 0.5, delay: 0.6 }}
               >
                 Tabiiy usul bilan homiladorlikni<br />
-                rejalashtiring yoki oldini oling
+                rejalashtiring yoki ortga suring
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -765,15 +765,15 @@ export default function HomePage() {
         </motion.section>
 
         {/* STM BU bo'limi */}
-        <section className="py-20 px-4 min-h-screen flex items-center" style={{ backgroundColor: '#801d1d', backgroundImage: 'none', backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundClip: 'padding-box', zIndex: 1, position: 'relative', overflow: 'hidden' }}>
+        <section className="py-10 md:py-20 px-4 md:min-h-screen flex items-center" style={{ backgroundColor: '#801d1d', backgroundImage: 'none', backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundClip: 'padding-box', zIndex: 1, position: 'relative', overflow: 'hidden' }}>
           <div className="container mx-auto">
             <div className="w-full text-white flex flex-col items-center justify-center p-2 sm:p-5 relative z-10">
               <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
 
-                <div className="w-full grid grid-cols-[1fr_auto_1fr] gap-2 md:gap-4 lg:gap-8 items-center justify-center">
+                <div className="w-full grid grid-cols-[1fr_auto_1fr] md:gap-4 lg:gap-8 items-center justify-center">
 
                   {/* Left Texts */}
-                  <div className="flex flex-col justify-between h-[130px] sm:h-[180px] md:h-[350px] text-right z-20">
+                  <div className="flex flex-col justify-between h-[300px] sm:h-[360px] md:h-[360px] text-center md:text-right z-30 w-[100px] sm:w-[120px] md:w-auto -mr-6 sm:-mr-8 md:mr-0 justify-self-end">
                     <p className="text-[10px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
                       Harorat va ajralmalarni tahlil qilish
                     </p>
@@ -783,14 +783,12 @@ export default function HomePage() {
                   </div>
 
                   {/* Doira + rasm + halqalar + nuqtalar */}
-                  <div className="relative z-10 w-[150px] h-[150px] sm:w-[220px] sm:h-[220px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
-                    {/* Tashqi halqa */}
-                    <div className="absolute inset-0 rounded-full border border-[0.5px] sm:border border-white/60" />
-                    {/* Ichki halqa (biroz kichikroq) */}
-                    <div className="absolute inset-1 sm:inset-2 md:inset-3 rounded-full border border-[0.5px] sm:border border-white/80" />
-
-                    {/* Rasm (doira ichida) */}
-                    <div className="absolute inset-2 sm:inset-4 md:inset-6 rounded-full overflow-hidden">
+                  <div className="relative z-10 w-[230px] h-[230px] sm:w-[280px] sm:h-[280px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
+                    {/* Tashqi halqa (Dashed) */}
+                    <div className="absolute inset-0 rounded-full border-[1px] md:border-[2px] border-dashed border-white/60" />
+                    
+                    {/* Ichki halqa va Rasm */}
+                    <div className="absolute inset-4 sm:inset-5 md:inset-7 rounded-full overflow-hidden border-[4px] sm:border-[6px] md:border-[10px] border-[#9e2727] shadow-lg">
                       <img
                         src="/images/hero-woman.png"
                         alt="STM BU"
@@ -801,43 +799,36 @@ export default function HomePage() {
                       />
                     </div>
 
-                    {/* Aylanib turadigan anor logolari */}
-                    {/* O'ng tomonga aylanadigan logo */}
-                    <motion.div
-                      className="absolute inset-0 z-20"
-                      animate={{ rotate: 360 }}
-                      transition={{
-                        duration: 12,
-                        ease: "linear",
-                        repeat: Infinity,
-                        repeatType: "loop"
-                      }}
-                    >
-                      <img
-                        src="/images/anor.png"
-                        alt="Anor logo"
-                        className="absolute top-[2px] sm:top-2 md:top-3 left-1/2 -translate-x-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain"
-                      />
-                    </motion.div>
-
-                    {/* Chap tomonga aylanadigan logo */}
-                    <motion.div
-                      className="absolute inset-0 z-20"
-                      animate={{ rotate: -360 }}
-                      transition={{
-                        duration: 12,
-                        ease: "linear",
-                        repeat: Infinity,
-                        repeatType: "loop",
-                        delay: 6
-                      }}
-                    >
-                      <img
-                        src="/images/anor.png"
-                        alt="Anor logo"
-                        className="absolute top-[2px] sm:top-2 md:top-3 left-1/2 -translate-x-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain"
-                      />
-                    </motion.div>
+                    {/* Anor logolari (qarama-qarshi tomonga aylanadigan) */}
+                    <div className="absolute inset-0 z-20 pointer-events-none">
+                      {/* Katta anor */}
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 25, ease: "linear", repeat: Infinity }}
+                      >
+                        <img
+                          src="/images/anor.png"
+                          alt="Anor logo katta"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain -rotate-12"
+                          style={{ top: '14.6%', left: '14.6%' }}
+                        />
+                      </motion.div>
+                      
+                      {/* Kichik anor */}
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
+                      >
+                        <img
+                          src="/images/anor.png"
+                          alt="Anor logo kichik"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain -rotate-45"
+                          style={{ top: '28%', left: '7%' }}
+                        />
+                      </motion.div>
+                    </div>
 
                     {/* Markaziy sarlavha */}
                     <div className="absolute inset-0 flex items-center justify-center z-30">
@@ -848,7 +839,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Right Texts */}
-                  <div className="flex flex-col justify-between h-[130px] sm:h-[180px] md:h-[350px] text-left z-20">
+                  <div className="flex flex-col justify-between h-[300px] sm:h-[360px] md:h-[360px] text-center md:text-left z-30 w-[100px] sm:w-[120px] md:w-auto -ml-6 sm:-ml-8 md:ml-0 justify-self-start">
                     <p className="text-[10px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
                       Spiral va gormonal tabletkalarsiz qo'rquvsiz yaqinlik
                     </p>
@@ -860,7 +851,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Slogan */}
-                <p className="mt-12 text-center text-lg sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md" style={{ fontFamily: 'Bergstena Script, cursive' }}>
+                <p className="mt-20 sm:mt-24 md:mt-32 text-center text-lg sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md" style={{ fontFamily: 'Bergstena Script, cursive' }}>
                   Bu – tanangiz bilan hamohanglikda yashash san'ati.
                 </p>
               </div>
@@ -1925,66 +1916,8 @@ export default function HomePage() {
                 tashlang.
               </p>
             </motion.div>
-            <div className="grid lg:grid-cols-3 gap-6 max-w-7xl mx-auto items-stretch">
-              {/* STANDART */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.1 }}
-                className="h-full"
-              >
-                <Card className="border-gray-200 h-full flex flex-col hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-xl">STANDART</CardTitle>
-                    <div className="text-2xl font-bold text-gray-900 mb-1">
-                      2.799.000 UZS
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
-                    <ul className="space-y-2">
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">STM darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Ayollik Fiqhi darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Bonus dars "Yoni-steam"</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          3 oy davomida kurs materiallariga kirish
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          1 to'liq hayz xaritasi kuzatuvi
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Foydalanuvchi Sertifikati (o'rgatish huquqisiz)
-                        </span>
-                      </li>
-                    </ul>
-                    <Link
-                      href={`https://t.me/stm_kurs?text=Assalomu alaykum yaxshimisiz. Men sizning STANDART kursingizni sotib olmoqchiman.`}
-                      className="block pt-4"
-                    >
-                      <Button className="w-full bg-red-800 hover:bg-red-900">
-                        Sotib olish
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-5xl mx-auto items-stretch">
+
 
               {/* OPTIMAL */}
               <motion.div
