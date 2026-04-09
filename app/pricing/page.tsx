@@ -103,7 +103,7 @@ export default function PricingPage() {
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl text-red-900">OPTIMAL</CardTitle>
                   <div className="text-2xl font-bold text-red-800 mb-1">
-                    3.799.000 UZS
+                    3.999.000 UZS
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
@@ -165,7 +165,7 @@ export default function PricingPage() {
                 <CardHeader className="text-center">
                   <CardTitle className="text-xl text-red-900">VIP</CardTitle>
                   <div className="text-2xl font-bold text-red-800 mb-1">
-                    4.799.000 UZS
+                    4.999.000 UZS
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
