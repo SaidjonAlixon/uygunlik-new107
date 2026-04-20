@@ -23,8 +23,8 @@ export default function PricingPage() {
         <img
           src="/images/fon.png"
           alt="Background"
-              className="w-full h-full object-cover opacity-50"
-          style={{ 
+          className="w-full h-full object-cover opacity-50"
+          style={{
             minHeight: '100vh',
             transform: 'scale(1.2)',
             transformOrigin: 'center',

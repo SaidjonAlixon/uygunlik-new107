@@ -311,14 +311,6 @@ const ReviewsCarousel = () => {
     },
   ];
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % reviews.length);
-    }, 15000); // 15 soniya
-
-    return () => clearInterval(interval);
-  }, [reviews.length]);
-
   const goToPrevious = () => {
     setCurrentIndex((prevIndex) =>
       prevIndex === 0 ? reviews.length - 1 : prevIndex - 1
@@ -786,7 +778,7 @@ export default function HomePage() {
                   <div className="relative z-10 w-[230px] h-[230px] sm:w-[280px] sm:h-[280px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
                     {/* Tashqi halqa (Dashed) */}
                     <div className="absolute inset-0 rounded-full border-[1px] md:border-[2px] border-dashed border-white/60" />
-                    
+
                     {/* Ichki halqa va Rasm */}
                     <div className="absolute inset-4 sm:inset-5 md:inset-7 rounded-full overflow-hidden border-[4px] sm:border-[6px] md:border-[10px] border-[#9e2727] shadow-lg">
                       <img
@@ -814,7 +806,7 @@ export default function HomePage() {
                           style={{ top: '14.6%', left: '14.6%' }}
                         />
                       </motion.div>
-                      
+
                       {/* Kichik anor */}
                       <motion.div
                         className="absolute inset-0"
@@ -1783,7 +1775,7 @@ export default function HomePage() {
         </section>
 
         {/* --- FAQ Section --- */}
-        <section className="py-0 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+        <section id="faq" className="py-0 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
           {/* Orqa fon rasmi */}
           <div className="absolute inset-0 z-0">
             <div
