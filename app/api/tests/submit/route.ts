@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { TestSubmissionService, initializeDatabase } from '@/lib/postgres';
 import { notifyTelegramTestSubmission } from '@/lib/telegram';
 
+export const dynamic = 'force-dynamic';
+export const maxDuration = 30;
+
 export async function POST(request: NextRequest) {
   try {
     await initializeDatabase();
@@ -20,9 +23,12 @@ export async function POST(request: NextRequest) {
       answers
     });
 
-    notifyTelegramTestSubmission(submission.id).catch((err) => {
+    // Har qanday natija (0 ball ham) guruhga yuboriladi — Vercelda kutib yuboramiz
+    try {
+      await notifyTelegramTestSubmission(submission.id);
+    } catch (err) {
       console.error('Telegram notify failed:', err);
-    });
+    }
 
     return NextResponse.json(submission, { status: 201 });
   } catch (error: any) {

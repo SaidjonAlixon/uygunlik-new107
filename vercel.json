@@ -5,6 +5,9 @@
     },
     "app/api/telegram/webhook/route.ts": {
       "maxDuration": 60
+    },
+    "app/api/tests/submit/route.ts": {
+      "maxDuration": 30
     }
   },
   "headers": [

@@ -55,6 +55,13 @@ export function isTelegramEnabled() {
   return Boolean(token && groupChatId);
 }
 
+function telegramDisabledReason(): string | null {
+  const { token, groupChatId } = getConfig();
+  if (!token) return 'TELEGRAM_BOT_TOKEN belgilanmagan';
+  if (!groupChatId) return 'TELEGRAM_CHAT_ID belgilanmagan';
+  return null;
+}
+
 export function hasTelegramAdmins() {
   return getConfig().adminIds.length > 0;
 }
@@ -165,10 +172,11 @@ export function formatSubmissionMessage(submission: DetailedSubmission): string 
   const date = submission.created_at
     ? new Date(submission.created_at).toLocaleString('uz-UZ')
     : '—';
+  const resultLabel = percent >= 70 ? "✅ O'TDI" : "❌ O'TMADI";
 
   const lines: string[] = [
     '📝 <b>YANGI TEST NATIJASI</b>',
-    '',
+    `${resultLabel} — <b>${percent}%</b> (${submission.score}/${submission.total_questions})`,
     `👤 <b>Foydalanuvchi:</b> ${escapeHtml(fullName)}`,
     `📧 <b>Email:</b> ${escapeHtml(submission.email || '—')}`,
     `📚 <b>Darslik:</b> ${escapeHtml(submission.lesson_title || '—')}`,
@@ -220,13 +228,13 @@ function splitMessage(text: string, maxLen = 4000): string[] {
   return parts;
 }
 
-export async function sendTelegramMessage(
+async function postTelegramMessage(
   chatId: string,
   text: string,
   extra?: { reply_markup?: object }
-) {
+): Promise<{ ok: boolean; migrateToChatId?: string }> {
   const { token } = getConfig();
-  if (!token) return false;
+  if (!token) return { ok: false };
 
   const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
@@ -240,12 +248,33 @@ export async function sendTelegramMessage(
     }),
   });
 
-  if (!res.ok) {
-    const err = await res.text();
-    console.error('Telegram sendMessage error:', err);
-    return false;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || !data.ok) {
+    const migrateTo = data?.parameters?.migrate_to_chat_id;
+    console.error('Telegram sendMessage error:', JSON.stringify(data));
+    return {
+      ok: false,
+      migrateToChatId: migrateTo != null ? String(migrateTo) : undefined,
+    };
   }
-  return true;
+  return { ok: true };
+}
+
+export async function sendTelegramMessage(
+  chatId: string,
+  text: string,
+  extra?: { reply_markup?: object }
+) {
+  let result = await postTelegramMessage(chatId, text, extra);
+  if (!result.ok && result.migrateToChatId) {
+    console.warn(`Telegram guruh supergroup ga o'tgan, yangi ID: ${result.migrateToChatId}`);
+    result = await postTelegramMessage(result.migrateToChatId, text, extra);
+  }
+  if (!result.ok && chatId.startsWith('-') && !chatId.startsWith('-100')) {
+    const supergroupId = `-100${chatId.slice(1)}`;
+    result = await postTelegramMessage(supergroupId, text, extra);
+  }
+  return result.ok;
 }
 
 export async function sendTelegramDocument(
@@ -603,21 +632,32 @@ export async function generateTestsExcel(submissions: DetailedSubmission[]): Pro
 }
 
 export async function notifyTelegramTestSubmission(submissionId: number) {
-  if (!isTelegramEnabled()) return;
+  const disabled = telegramDisabledReason();
+  if (disabled) {
+    console.warn(`Telegram notification skipped: ${disabled}`);
+    return;
+  }
 
   try {
     const submission = await TestSubmissionService.findDetailedById(submissionId);
-    if (!submission) return;
+    if (!submission) {
+      console.warn(`Telegram notification skipped: submission #${submissionId} topilmadi`);
+      return;
+    }
 
     const { groupChatId } = getConfig();
     const message = formatSubmissionMessage(submission as DetailedSubmission);
     const parts = splitMessage(message);
 
     for (const part of parts) {
-      await sendTelegramMessage(groupChatId, part);
+      const sent = await sendTelegramMessage(groupChatId, part);
+      if (!sent) {
+        throw new Error(`Guruhga xabar yuborilmadi (chat_id: ${groupChatId})`);
+      }
     }
   } catch (error) {
     console.error('Telegram notification error:', error);
+    throw error;
   }
 }
 
