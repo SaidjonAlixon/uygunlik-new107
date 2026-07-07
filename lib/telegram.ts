@@ -30,13 +30,33 @@ export type DetailedSubmission = {
 function getConfig() {
   return {
     token: process.env.TELEGRAM_BOT_TOKEN || '',
-    chatId: process.env.TELEGRAM_CHAT_ID || '',
+    groupChatId: process.env.TELEGRAM_CHAT_ID || process.env.TELEGRAM_GROUP_ID || '',
+    adminIds: parseAdminIds(),
   };
 }
 
+function parseAdminIds(): string[] {
+  const raw = process.env.TELEGRAM_ADMIN_IDS || '';
+  return raw
+    .split(/[,;\s]+/)
+    .map((id) => id.trim())
+    .filter(Boolean);
+}
+
+export function isTelegramAdmin(userId?: number | string | null): boolean {
+  if (userId == null || userId === '') return false;
+  const admins = getConfig().adminIds;
+  if (admins.length === 0) return false;
+  return admins.includes(String(userId));
+}
+
 export function isTelegramEnabled() {
-  const { token, chatId } = getConfig();
-  return Boolean(token && chatId);
+  const { token, groupChatId } = getConfig();
+  return Boolean(token && groupChatId);
+}
+
+export function hasTelegramAdmins() {
+  return getConfig().adminIds.length > 0;
 }
 
 export function resolveAppUrl(): string | null {
@@ -589,12 +609,12 @@ export async function notifyTelegramTestSubmission(submissionId: number) {
     const submission = await TestSubmissionService.findDetailedById(submissionId);
     if (!submission) return;
 
-    const { chatId } = getConfig();
+    const { groupChatId } = getConfig();
     const message = formatSubmissionMessage(submission as DetailedSubmission);
     const parts = splitMessage(message);
 
     for (const part of parts) {
-      await sendTelegramMessage(chatId, part);
+      await sendTelegramMessage(groupChatId, part);
     }
   } catch (error) {
     console.error('Telegram notification error:', error);
@@ -639,6 +659,7 @@ export const TELEGRAM_MAIN_KEYBOARD = {
 export async function handleTelegramUpdate(update: {
   message?: {
     chat: { id: number };
+    from?: { id: number; first_name?: string; last_name?: string; username?: string };
     text?: string;
   };
 }) {
@@ -646,15 +667,39 @@ export async function handleTelegramUpdate(update: {
   if (!message?.text) return;
 
   const chatId = String(message.chat.id);
+  const userId = message.from?.id;
   const text = message.text.trim();
+
+  if (text === '/myid' || text === '/id') {
+    if (!userId) return;
+    await sendTelegramMessage(
+      chatId,
+      `🆔 <b>Sizning Telegram ID:</b> <code>${userId}</code>\n\n` +
+      'Admin qo\'shish uchun bu ID ni TELEGRAM_ADMIN_IDS ga yozing.'
+    );
+    return;
+  }
+
+  if (!isTelegramAdmin(userId)) {
+    if (text.startsWith('/')) {
+      await sendTelegramMessage(
+        chatId,
+        '⛔ Bu buyruq faqat adminlar uchun.\n\n' +
+        'O\'z ID ingizni bilish: /myid'
+      );
+    }
+    return;
+  }
 
   if (text === '/start') {
     await sendTelegramMessage(
       chatId,
       '👋 <b>Uygunlik test boti</b>\n\n' +
-      'Har bir foydalanuvchi test topshirganda natija shu guruhga yuboriladi.\n\n' +
+      '✅ Siz admin sifatida tizimga kirdingiz.\n\n' +
       '📌 <b>/testlar</b> — barcha testlarni Excel (.xlsx) ko\'rinishida yuklab olish\n' +
-      '📌 <b>Barcha testlar</b> tugmasi — xuddi shu hisobot',
+      '📌 <b>Barcha testlar</b> tugmasi — xuddi shu hisobot\n' +
+      '📌 <b>/myid</b> — Telegram ID ni ko\'rish\n\n' +
+      'Test natijalari avtomatik ravishda belgilangan guruhga yuboriladi.',
       TELEGRAM_MAIN_KEYBOARD
     );
     return;

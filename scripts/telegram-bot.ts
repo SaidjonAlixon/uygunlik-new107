@@ -4,7 +4,7 @@
  */
 import './load-env';
 import { initializeDatabase } from '../lib/postgres';
-import { handleTelegramUpdate, isTelegramEnabled } from '../lib/telegram';
+import { handleTelegramUpdate, hasTelegramAdmins, isTelegramEnabled } from '../lib/telegram';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 
@@ -45,14 +45,17 @@ async function main() {
   await initializeDatabase();
 
   if (!isTelegramEnabled()) {
-    console.warn('⚠️  TELEGRAM_CHAT_ID belgilanmagan — xabarlar yuborilmaydi, lekin buyruqlar ishlaydi');
+    console.warn('⚠️  TELEGRAM_CHAT_ID (guruh) belgilanmagan — test natijalari yuborilmaydi');
+  }
+  if (!hasTelegramAdmins()) {
+    console.warn('⚠️  TELEGRAM_ADMIN_IDS belgilanmagan — bot buyruqlari ishlamaydi');
   }
 
   // Eski webhookni o'chirish (polling uchun)
   await fetch(`https://api.telegram.org/bot${token}/deleteWebhook`);
 
   console.log('🤖 Telegram bot ishga tushdi (polling)...');
-  console.log('   /start va /testlar buyruqlarini guruhda sinab ko\'ring');
+  console.log('   Adminlar botga shaxsiy chatda /start va /testlar yuborishi mumkin');
 
   while (true) {
     await poll();

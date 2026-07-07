@@ -80,10 +80,18 @@ Ikkala qism ham bir xil `DATABASE_URL` environment variable'dan foydalanadi.
 ```env
 TELEGRAM_BOT_TOKEN=123456:ABC...
 TELEGRAM_CHAT_ID=-1001234567890
+TELEGRAM_ADMIN_IDS=111111111,222222222,333333333,444444444
 TELEGRAM_WEBHOOK_SECRET=random_uzun_kalit_123
 TELEGRAM_SETUP_KEY=admin_ornatish_kaliti
 NEXT_PUBLIC_APP_URL=https://sizning-domen.uz
 ```
+
+| O'zgaruvchi | Vazifasi |
+|-------------|----------|
+| `TELEGRAM_CHAT_ID` | Guruh ID — test natijalari shu yerga yuboriladi |
+| `TELEGRAM_ADMIN_IDS` | Adminlar Telegram user ID lari (vergul bilan, 3-4 ta) |
+
+Admin ID olish: botga `/myid` yuboring (shaxsiy chatda).
 
 ### Local (kompyuterda)
 ```bash
@@ -101,7 +109,8 @@ Vercelda long-polling ishlamaydi — **webhook** ishlatiladi.
 
 1. Vercel Dashboard → Settings → Environment Variables ga qo'shing:
    - `TELEGRAM_BOT_TOKEN`
-   - `TELEGRAM_CHAT_ID`
+   - `TELEGRAM_CHAT_ID` (guruh — natijalar uchun)
+   - `TELEGRAM_ADMIN_IDS` (adminlar — bot buyruqlari uchun)
    - `TELEGRAM_WEBHOOK_SECRET` (ixtiyoriy, lekin tavsiya etiladi)
    - `TELEGRAM_SETUP_KEY` (webhook ulash uchun)
    - `NEXT_PUBLIC_APP_URL` (masalan `https://uygunlik.uz`)
