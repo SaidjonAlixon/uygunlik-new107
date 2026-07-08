@@ -130,11 +130,17 @@ export async function getTelegramWebhookInfo() {
 }
 
 function isHeavyTelegramUpdate(update: { message?: { text?: string } }): boolean {
-  const text = update.message?.text?.trim() || '';
+  const text = normalizeTelegramCommand(update.message?.text || '');
   return text === '/testlar' || text === '📊 Barcha testlar' || text === 'Barcha testlar';
 }
 
-export { isHeavyTelegramUpdate };
+function normalizeTelegramCommand(text: string): string {
+  const first = text.trim().split(/\s+/)[0] || '';
+  const at = first.indexOf('@');
+  return at === -1 ? first : first.slice(0, at);
+}
+
+export { isHeavyTelegramUpdate, normalizeTelegramCommand };
 
 function parseAnswers(raw: unknown): TelegramAnswer[] {
   if (!raw) return [];
@@ -709,8 +715,9 @@ export async function handleTelegramUpdate(update: {
   const chatId = String(message.chat.id);
   const userId = message.from?.id;
   const text = message.text.trim();
+  const command = normalizeTelegramCommand(text);
 
-  if (text === '/myid' || text === '/id') {
+  if (command === '/myid' || command === '/id') {
     if (!userId) return;
     await sendTelegramMessage(
       chatId,
@@ -721,7 +728,7 @@ export async function handleTelegramUpdate(update: {
   }
 
   if (!isTelegramAdmin(userId)) {
-    if (text.startsWith('/')) {
+    if (command.startsWith('/')) {
       await sendTelegramMessage(
         chatId,
         '⛔ Bu buyruq faqat adminlar uchun.\n\n' +
@@ -731,7 +738,7 @@ export async function handleTelegramUpdate(update: {
     return;
   }
 
-  if (text === '/start') {
+  if (command === '/start') {
     await sendTelegramMessage(
       chatId,
       '👋 <b>Uygunlik test boti</b>\n\n' +
@@ -745,7 +752,7 @@ export async function handleTelegramUpdate(update: {
     return;
   }
 
-  if (text === '/testlar' || text === '📊 Barcha testlar' || text === 'Barcha testlar') {
+  if (command === '/testlar' || text === '📊 Barcha testlar' || text === 'Barcha testlar') {
     await sendTelegramMessage(chatId, '⏳ Barcha testlar tayyorlanmoqda...');
     await sendAllTestsExport(chatId);
     return;

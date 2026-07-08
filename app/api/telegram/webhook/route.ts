@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { waitUntil } from '@vercel/functions';
 import { initializeDatabase } from '@/lib/postgres';
 import {
   getTelegramWebhookInfo,
   handleTelegramUpdate,
-  isHeavyTelegramUpdate,
   resolveAppUrl,
   setTelegramWebhook,
   verifyTelegramWebhookSecret,
@@ -20,16 +18,14 @@ async function processUpdate(update: unknown) {
 
 export async function POST(request: NextRequest) {
   try {
-    if (!verifyTelegramWebhookSecret(request.headers.get('x-telegram-bot-api-secret-token'))) {
+    const secretHeader = request.headers.get('x-telegram-bot-api-secret-token');
+    if (!verifyTelegramWebhookSecret(secretHeader)) {
+      console.error('Telegram webhook: secret token mos kelmadi');
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const update = await request.json();
-
-    if (isHeavyTelegramUpdate(update)) {
-      waitUntil(processUpdate(update));
-      return NextResponse.json({ ok: true });
-    }
+    console.log('Telegram webhook update:', update?.message?.text || update?.update_id);
 
     await processUpdate(update);
     return NextResponse.json({ ok: true });
@@ -39,7 +35,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-/** Vercel deploydan keyin webhookni ulash: GET /api/telegram/webhook?setup=SIZNING_KALIT */
+/** Webhookni ulash: GET /api/telegram/webhook?setup=SIZNING_KALIT */
 export async function GET(request: NextRequest) {
   const setupKey = request.nextUrl.searchParams.get('setup');
   const expected = process.env.TELEGRAM_SETUP_KEY || process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -64,5 +60,6 @@ export async function GET(request: NextRequest) {
     ok: true,
     webhookUrl,
     info: info.result,
+    tip: 'Endi botga /start yuboring. TELEGRAM_ADMIN_IDS da ID ingiz bo\'lishi kerak.',
   });
 }
