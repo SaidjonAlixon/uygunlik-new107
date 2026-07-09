@@ -219,7 +219,7 @@ export default function DashboardRatingTab({ tariffId, tariffName }: { tariffId?
                 type="button"
                 onClick={() => handleViewChange(opt.value)}
                 disabled={opt.needsTariff && !tariffId}
-                title={opt.needsTariff && !tariffId ? "Bo'lim va darslik uchun tarif kerak" : undefined}
+                title={opt.needsTariff && !tariffId ? "Bo'lim va darslik uchun kurs kerak" : undefined}
                 className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all disabled:opacity-40 disabled:cursor-not-allowed ${
                   viewType === opt.value
                     ? 'bg-[#5D1111] text-white shadow-md'
@@ -294,7 +294,7 @@ export default function DashboardRatingTab({ tariffId, tariffName }: { tariffId?
               <div className="py-8 text-center">
                 <ClipboardList className="mx-auto h-10 w-10 text-gray-400 mb-2" />
                 <p className="text-gray-600 text-sm">
-                  Bo'lim yoki darslik reytingi uchun tarifga ega bo'lishingiz kerak.
+                  Bo'lim yoki darslik reytingi uchun kursga ega bo'lishingiz kerak.
                 </p>
               </div>
             ) : (

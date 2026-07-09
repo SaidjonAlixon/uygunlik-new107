@@ -30,16 +30,16 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
         // On success, set the user data in the store.
         setUser(data.user);
       } catch (error: any) {
-        // Silently handle 401 errors - just means user is not logged in
-        if (error?.response?.status === 401 || error?.message?.includes('401')) {
-          // Clear invalid token
+        const status = error?.response?.status;
+        // Token eski yoki foydalanuvchi topilmadi — sessiyani tozalash
+        if (status === 401 || status === 404 || error?.message?.includes('401')) {
           if (typeof window !== 'undefined') {
             localStorage.removeItem('auth_token');
           }
           setUser(null);
         } else {
-        console.error("Failed to fetch user:", error);
-        setUser(null);
+          console.error("Failed to fetch user:", error);
+          setUser(null);
         }
       }
     })();

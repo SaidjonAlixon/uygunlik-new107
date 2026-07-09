@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Settings, BookOpen, PlayCircle, LogOut, Video, FileText } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, FileText } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
@@ -163,7 +163,7 @@ export default function DashboardPage() {
 
   const userInfo = {
     name: `${user.first_name} ${user.last_name}`,
-    plan: user.tariff?.name || (user.tariff_id ? 'Tarif' : 'Tarif tanlanmagan'),
+    plan: user.tariff?.name || '',
   };
 
   return (
@@ -184,17 +184,19 @@ export default function DashboardPage() {
       </div>
       <header className="bg-white border-b relative z-10">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center space-x-2">
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+          <Link href="/" className="flex items-center">
+            <img
+              src="/images/logo-main.png"
+              alt="Uygunlik"
+              className="h-10 w-auto object-contain"
+            />
           </Link>
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="bg-red-100 text-red-800">
-              {userInfo.plan} tarif
-            </Badge>
-            <Button variant="outline" size="sm" onClick={() => router.push('/settings')}>
-              <Settings className="h-4 w-4 mr-2" />
-              Sozlamalar
-            </Button>
+          <div className="flex items-center space-x-3">
+            {userInfo.plan && (
+              <Badge variant="secondary" className="bg-red-100 text-red-800">
+                {userInfo.plan}
+              </Badge>
+            )}
             <Button variant="outline" size="sm" onClick={handleLogout} className="text-red-600 border-red-300 hover:bg-red-50">
               <LogOut className="h-4 w-4 mr-2" />
               Chiqish
@@ -227,10 +229,10 @@ export default function DashboardPage() {
                 <div>
                   <div className="mb-4">
                     <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                      {user.tariff?.name || 'Tarif'} darslari
+                      {user.tariff?.name ? `${user.tariff.name} darslari` : 'Darslar'}
                     </h2>
                     <p className="text-sm text-gray-600">
-                      Sizning tarifingizga tegishli darslar
+                      Sizga tegishli darslar
                     </p>
                   </div>
                   {loadingLessons ? (
@@ -341,7 +343,7 @@ export default function DashboardPage() {
                     <div className="text-center py-8 bg-gray-50 rounded-lg">
                       <Video className="mx-auto h-12 w-12 text-gray-400" />
                       <h3 className="mt-2 text-lg font-medium text-gray-900">
-                        Bu tarifda hali darslar mavjud emas
+                        Bu bo'limda hali darslar mavjud emas
                       </h3>
                       <p className="mt-1 text-sm text-gray-500">
                         Tez orada darslar qo'shiladi.
