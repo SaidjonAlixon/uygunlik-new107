@@ -757,15 +757,18 @@ export default function HomePage() {
         </motion.section>
 
         {/* STM BU bo'limi */}
-        <section className="py-10 md:py-20 px-4 md:min-h-screen flex items-center" style={{ backgroundColor: '#801d1d', backgroundImage: 'none', backgroundRepeat: 'no-repeat', backgroundSize: 'cover', backgroundPosition: 'center', backgroundAttachment: 'fixed', backgroundClip: 'padding-box', zIndex: 1, position: 'relative', overflow: 'hidden' }}>
-          <div className="container mx-auto">
-            <div className="w-full text-white flex flex-col items-center justify-center p-2 sm:p-5 relative z-10">
+        <section
+          className="h-[100dvh] min-h-[100dvh] md:h-auto md:min-h-screen flex items-center justify-center px-4 py-6 sm:py-10 md:py-20 overflow-hidden"
+          style={{ backgroundColor: '#801d1d', zIndex: 1, position: 'relative' }}
+        >
+          <div className="container mx-auto w-full">
+            <div className="w-full text-white flex flex-col items-center justify-center p-1 sm:p-5 relative z-10">
               <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
 
                 <div className="w-full grid grid-cols-[1fr_auto_1fr] md:gap-4 lg:gap-8 items-center justify-center">
 
                   {/* Left Texts */}
-                  <div className="flex flex-col justify-between h-[300px] sm:h-[360px] md:h-[360px] text-center md:text-right z-30 w-[100px] sm:w-[120px] md:w-auto -mr-6 sm:-mr-8 md:mr-0 justify-self-end">
+                  <div className="flex flex-col justify-between h-[220px] sm:h-[300px] md:h-[360px] text-center md:text-right z-30 w-[90px] sm:w-[120px] md:w-auto -mr-5 sm:-mr-8 md:mr-0 justify-self-end">
                     <p className="text-[10px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
                       Harorat va ajralmalarni tahlil qilish
                     </p>
@@ -775,7 +778,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Doira + rasm + halqalar + nuqtalar */}
-                  <div className="relative z-10 w-[230px] h-[230px] sm:w-[280px] sm:h-[280px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
+                  <div className="relative z-10 w-[210px] h-[210px] sm:w-[280px] sm:h-[280px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
                     {/* Tashqi halqa (Dashed) */}
                     <div className="absolute inset-0 rounded-full border-[1px] md:border-[2px] border-dashed border-white/60" />
 
@@ -831,7 +834,7 @@ export default function HomePage() {
                   </div>
 
                   {/* Right Texts */}
-                  <div className="flex flex-col justify-between h-[300px] sm:h-[360px] md:h-[360px] text-center md:text-left z-30 w-[100px] sm:w-[120px] md:w-auto -ml-6 sm:-ml-8 md:ml-0 justify-self-start">
+                  <div className="flex flex-col justify-between h-[220px] sm:h-[300px] md:h-[360px] text-center md:text-left z-30 w-[90px] sm:w-[120px] md:w-auto -ml-5 sm:-ml-8 md:ml-0 justify-self-start">
                     <p className="text-[10px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
                       Spiral va gormonal tabletkalarsiz qo'rquvsiz yaqinlik
                     </p>
@@ -843,7 +846,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Slogan */}
-                <p className="mt-20 sm:mt-24 md:mt-32 text-center text-lg sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md" style={{ fontFamily: 'Bergstena Script, cursive' }}>
+                <p className="mt-8 sm:mt-16 md:mt-32 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md" style={{ fontFamily: 'Bergstena Script, cursive' }}>
                   Bu – tanangiz bilan hamohanglikda yashash san'ati.
                 </p>
               </div>
@@ -852,7 +855,7 @@ export default function HomePage() {
         </section>
 
         {/* kurslar kimlar uchun */}
-        <section className="py-0 px-4 relative min-h-screen overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+        <section className="py-0 px-4 relative min-h-screen overflow-hidden md:-mt-8">
           {/* Orqa fon rasmi */}
           <div className="absolute inset-0 z-0">
             <div
