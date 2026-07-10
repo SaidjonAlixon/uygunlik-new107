@@ -20,21 +20,20 @@ import {
   ArrowLeft,
   Plus,
   Minus,
-  Menu,
-  X,
   LogOut,
+  Home,
+  BookOpen,
+  UserCircle,
+  HelpCircle,
+  Tags,
+  MessageSquare,
+  LogIn,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { useUserStore } from "@/store/user.store";
+import { subtitleFont } from "@/lib/fonts";
+import { cn } from "@/lib/utils";
 
 // Loading Screen Component
 const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
@@ -438,9 +437,10 @@ export default function HomePage() {
   const { scrollYProgress } = useScroll();
   const rotate = useTransform(scrollYProgress, [0, 1], [0, 1080]);
 
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showMainContent, setShowMainContent] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("main");
 
   const handleLogout = () => {
     // Clear token
@@ -476,163 +476,213 @@ export default function HomePage() {
     }
   }, [isLoading]);
 
+  useEffect(() => {
+    const handleNavScroll = () => {
+      setNavScrolled(window.scrollY > 24);
+    };
+    handleNavScroll();
+    window.addEventListener('scroll', handleNavScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleNavScroll);
+  }, []);
+
+  useEffect(() => {
+    const sectionIds = ["main", "courses", "author", "faq", "pricing", "reviews"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]?.target.id) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-35% 0px -45% 0px", threshold: [0, 0.15, 0.35, 0.55] }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [showMainContent]);
+
   const navLinks = [
-    { href: "/#main", label: "Bosh sahifa" },
-    { href: "#courses", label: "Kurs haqida" },
-    { href: "#author", label: "Muallif haqida" },
-    { href: "#faq", label: "FAQ" },
-    { href: "#pricing", label: "Tariflar" },
-    { href: "#reviews", label: "Sharhlar" },
+    { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
+    { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
+    { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
+    { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
+    { href: "#pricing", label: "Tariflar", shortLabel: "Tarif", icon: Tags, id: "pricing" },
+    { href: "#reviews", label: "Sharhlar", shortLabel: "Sharh", icon: MessageSquare, id: "reviews" },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    if (sectionId === "main") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleSectionNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string
+  ) => {
+    e.preventDefault();
+    scrollToSection(sectionId);
+  };
+
+  const mobileNavLinks = [
+    ...navLinks.filter((link) => link.id !== "faq"),
+    user
+      ? {
+          href: "/dashboard",
+          label: user.first_name,
+          shortLabel: "Kabinet",
+          icon: UserCircle,
+          id: "dashboard",
+        }
+      : {
+          href: "/auth",
+          label: "Kirish",
+          shortLabel: "Kirish",
+          icon: LogIn,
+          id: "auth",
+        },
   ];
 
   return (
-    <div className="min-h-screen bg-[#FEFBEE] text-gray-800 overflow-x-hidden">
+    <div className="min-h-screen bg-[#FEFBEE] text-gray-800 overflow-x-hidden pb-24 lg:pb-0">
       {/* Loading Screen */}
       <AnimatePresence>
         {isLoading && (
           <LoadingScreen onComplete={handleLoadingComplete} />
         )}
       </AnimatePresence>
-      {/* --- Sticky Mobile Menu Button --- */}
-      <div className="fixed top-3 right-3 z-50 lg:hidden">
-        <Sheet open={isMenuOpen} onOpenChange={setIsMenuOpen}>
-          <SheetTrigger asChild>
-            <button className="p-2 md:p-3 rounded-full text-white bg-red-800 shadow-md hover:bg-red-900 transition-all duration-300 hover:scale-110">
-              <span className="sr-only">Open menu</span>
-              {isMenuOpen ? (
-                <X className="h-5 w-5 md:h-6 md:w-6" />
-              ) : (
-                <Menu className="h-5 w-5 md:h-6 md:w-6" />
-              )}
-            </button>
-          </SheetTrigger>
-          <SheetContent
-            side="right"
-            className="bg-red-900 text-white border-none p-8"
-            onCloseAutoFocus={(e) => e.preventDefault()}
-          >
-            <SheetHeader className="mb-8">
-              <SheetTitle className="text-white text-2xl font-bold text-left"></SheetTitle>
-            </SheetHeader>
-            <nav className="flex flex-col gap-3">
-              {navLinks.map((link) => (
-                <SheetClose asChild key={link.href}>
-                  <Link
-                    href={link.href}
-                    className="text-2xl hover:underline underline-offset-4 text-left"
-                  >
-                    {link.label}
-                  </Link>
-                </SheetClose>
-              ))}
-              {user ? (
-                <>
-                  <SheetClose asChild>
-                    <Link
-                      href={"/dashboard"}
-                      className="text-2xl hover:underline underline-offset-4 text-left"
-                    >
-                      {user.first_name}
-                    </Link>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <button
-                      onClick={handleLogout}
-                      className="text-2xl hover:underline underline-offset-4 text-left text-red-600"
-                    >
-                      Chiqish
-                    </button>
-                  </SheetClose>
-                </>
-              ) : (
-                <>
-                  <SheetClose asChild>
-                    <Link
-                      href={"/auth"}
-                      className="text-2xl hover:underline underline-offset-4 text-left"
-                    >
-                      Kirish
-                    </Link>
-                  </SheetClose>
-                  <SheetClose asChild>
-                    <Link
-                      href={"/register"}
-                      className="text-2xl hover:underline underline-offset-4 text-left"
-                    >
-                      Ro'yxatdan o'tish
-                    </Link>
-                  </SheetClose>
-                </>
-              )}
-            </nav>
-          </SheetContent>
-        </Sheet>
-      </div>
-
-      {/* --- Desktop Header --- */}
-      <div
-        id="main"
-        className="container mx-auto px-4 sm:px-6 lg:px-8 top-0 left-0 absolute lg:static z-30"
+      {/* --- Mobile pastki navbar --- */}
+      <nav
+        className="fixed bottom-3 left-3 right-3 z-50 lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        aria-label="Mobil navigatsiya"
       >
-        <div className="flex items-center lg:justify-end py-2">
-          {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-8">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-xl font-medium text-gray-600 hover:text-red-800 transition-colors duration-300"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </nav>
-
-          {/* Desktop Auth Buttons */}
-          <div className="hidden lg:flex items-center space-x-4 ml-10">
-            {user ? (
-              <>
-                <Link href="/dashboard">
-                  <Button
-                    variant="outline"
-                    className="border-red-300 text-red-800 hover:bg-red-50"
-                  >
-                    {user.first_name}
-                  </Button>
-                </Link>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleLogout}
-                  className="text-red-600 border-red-300 hover:bg-red-50"
+        <div className="mx-auto max-w-lg rounded-[2rem] border border-[#FEFBEE]/15 bg-[#3d0c0c]/95 px-1 py-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <div className="flex items-stretch justify-between gap-0.5">
+            {mobileNavLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = ["auth", "dashboard"].includes(link.id)
+                ? false
+                : activeSection === link.id;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => {
+                    if (["auth", "dashboard"].includes(link.id)) return;
+                    handleSectionNavClick(e, link.id);
+                  }}
+                  className={cn(
+                    "flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-0.5 py-1.5 transition-all duration-200",
+                    isActive
+                      ? "bg-[#FEFBEE]/15 text-[#FEFBEE] shadow-[0_0_18px_rgba(254,251,238,0.22)] ring-1 ring-[#FEFBEE]/35"
+                      : "text-[#FEFBEE]/55 hover:text-[#FEFBEE]/85"
+                  )}
                 >
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Chiqish
-                </Button>
-              </>
-            ) : (
-              <>
-                <Link href="/auth">
-                  <Button
-                    variant="outline"
-                    className="border-red-800 text-red-800 hover:bg-red-50"
-                  >
-                    Kirish
-                  </Button>
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="mt-0.5 max-w-full truncate text-[7px] font-bold uppercase tracking-[0.08em] sm:text-[8px]">
+                    {link.shortLabel}
+                  </span>
                 </Link>
-                <Link href="/register">
-                  <Button className="bg-red-800 hover:bg-red-900 text-white">
-                    Ro'yxatdan o'tish
-                  </Button>
-                </Link>
-              </>
-            )}
+              );
+            })}
           </div>
         </div>
-      </div>
+      </nav>
+
+      {/* --- Desktop Sticky Navbar (markazda) --- */}
+      <header className="hidden lg:flex fixed top-0 left-0 right-0 z-50 justify-center px-4 pointer-events-none">
+        <div
+          className={`pointer-events-auto w-full max-w-5xl transition-all duration-500 ${
+            navScrolled ? 'mt-3' : 'mt-5'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center gap-1 rounded-full border transition-all duration-500 ${
+              navScrolled
+                ? 'bg-[#FEFBEE]/95 backdrop-blur-2xl border-[#5D1111]/15 shadow-[0_12px_40px_rgba(93,17,17,0.12)] py-2 px-3'
+                : 'bg-[#FEFBEE]/70 backdrop-blur-xl border-[#5D1111]/10 shadow-[0_8px_32px_rgba(93,17,17,0.06)] py-2.5 px-4'
+            }`}
+          >
+            <nav className="flex items-center flex-wrap justify-center gap-0.5">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleSectionNavClick(e, link.id)}
+                  className="group relative px-3 xl:px-3.5 py-2 text-[10px] xl:text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5D1111]/70 hover:text-[#5D1111] transition-colors duration-200"
+                >
+                  {link.label}
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-[1.5px] bg-[#5D1111] rounded-full transition-all duration-300 group-hover:w-4/5" />
+                </Link>
+              ))}
+            </nav>
+
+            <span className="mx-1.5 h-5 w-px bg-gradient-to-b from-transparent via-[#5D1111]/25 to-transparent shrink-0" />
+
+            <div className="flex items-center gap-2 shrink-0">
+              {user ? (
+                <>
+                  <Link href="/dashboard">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.12em] text-[10px] px-4"
+                    >
+                      {user.first_name}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.12em] text-[10px] px-4"
+                  >
+                    <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                    Chiqish
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-9 rounded-full bg-transparent border-[#5D1111]/25 text-[#5D1111] hover:bg-white/60 hover:border-[#5D1111]/40 font-semibold uppercase tracking-[0.12em] text-[10px] px-5"
+                    >
+                      Kirish
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button
+                      size="sm"
+                      className="h-9 rounded-full bg-[#5D1111] text-[#FEFBEE] hover:bg-[#7A2E2E] border-0 font-semibold uppercase tracking-[0.12em] text-[10px] px-5 shadow-md shadow-[#5D1111]/20"
+                    >
+                      Ro&apos;yxatdan o&apos;tish
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop navbar uchun joy */}
+      <div className="hidden lg:block h-20" aria-hidden="true" />
       <main>
         {/* --- Hero Section --- */}
         <motion.section
+          id="main"
           className="relative w-full"
           initial={{ opacity: 0 }}
           animate={{
@@ -645,7 +695,7 @@ export default function HomePage() {
           }}
         >
           {/* Top Content (Logos & Text) */}
-          <div className="relative z-20 w-full bg-[#FEFBEE] pt-8 pb-10">
+          <div className="relative z-20 w-full bg-[#FEFBEE] pt-2 pb-0 sm:pt-3 md:pt-4">
             <div className="flex flex-col items-center justify-center text-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -659,11 +709,11 @@ export default function HomePage() {
                 <img
                   src="/images/logo-decorated.png"
                   alt="Platform Logo"
-                  className="h-28 md:h-56 lg:h-64 w-auto object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.7))]"
+                  className="h-24 sm:h-28 md:h-48 lg:h-52 w-auto object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.7))]"
                 />
               </motion.div>
               <motion.h1
-                className="text-xl sm:text-3xl md:text-5xl relative z-50 text-[#5D1111]"
+                className="text-xl sm:text-3xl md:text-5xl relative z-50 text-[#5D1111] mt-1 sm:mt-2"
                 style={{ fontFamily: 'Bergstena Decorated, serif' }}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{
@@ -675,7 +725,7 @@ export default function HomePage() {
                 Ayollik tabiatingiz bilan hamohanglikda yashang
               </motion.h1>
               <motion.p
-                className="mx-auto text-base sm:text-xl md:text-2xl font-semibold text-[#7A2E2E] mb-4 relative z-40"
+                className={`mx-auto max-w-2xl text-lg sm:text-2xl md:text-3xl font-normal italic leading-snug tracking-[0.02em] text-[#7A2E2E]/90 mt-1 sm:mt-2 relative z-40 ${subtitleFont.className}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{
                   opacity: showMainContent ? 1 : 0,
@@ -695,9 +745,9 @@ export default function HomePage() {
                 transition={{ duration: 0.5, delay: 0.8 }}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="relative z-50"
+                className="relative z-50 mt-2 sm:mt-3"
               >
-                <ul className="text-[#5D1111] flex items-center flex-col sm:flex-row gap-x-1">
+                <ul className="text-[#5D1111] flex items-center flex-col sm:flex-row gap-x-2 text-base sm:text-lg md:text-xl">
                   <li className="font-bold">Start:</li>
                   <li>Iyul, 2026</li>
                   <li className="font-bold">Davomiyligi:</li>
@@ -707,8 +757,8 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Bottom Video Section */}
-          <div className="relative w-full h-[80vh] overflow-hidden">
+          {/* Bottom Video Section — to'liq ko'rinish */}
+          <div className="relative w-full h-[72vh] sm:h-[78vh] md:h-[80vh] -mt-2 sm:-mt-3 overflow-hidden">
             <motion.video
               src="/women.mp4"
               poster="/images/header.jpg"
@@ -855,7 +905,7 @@ export default function HomePage() {
         </section>
 
         {/* kurslar kimlar uchun */}
-        <section className="py-0 px-4 relative min-h-screen overflow-hidden md:-mt-8">
+        <section className="py-0 px-4 relative overflow-hidden md:-mt-8">
           {/* Orqa fon rasmi */}
           <div className="absolute inset-0 z-0">
             <div
@@ -882,7 +932,7 @@ export default function HomePage() {
               }}
             />
           </div>
-          <div className="container mx-auto relative z-10 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="container mx-auto relative z-10 py-8 sm:py-10 pb-12 sm:pb-16 px-4 sm:px-6 lg:px-8">
             <motion.h2
               className="text-3xl font-bold text-center mb-6 text-red-900"
               initial={{ opacity: 0, y: 20 }}
@@ -1147,7 +1197,7 @@ export default function HomePage() {
         </section> */}
 
         {/* --- Course Content Section --- */}
-        <section id="courses" className="py-0 px-4 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+        <section id="courses" className="py-0 px-4 relative overflow-hidden">
           {/* Orqa fon rasmi */}
           <div className="absolute inset-0 z-0">
             <div
@@ -1174,9 +1224,9 @@ export default function HomePage() {
               }}
             />
           </div>
-          <div className="container mx-auto relative z-10 py-16">
+          <div className="container mx-auto relative z-10 pt-10 pb-12 sm:pt-12 sm:pb-16">
             <motion.h2
-              className="text-3xl font-bold text-center mb-12 text-red-900"
+              className="text-3xl font-bold text-center mb-10 sm:mb-12 text-red-900"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1185,7 +1235,7 @@ export default function HomePage() {
               KURS TARKIBI
             </motion.h2>
 
-            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
               {/* I MODUL */}
               <motion.div
                 initial={{ opacity: 0, y: 30 }}
@@ -1446,7 +1496,7 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.5 }}
-                className="md:col-span-2 lg:col-span-1"
+                className="md:col-span-2 lg:col-span-2 lg:justify-self-center lg:w-[calc(50%-1rem)]"
               >
                 <Card className="border-red-200 h-full">
                   <CardHeader>
@@ -1710,9 +1760,9 @@ export default function HomePage() {
               }}
             />
           </div>
-          <div className="container mx-auto relative z-10 py-16">
+          <div className="container mx-auto relative z-10 py-16 lg:py-24">
             <motion.h2
-              className="text-3xl font-bold text-center mb-12 text-red-900"
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-10 lg:mb-16 text-red-900"
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -1721,7 +1771,7 @@ export default function HomePage() {
               Kurs muallifi
             </motion.h2>
 
-            <div className="grid md:grid-cols-2 gap-12 max-w-7xl mx-auto items-center px-4 sm:px-6">
+            <div className="grid md:grid-cols-2 gap-10 lg:gap-20 max-w-6xl lg:max-w-7xl mx-auto items-center px-4 sm:px-6 lg:px-8">
               {/* Chap qism: Portret va ma'lumotlar */}
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
@@ -1730,32 +1780,35 @@ export default function HomePage() {
                 transition={{ duration: 0.8 }}
                 className="text-center md:text-left"
               >
-                <div className="mb-8">
-                  <div className="w-48 h-48 mx-auto md:mx-0 rounded-full overflow-hidden bg-gray-200 mb-6">
+                <div className="mb-8 lg:mb-10">
+                  <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-72 lg:h-72 mx-auto md:mx-0 rounded-full overflow-hidden bg-gray-200 mb-6 lg:mb-8 ring-4 ring-red-900/10 shadow-lg">
                     <img
                       src="/images/muallif.jpg"
                       alt="Nozima Khamraeva"
-                      className="w-full h-full object-cover"
+                      width={640}
+                      height={640}
+                      decoding="async"
+                      className="absolute left-1/2 top-1/2 max-w-none w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 object-cover object-[center_28%]"
                     />
                   </div>
-                  <h3 className="text-2xl font-bold text-red-900 mb-2">
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-900 mb-2 lg:mb-3">
                     Kurs muallifi
                   </h3>
-                  <h4 className="text-3xl font-serif font-bold text-red-800 mb-6">
+                  <h4 className="text-2xl sm:text-3xl lg:text-5xl font-serif font-bold text-red-800 mb-4 lg:mb-8">
                     Nozima Khamraeva
                   </h4>
                 </div>
 
-                <div className="space-y-4 text-gray-700">
-                  <p className="text-lg leading-relaxed">
+                <div className="space-y-4 lg:space-y-6 text-gray-800">
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     Buyuk Britaniya "Natural Family Planning Teachers'
                     Association" uyushmasining sertifikatli treneri.
                   </p>
-                  <p className="text-lg leading-relaxed">
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     O'zbekistonda ilk marotaba ayollar uchun ko'p martalik
                     matoli tagliklarni tanishtirgan ayol.
                   </p>
-                  <p className="text-lg leading-relaxed">
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     2 ta farzandini tibbiy xodimlar va aralashuvlarsiz, ongli yondashib, oʻz uyida dunyoga keltirgan ona.
                   </p>
                 </div>
@@ -1767,10 +1820,10 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="flex justify-center"
+                className="flex justify-center md:justify-end lg:justify-center"
               >
-                <div className="border-red-200 bg-white shadow-lg max-w-sm">
-                  <img className="h-full w-full" src="/nfp.jpg" alt="" />
+                <div className="border border-red-200 bg-white shadow-xl rounded-sm w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl">
+                  <img className="h-full w-full object-contain" src="/nfp.jpg" alt="NFP sertifikati" />
                 </div>
               </motion.div>
             </div>

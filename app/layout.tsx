@@ -3,6 +3,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { subtitleFont } from "@/lib/fonts";
 
 export const metadata: Metadata = {
   title: "Uygunlik",
@@ -19,7 +20,7 @@ export default function RootLayout({
       lang="en"
       suppressHydrationWarning
     >
-      <body>
+      <body className={subtitleFont.variable}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

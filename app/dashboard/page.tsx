@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, FileText } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, FileText, Home, ChevronRight, ArrowLeft, Layers } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
@@ -58,11 +58,11 @@ export default function DashboardPage() {
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const [activeTab, setActiveTab] = useState('courses');
+  const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
 
   const handleLogout = () => {
-    // Clear token
     localStorage.removeItem('auth_token');
-    // Redirect to home
+    clearUser();
     window.location.href = '/';
   };
 
@@ -118,6 +118,21 @@ export default function DashboardPage() {
       setLoadingLessons(false);
     }
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'courses') {
+      setSelectedSectionId(null);
+    }
+  }, [activeTab]);
+
+  const getSectionProgress = (section: LessonSection) => {
+    const lessons = section.lessons || [];
+    if (lessons.length === 0) return 0;
+    const total = lessons.reduce((sum, lesson) => sum + (lessonProgress[lesson.id] ?? 0), 0);
+    return Math.round(total / lessons.length);
+  };
+
+  const selectedSection = tariffSections.find((section) => section.id === selectedSectionId) ?? null;
 
   useEffect(() => {
     if (activeTab !== 'courses' || !user?.tariff_id) {
@@ -183,23 +198,38 @@ export default function DashboardPage() {
         />
       </div>
       <header className="bg-white border-b relative z-10">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <img
-              src="/images/logo-main.png"
-              alt="Uygunlik"
-              className="h-10 w-auto object-contain"
-            />
-          </Link>
-          <div className="flex items-center space-x-3">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <Link href="/" className="flex items-center shrink-0">
+              <img
+                src="/images/logo-main.png"
+                alt="Uygunlik"
+                className="h-10 w-auto object-contain"
+              />
+            </Link>
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#5D1111]/15 bg-[#FEFBEE] px-2.5 py-1.5 text-xs font-semibold text-[#5D1111] hover:bg-[#FEFBEE]/80 shrink-0"
+            >
+              <Home className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Asosiy</span>
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
             {userInfo.plan && (
-              <Badge variant="secondary" className="bg-red-100 text-red-800">
+              <Badge variant="secondary" className="bg-red-100 text-red-800 hidden sm:inline-flex">
                 {userInfo.plan}
               </Badge>
             )}
-            <Button variant="outline" size="sm" onClick={handleLogout} className="text-red-600 border-red-300 hover:bg-red-50">
-              <LogOut className="h-4 w-4 mr-2" />
-              Chiqish
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="text-red-600 border-red-300 hover:bg-red-50 px-2 sm:px-3"
+              aria-label="Chiqish"
+            >
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Chiqish</span>
             </Button>
           </div>
         </div>
@@ -224,131 +254,168 @@ export default function DashboardPage() {
 
           <TabsContent value="courses">
             <div className="space-y-8">
-              {/* Tarif darslari */}
               {user.tariff_id && (
                 <div>
-                  <div className="mb-4">
-                    <h2 className="text-xl font-semibold text-gray-900 mb-2">
-                      {user.tariff?.name ? `${user.tariff.name} darslari` : 'Darslar'}
-                    </h2>
-                    <p className="text-sm text-gray-600">
-                      Sizga tegishli darslar
-                    </p>
-                  </div>
-                  {loadingLessons ? (
-                    <div className="text-center py-8">
-                      <p className="text-gray-600">Darslar yuklanmoqda...</p>
-                    </div>
-                  ) : tariffSections.length > 0 ? (
-                    <div className="space-y-10">
-                      {tariffSections.map((section, sectionIndex) => (
-                        <div key={section.id}>
-                          <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg overflow-hidden">
-                            <div className="px-6 py-5 border-b border-gray-100 bg-gradient-to-r from-red-50/90 via-white to-white">
-                              <div className="flex items-start gap-4">
-                                <span className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600 text-white text-sm font-bold shrink-0 shadow-md shadow-red-600/20">
-                                  {sectionIndex + 1}
-                                </span>
-                                <div className="flex-1 min-w-0">
-                                  <h3 className="text-xl font-bold text-gray-900 tracking-tight">
-                                    {section.name}
-                                  </h3>
-                                  {section.description && (
-                                    <p className="text-sm text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
-                                      {section.description}
+                  {!selectedSection ? (
+                    <>
+                      <div className="mb-6">
+                        <h2 className="text-xl font-semibold text-gray-900 mb-2">
+                          {user.tariff?.name ? `${user.tariff.name} bo'limlari` : "Bo'limlar"}
+                        </h2>
+                        <p className="text-sm text-gray-600">
+                          Darslarni ko'rish uchun bo'limni tanlang
+                        </p>
+                      </div>
+
+                      {loadingLessons ? (
+                        <div className="text-center py-8">
+                          <p className="text-gray-600">Bo'limlar yuklanmoqda...</p>
+                        </div>
+                      ) : tariffSections.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                          {tariffSections.map((section, sectionIndex) => (
+                            <button
+                              key={section.id}
+                              type="button"
+                              onClick={() => setSelectedSectionId(section.id)}
+                              className="text-left bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg overflow-hidden hover:shadow-xl hover:border-red-200 transition-all"
+                            >
+                              <div className="px-6 py-5">
+                                <div className="flex items-start gap-4">
+                                  <span className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600 text-white text-sm font-bold shrink-0 shadow-md shadow-red-600/20">
+                                    {sectionIndex + 1}
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">
+                                      {section.name}
+                                    </h3>
+                                    {section.description && (
+                                      <p className="text-sm text-gray-600 mt-2 leading-relaxed line-clamp-2">
+                                        {section.description}
+                                      </p>
+                                    )}
+                                    <p className="text-xs text-gray-400 mt-2 font-medium">
+                                      {section.lessons?.length || 0} ta dars
                                     </p>
-                                  )}
-                                  <p className="text-xs text-gray-400 mt-2 font-medium">
-                                    {section.lessons?.length || 0} ta dars
-                                  </p>
+                                    <div className="mt-4 space-y-1.5">
+                                      <div className="flex justify-between text-xs text-gray-500">
+                                        <span>Umumiy progress</span>
+                                        <span className="font-medium text-gray-700">{getSectionProgress(section)}%</span>
+                                      </div>
+                                      <Progress value={getSectionProgress(section)} className="h-2" />
+                                    </div>
+                                  </div>
+                                  <ChevronRight className="h-5 w-5 text-red-600 shrink-0 mt-1" />
                                 </div>
                               </div>
-                            </div>
-
-                            <div className="p-6">
-                              {section.lessons && section.lessons.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                  {section.lessons.map((lesson) => (
-                                    <Card key={lesson.id} className="flex flex-col shadow-md border-gray-100">
-                                      <CardHeader className="pb-2">
-                                        <CardTitle className="text-xl font-semibold text-gray-900 leading-tight">
-                                          {lesson.title}
-                                        </CardTitle>
-                                        <CardDescription className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-3 min-h-[3.75rem]">
-                                          {lesson.description || 'Tavsif mavjud emas'}
-                                        </CardDescription>
-                                      </CardHeader>
-                                      <CardContent className="flex-grow py-2 space-y-3">
-                                        <div className="flex flex-wrap items-center gap-3 text-sm">
-                                          {lesson.video_url && (
-                                            <span className="inline-flex items-center gap-1.5 text-gray-700">
-                                              <Video className="h-4 w-4 text-red-600 shrink-0" />
-                                              Video
-                                            </span>
-                                          )}
-                                          {lesson.pdf_url && (
-                                            <span className="inline-flex items-center gap-1.5 text-gray-700">
-                                              <FileText className="h-4 w-4 text-red-600 shrink-0" />
-                                              PDF
-                                            </span>
-                                          )}
-                                          {!lesson.video_url && !lesson.pdf_url && (
-                                            <span className="text-gray-500">Material yo'q</span>
-                                          )}
-                                        </div>
-                                        <div className="space-y-1.5">
-                                          <div className="flex justify-between text-xs text-gray-500">
-                                            <span>Ko'rilgan</span>
-                                            <span className="font-medium text-gray-700">{lessonProgress[lesson.id] ?? 0}%</span>
-                                          </div>
-                                          <Progress value={lessonProgress[lesson.id] ?? 0} className="h-2" />
-                                        </div>
-                                      </CardContent>
-                                      <CardFooter className="pt-2">
-                                        {lesson.video_url ? (
-                                          <Link href={`/watch/${lesson.id}`} className="w-full">
-                                            <Button className="w-full bg-red-600 hover:bg-red-700">
-                                              <PlayCircle className="mr-2 h-4 w-4" />
-                                              Darsni ko'rish
-                                            </Button>
-                                          </Link>
-                                        ) : (
-                                          <Button className="w-full" disabled>
-                                            Video mavjud emas
-                                          </Button>
-                                        )}
-                                      </CardFooter>
-                                    </Card>
-                                  ))}
-                                </div>
-                              ) : (
-                                <p className="text-sm text-gray-500 italic text-center py-4">
-                                  Bu bo'limda hali darslar yo'q
+                            </button>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-8 bg-gray-50 rounded-lg">
+                          <Layers className="mx-auto h-12 w-12 text-gray-400" />
+                          <h3 className="mt-2 text-lg font-medium text-gray-900">
+                            Sizning tarifingiz uchun bo'limlar mavjud emas
+                          </h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Tez orada bo'limlar qo'shiladi.
+                          </p>
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <div className="mb-6">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedSectionId(null)}
+                          className="mb-4 border-red-200 text-red-700 hover:bg-red-50"
+                        >
+                          <ArrowLeft className="h-4 w-4 mr-2" />
+                          Bo'limlarga qaytish
+                        </Button>
+                        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg px-6 py-5">
+                          <div className="flex items-start gap-4">
+                            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600 text-white text-sm font-bold shrink-0 shadow-md shadow-red-600/20">
+                              {tariffSections.findIndex((s) => s.id === selectedSection.id) + 1}
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <h2 className="text-2xl font-bold text-gray-900">{selectedSection.name}</h2>
+                              {selectedSection.description && (
+                                <p className="text-sm text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
+                                  {selectedSection.description}
                                 </p>
                               )}
+                              <p className="text-xs text-gray-400 mt-2 font-medium">
+                                {selectedSection.lessons?.length || 0} ta dars
+                              </p>
                             </div>
                           </div>
-
-                          {sectionIndex < tariffSections.length - 1 && (
-                            <div className="flex items-center gap-4 my-6 px-8">
-                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-                              <span className="text-xs font-medium text-gray-400 uppercase tracking-widest">Keyingi bo'lim</span>
-                              <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
-                            </div>
-                          )}
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 bg-gray-50 rounded-lg">
-                      <Video className="mx-auto h-12 w-12 text-gray-400" />
-                      <h3 className="mt-2 text-lg font-medium text-gray-900">
-                        Bu bo'limda hali darslar mavjud emas
-                      </h3>
-                      <p className="mt-1 text-sm text-gray-500">
-                        Tez orada darslar qo'shiladi.
-                      </p>
-                    </div>
+                      </div>
+
+                      {selectedSection.lessons && selectedSection.lessons.length > 0 ? (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {selectedSection.lessons.map((lesson) => (
+                            <Card key={lesson.id} className="flex flex-col shadow-md border-gray-100">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-xl font-semibold text-gray-900 leading-tight">
+                                  {lesson.title}
+                                </CardTitle>
+                                <CardDescription className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-3 min-h-[3.75rem]">
+                                  {lesson.description || 'Tavsif mavjud emas'}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="flex-grow py-2 space-y-3">
+                                <div className="flex flex-wrap items-center gap-3 text-sm">
+                                  {lesson.video_url && (
+                                    <span className="inline-flex items-center gap-1.5 text-gray-700">
+                                      <Video className="h-4 w-4 text-red-600 shrink-0" />
+                                      Video
+                                    </span>
+                                  )}
+                                  {lesson.pdf_url && (
+                                    <span className="inline-flex items-center gap-1.5 text-gray-700">
+                                      <FileText className="h-4 w-4 text-red-600 shrink-0" />
+                                      PDF
+                                    </span>
+                                  )}
+                                  {!lesson.video_url && !lesson.pdf_url && (
+                                    <span className="text-gray-500">Material yo'q</span>
+                                  )}
+                                </div>
+                                <div className="space-y-1.5">
+                                  <div className="flex justify-between text-xs text-gray-500">
+                                    <span>Ko'rilgan</span>
+                                    <span className="font-medium text-gray-700">{lessonProgress[lesson.id] ?? 0}%</span>
+                                  </div>
+                                  <Progress value={lessonProgress[lesson.id] ?? 0} className="h-2" />
+                                </div>
+                              </CardContent>
+                              <CardFooter className="pt-2">
+                                {lesson.video_url ? (
+                                  <Link href={`/watch/${lesson.id}`} className="w-full">
+                                    <Button className="w-full bg-red-600 hover:bg-red-700">
+                                      <PlayCircle className="mr-2 h-4 w-4" />
+                                      Darsni ko'rish
+                                    </Button>
+                                  </Link>
+                                ) : (
+                                  <Button className="w-full" disabled>
+                                    Video mavjud emas
+                                  </Button>
+                                )}
+                              </CardFooter>
+                            </Card>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-500 italic text-center py-8 bg-white/80 rounded-xl border border-gray-100">
+                          Bu bo'limda hali darslar yo'q
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

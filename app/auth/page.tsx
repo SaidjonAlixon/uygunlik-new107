@@ -20,6 +20,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
+import { PageTopActions } from '@/components/page-top-actions';
 import {
   Form,
   FormControl,
@@ -68,7 +69,8 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-b from-red-50 to-white flex items-center justify-center p-4 pt-16 relative overflow-hidden">
+      <PageTopActions />
       {/* Orqa fon rasmi */}
       <div className="absolute inset-0 z-0">
         <img
