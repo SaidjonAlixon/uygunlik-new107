@@ -88,7 +88,10 @@ export function isYouTubeUrl(url: string): boolean {
  * @param url - youtube.com/watch?v=ID, youtu.be/ID yoki embed link
  * @returns https://www.youtube.com/embed/VIDEO_ID yoki null
  */
-export function getYouTubeEmbedUrl(url: string): string | null {
+export function getYouTubeEmbedUrl(
+  url: string,
+  options?: { autoplay?: boolean }
+): string | null {
   if (!url || typeof url !== 'string') return null;
   const u = url.trim();
   let videoId: string | null = null;
@@ -108,13 +111,28 @@ export function getYouTubeEmbedUrl(url: string): string | null {
     if (embedMatch && embedMatch[1]) videoId = embedMatch[1];
   }
   if (!videoId) return null;
-  // modestbranding=1 — YouTube logotipini kamaytiradi
-  // rel=0 — tugagach boshqa kanal videolari ko‘rsatilmasin (faqat shu kanal)
-  // iv_load_policy=3 — annotatsiyalar yopiq
+
   const params = new URLSearchParams({
     modestbranding: '1',
     rel: '0',
     iv_load_policy: '3',
+    playsinline: '1',
+    fs: '0',
+    controls: '1',
+    disablekb: '1',
   });
-  return `https://www.youtube.com/embed/${videoId}?${params.toString()}`;
+  if (options?.autoplay) params.set('autoplay', '1');
+  const origin =
+    typeof window !== 'undefined'
+      ? window.location.origin
+      : process.env.NEXT_PUBLIC_APP_URL || '';
+  if (origin) params.set('origin', origin);
+
+  return `https://www.youtube-nocookie.com/embed/${videoId}?${params.toString()}`;
+}
+
+export function getYouTubeVideoId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:embed\/|watch\?.*v=|youtu\.be\/|\/v\/)([a-zA-Z0-9_-]{11})/);
+  return match?.[1] ?? null;
 }

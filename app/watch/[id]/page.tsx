@@ -3,12 +3,18 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Play } from "lucide-react";
 import { useUserStore } from "@/store/user.store";
 import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
 import { Lesson } from "@/types/lesson";
-import { isGoogleDriveUrl, convertGoogleDriveUrl, isYouTubeUrl, getYouTubeEmbedUrl } from "@/lib/utils";
+import {
+  isGoogleDriveUrl,
+  convertGoogleDriveUrl,
+  isYouTubeUrl,
+  getYouTubeEmbedUrl,
+  getYouTubeVideoId,
+} from "@/lib/utils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -18,11 +24,42 @@ function WatchExitButton({ sectionId }: { sectionId?: number | null }) {
   return (
     <Link
       href={href}
-      className="fixed top-4 left-4 z-[80] inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/80 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm hover:bg-black"
+      className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white hover:bg-white/15 transition-colors"
     >
       <LogOut className="h-4 w-4" />
       Chiqish
     </Link>
+  );
+}
+
+function WatchLayout({
+  sectionId,
+  children,
+}: {
+  sectionId?: number | null;
+  children: React.ReactNode;
+}) {
+  return (
+    <main className="min-h-screen bg-black flex flex-col">
+      <header className="sticky top-0 z-[80] shrink-0 border-b border-white/10 bg-black px-4 py-3">
+        <WatchExitButton sectionId={sectionId} />
+      </header>
+      <div className="flex w-full flex-col items-center gap-6 px-4 py-4 flex-1">
+        {children}
+      </div>
+    </main>
+  );
+}
+
+function YouTubeClickShield() {
+  return (
+    <div className="absolute inset-0 z-20 pointer-events-none">
+      <div className="absolute top-0 inset-x-0 h-16 sm:h-14 pointer-events-auto" aria-hidden />
+      <div className="absolute bottom-0 inset-x-0 h-24 sm:h-16 pointer-events-auto" aria-hidden />
+      <div className="absolute top-16 bottom-24 left-0 w-20 sm:w-24 pointer-events-auto" aria-hidden />
+      <div className="absolute top-16 bottom-24 right-0 w-20 sm:w-24 pointer-events-auto" aria-hidden />
+      <div className="absolute bottom-0 right-0 h-28 w-[70%] max-w-[300px] pointer-events-auto sm:hidden" aria-hidden />
+    </div>
   );
 }
 
@@ -38,6 +75,7 @@ export default function WatchPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastProgressSaveRef = useRef(0);
   const [currentProgress, setCurrentProgress] = useState(0);
+  const [youtubePlaying, setYoutubePlaying] = useState(false);
 
   // Timeout for video loading
   useEffect(() => {
@@ -194,15 +232,20 @@ export default function WatchPage() {
     fetchVideo();
   }, [user, userLoading, router, id]);
 
+  useEffect(() => {
+    setYoutubePlaying(false);
+  }, [id, videoUrl]);
+
   if (loading || userLoading) {
     return (
-      <div className="relative flex items-center justify-center min-h-screen bg-black text-white">
-        <WatchExitButton />
-        <div className="text-center">
+      <WatchLayout>
+        <div className="flex items-center justify-center min-h-[60vh] text-white">
+          <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p>Video yuklanmoqda...</p>
         </div>
-      </div>
+        </div>
+      </WatchLayout>
     );
   }
 
@@ -212,10 +255,10 @@ export default function WatchPage() {
 
   if (error) {
     return (
-      <div className="relative flex items-center justify-center min-h-screen bg-black text-red-400">
-        <WatchExitButton sectionId={lesson?.section_id} />
-        <div className="text-center max-w-md px-4">
-          <p className="mb-4 text-lg">{error}</p>
+      <WatchLayout sectionId={lesson?.section_id}>
+        <div className="flex items-center justify-center min-h-[60vh] text-red-400">
+          <div className="text-center max-w-md px-4">
+            <p className="mb-4 text-lg">{error}</p>
           {lesson && (
             <p className="mb-4 text-sm text-gray-500">
               Dars: {lesson.title}
@@ -237,65 +280,84 @@ export default function WatchPage() {
           >
             Orqaga qaytish
           </button>
+          </div>
         </div>
-      </div>
+      </WatchLayout>
     );
   }
 
   if (!videoUrl) {
     return (
-      <div className="relative flex items-center justify-center min-h-screen bg-black text-gray-400">
-        <WatchExitButton sectionId={lesson?.section_id} />
-        <div className="text-center">
-          <p className="mb-4 text-lg">Video URL topilmadi.</p>
-          {lesson && (
-            <p className="mb-4 text-sm text-gray-500">
-              Dars: {lesson.title}
-            </p>
-          )}
-          <button
-            onClick={() => router.back()}
-            className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Orqaga qaytish
-          </button>
+      <WatchLayout sectionId={lesson?.section_id}>
+        <div className="flex items-center justify-center min-h-[60vh] text-gray-400">
+          <div className="text-center">
+            <p className="mb-4 text-lg">Video URL topilmadi.</p>
+            {lesson && (
+              <p className="mb-4 text-sm text-gray-500">
+                Dars: {lesson.title}
+              </p>
+            )}
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            >
+              Orqaga qaytish
+            </button>
+          </div>
         </div>
-      </div>
+      </WatchLayout>
     );
   }
 
-  // YouTube video (maxfiy/yopiq link) — embed iframe
-  // Qirralarda YouTube’ga o‘tish/ulashish tugmalarini bloklash uchun overlay (faqat video va pleer ishlashi uchun)
   const pdfUrl = lesson?.pdf_url?.trim() || null;
   const pdfIframeSrc = pdfUrl
     ? (isGoogleDriveUrl(pdfUrl) ? convertGoogleDriveUrl(pdfUrl) : pdfUrl)
     : null;
+  const youtubeVideoId = getYouTubeVideoId(videoUrl);
+  const isYouTubeEmbed = Boolean(youtubeVideoId);
 
-  if (videoUrl.includes('youtube.com/embed')) {
+  if (isYouTubeEmbed && youtubeVideoId) {
+    const activeEmbedUrl = youtubePlaying
+      ? getYouTubeEmbedUrl(`https://www.youtube.com/watch?v=${youtubeVideoId}`, { autoplay: true })
+      : null;
+
     return (
-      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
-        <WatchExitButton sectionId={lesson?.section_id} />
-        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
-          <iframe
-            ref={iframeRef}
-            key={videoUrl}
-            src={videoUrl}
-            className="absolute inset-0 w-full h-full border-0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-            title="Dars videosi"
-            style={{ width: '100%', height: '100%', border: 'none', zIndex: 10 }}
-            onLoad={() => setLoading(false)}
-          />
-          {/* YouTube’dagi kanal, Ulashish, "YouTube’da ko‘rish" va boshqa tugmalarni bosishni bloklash */}
-          <div className="absolute inset-0 z-20 pointer-events-none">
-            <div className="absolute top-0 left-0 right-0 h-14 pointer-events-auto" aria-hidden />
-            <div className="absolute top-0 left-0 bottom-0 w-28 pointer-events-auto" aria-hidden />
-            <div className="absolute top-0 right-0 bottom-0 w-28 pointer-events-auto" aria-hidden />
-            <div className="absolute bottom-0 left-0 h-14 w-52 pointer-events-auto" aria-hidden />
-            <div className="absolute bottom-0 right-0 h-14 w-40 pointer-events-auto" aria-hidden />
-          </div>
-          {loading && (
+      <WatchLayout sectionId={lesson?.section_id}>
+        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
+          {!youtubePlaying ? (
+            <button
+              type="button"
+              onClick={() => setYoutubePlaying(true)}
+              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-white"
+              aria-label="Darsni boshlash"
+            >
+              <img
+                src={`https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`}
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover opacity-50"
+              />
+              <div className="absolute inset-0 bg-black/45" />
+              <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-red-600 shadow-xl">
+                <Play className="h-10 w-10 ml-1 fill-white text-white" />
+              </span>
+              <span className="relative text-sm font-semibold">Darsni boshlash</span>
+            </button>
+          ) : (
+            <>
+              <iframe
+                ref={iframeRef}
+                key={activeEmbedUrl || youtubeVideoId}
+                src={activeEmbedUrl || undefined}
+                className="absolute inset-0 w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                title="Dars videosi"
+                style={{ width: '100%', height: '100%', border: 'none', zIndex: 10 }}
+                onLoad={() => setLoading(false)}
+              />
+              <YouTubeClickShield />
+            </>
+          )}
+          {loading && youtubePlaying && (
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-95 z-30 pointer-events-auto">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
               <p className="absolute bottom-8 text-white text-sm">Video yuklanmoqda...</p>
@@ -338,24 +400,22 @@ export default function WatchPage() {
             )}
           </div>
         )}
-      </main>
+      </WatchLayout>
     );
   }
 
   // Google Drive video bo'lsa, iframe ko'rsatish
   if (isGoogleDriveUrl(videoUrl)) {
     return (
-      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
-        <WatchExitButton sectionId={lesson?.section_id} />
-        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
+      <WatchLayout sectionId={lesson?.section_id}>
+        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
           <iframe
             ref={iframeRef}
             key={videoUrl}
             src={videoUrl}
             className="absolute inset-0 w-full h-full border-0"
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            allow="autoplay; encrypted-media; picture-in-picture"
             frameBorder="0"
-            allowFullScreen
             loading="eager"
             style={{ width: '100%', height: '100%', border: 'none', backgroundColor: 'black', zIndex: 10 }}
             onLoad={() => setLoading(false)}
@@ -404,7 +464,7 @@ export default function WatchPage() {
             )}
           </div>
         )}
-      </main>
+      </WatchLayout>
     );
   }
 
@@ -419,9 +479,8 @@ export default function WatchPage() {
 
   // Oddiy video bo'lsa, video tag ko'rsatish
   return (
-    <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
-      <WatchExitButton sectionId={lesson?.section_id} />
-      <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
+    <WatchLayout sectionId={lesson?.section_id}>
+      <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
         <video
           ref={videoRef}
           src={videoUrl.startsWith('http') ? videoUrl : `${API_URL}/video-stream/stream/${videoUrl.split("/").pop()}`}
@@ -486,6 +545,6 @@ export default function WatchPage() {
           )}
         </div>
       )}
-    </main>
+    </WatchLayout>
   );
 }
