@@ -562,7 +562,7 @@ export default function HomePage() {
       </AnimatePresence>
       {/* --- Mobile pastki navbar --- */}
       <nav
-        className="fixed bottom-3 left-3 right-3 z-50 lg:hidden"
+        className="fixed bottom-3 left-3 right-3 z-[70] lg:hidden"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
         aria-label="Mobil navigatsiya"
       >
@@ -775,7 +775,7 @@ export default function HomePage() {
               transition={{ duration: 1.2, delay: 1 }}
             />
             {/* CTA Button Overlay */}
-            <div className="absolute top-[65%] inset-x-0 flex justify-center -translate-y-1/2 z-50 pointer-events-none">
+            <div className="absolute top-[38%] sm:top-[48%] lg:top-[65%] inset-x-0 flex justify-center -translate-y-1/2 z-40 lg:z-50 pointer-events-none">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
@@ -786,10 +786,11 @@ export default function HomePage() {
                 className="pointer-events-auto focus:outline-none"
               >
                 <Link
-                  href={"#pricing"}
-                  className="h-32 w-32 border-2 border-white rounded-full flex items-center justify-center text-white hover:scale-105 transition-transform duration-300 relative"
+                  href="#pricing"
+                  onClick={(e) => handleSectionNavClick(e, "pricing")}
+                  className="h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 border-2 border-white rounded-full flex items-center justify-center text-white hover:scale-105 transition-transform duration-300 relative"
                 >
-                  <p className="text-lg text-center font-medium">
+                  <p className="text-sm sm:text-base lg:text-lg text-center font-medium leading-tight">
                     ISHTIROK <br /> ETAMAN
                   </p>
                   {/* Rotating Dot */}
@@ -802,13 +803,13 @@ export default function HomePage() {
                 </Link>
               </motion.div>
             </div>
-            <div className="absolute z-10 bottom-0 h-[200px] w-full left-0 bg-gradient-to-t from-red-900 via-red-900/50 to-transparent"></div>
+            <div className="absolute z-10 bottom-0 h-[220px] w-full left-0 bg-gradient-to-t from-[#801d1d] via-[#801d1d]/70 to-transparent pointer-events-none" />
           </div>
         </motion.section>
 
         {/* STM BU bo'limi */}
         <section
-          className="h-[100dvh] min-h-[100dvh] md:h-auto md:min-h-screen flex items-center justify-center px-4 py-6 sm:py-10 md:py-20 overflow-hidden"
+          className="h-[100dvh] min-h-[100dvh] md:h-auto md:min-h-screen flex items-center justify-center px-4 py-6 sm:py-10 md:py-20 overflow-hidden -mt-1"
           style={{ backgroundColor: '#801d1d', zIndex: 1, position: 'relative' }}
         >
           <div className="container mx-auto w-full">

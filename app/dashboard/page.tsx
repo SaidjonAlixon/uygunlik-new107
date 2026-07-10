@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, FileText, Home, ChevronRight, ArrowLeft, Layers } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, FileText, ArrowLeft, ChevronRight, Layers } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
@@ -125,6 +125,15 @@ export default function DashboardPage() {
     }
   }, [activeTab]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const section = new URLSearchParams(window.location.search).get("section");
+    if (section && !Number.isNaN(Number(section))) {
+      setActiveTab("courses");
+      setSelectedSectionId(Number(section));
+    }
+  }, []);
+
   const getSectionProgress = (section: LessonSection) => {
     const lessons = section.lessons || [];
     if (lessons.length === 0) return 0;
@@ -209,10 +218,10 @@ export default function DashboardPage() {
             </Link>
             <Link
               href="/"
-              className="inline-flex items-center gap-1.5 rounded-full border border-[#5D1111]/15 bg-[#FEFBEE] px-2.5 py-1.5 text-xs font-semibold text-[#5D1111] hover:bg-[#FEFBEE]/80 shrink-0"
+              className="inline-flex items-center gap-1.5 rounded-full border border-[#5D1111]/15 bg-[#FEFBEE] px-3 py-2 text-xs font-semibold text-[#5D1111] hover:bg-[#FEFBEE]/80 shrink-0"
             >
-              <Home className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Asosiy</span>
+              <ArrowLeft className="h-3.5 w-3.5" />
+              <span>Asosiy sahifa</span>
             </Link>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">

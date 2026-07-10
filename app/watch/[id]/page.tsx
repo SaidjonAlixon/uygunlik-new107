@@ -2,14 +2,29 @@
 
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { useUserStore } from "@/store/user.store";
 import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
 import { Lesson } from "@/types/lesson";
 import { isGoogleDriveUrl, convertGoogleDriveUrl, isYouTubeUrl, getYouTubeEmbedUrl } from "@/lib/utils";
-import { PageTopActions } from "@/components/page-top-actions";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+
+function WatchExitButton({ sectionId }: { sectionId?: number | null }) {
+  const href = sectionId ? `/dashboard?section=${sectionId}` : "/dashboard";
+
+  return (
+    <Link
+      href={href}
+      className="fixed top-4 left-4 z-[80] inline-flex items-center gap-2 rounded-full border border-white/25 bg-black/80 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-sm hover:bg-black"
+    >
+      <LogOut className="h-4 w-4" />
+      Chiqish
+    </Link>
+  );
+}
 
 export default function WatchPage() {
   const { id } = useParams();
@@ -182,7 +197,7 @@ export default function WatchPage() {
   if (loading || userLoading) {
     return (
       <div className="relative flex items-center justify-center min-h-screen bg-black text-white">
-        <PageTopActions variant="dark" />
+        <WatchExitButton />
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4"></div>
           <p>Video yuklanmoqda...</p>
@@ -198,8 +213,8 @@ export default function WatchPage() {
   if (error) {
     return (
       <div className="relative flex items-center justify-center min-h-screen bg-black text-red-400">
-        <PageTopActions variant="dark" />
-        <div className="text-center max-w-md px-4 pt-16">
+        <WatchExitButton sectionId={lesson?.section_id} />
+        <div className="text-center max-w-md px-4">
           <p className="mb-4 text-lg">{error}</p>
           {lesson && (
             <p className="mb-4 text-sm text-gray-500">
@@ -230,8 +245,8 @@ export default function WatchPage() {
   if (!videoUrl) {
     return (
       <div className="relative flex items-center justify-center min-h-screen bg-black text-gray-400">
-        <PageTopActions variant="dark" />
-        <div className="text-center pt-16">
+        <WatchExitButton sectionId={lesson?.section_id} />
+        <div className="text-center">
           <p className="mb-4 text-lg">Video URL topilmadi.</p>
           {lesson && (
             <p className="mb-4 text-sm text-gray-500">
@@ -258,8 +273,8 @@ export default function WatchPage() {
 
   if (videoUrl.includes('youtube.com/embed')) {
     return (
-      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 pt-16 gap-6">
-        <PageTopActions variant="dark" />
+      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
+        <WatchExitButton sectionId={lesson?.section_id} />
         <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
           <iframe
             ref={iframeRef}
@@ -330,8 +345,8 @@ export default function WatchPage() {
   // Google Drive video bo'lsa, iframe ko'rsatish
   if (isGoogleDriveUrl(videoUrl)) {
     return (
-      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 pt-16 gap-6">
-        <PageTopActions variant="dark" />
+      <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
+        <WatchExitButton sectionId={lesson?.section_id} />
         <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
           <iframe
             ref={iframeRef}
@@ -404,8 +419,8 @@ export default function WatchPage() {
 
   // Oddiy video bo'lsa, video tag ko'rsatish
   return (
-    <main className="relative min-h-screen bg-black flex flex-col items-center p-4 pt-16 gap-6">
-      <PageTopActions variant="dark" />
+    <main className="relative min-h-screen bg-black flex flex-col items-center p-4 gap-6">
+      <WatchExitButton sectionId={lesson?.section_id} />
       <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black">
         <video
           ref={videoRef}
