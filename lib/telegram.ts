@@ -695,6 +695,49 @@ export async function sendAllTestsExport(chatId: string) {
   );
 }
 
+/** Foydalanuvchilar Excel — Telegram guruhga (har 6 soat / cron) */
+export async function sendUsersExcelToGroup(chatId?: string) {
+  const { UserService } = await import('@/lib/postgres');
+  const { generateUsersExcel, usersExcelFilename } = await import('@/lib/users-excel');
+  const { formatTashkentDateTime } = await import('@/lib/datetime');
+
+  const { groupChatId } = getConfig();
+  const target = chatId || groupChatId;
+  if (!target) {
+    throw new Error('TELEGRAM_CHAT_ID belgilanmagan');
+  }
+
+  const users = await UserService.findAllForExport();
+  const withTariff = users.filter((u: { tariff_id?: number | null }) => Boolean(u.tariff_id)).length;
+  const excel = await generateUsersExcel(users);
+  const filename = usersExcelFilename();
+  const when = formatTashkentDateTime(new Date());
+
+  await sendTelegramMessage(
+    target,
+    `👥 <b>Foydalanuvchilar hisoboti</b>\n\n` +
+    `📅 ${when} (Toshkent)\n` +
+    `📊 Jami: <b>${users.length}</b>\n` +
+    `🎟 Tarif berilgan: <b>${withTariff}</b>\n` +
+    `➖ Tarif berilmagan: <b>${users.length - withTariff}</b>\n\n` +
+    `Excel fayl yuborilmoqda...`
+  );
+
+  const sent = await sendTelegramDocument(
+    target,
+    filename,
+    excel,
+    `📥 Foydalanuvchilar ro‘yxati (${users.length} ta)`,
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  );
+
+  if (!sent) {
+    throw new Error('Telegram ga Excel yuborilmadi');
+  }
+
+  return { count: users.length, withTariff, filename };
+}
+
 export const TELEGRAM_MAIN_KEYBOARD = {
   reply_markup: {
     keyboard: [[{ text: '📊 Barcha testlar' }]],

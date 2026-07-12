@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ArrowLeft, Save } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatTashkentDateTime } from '@/lib/datetime';
 
 export default function AdminUserDetailPage() {
   const params = useParams();
@@ -151,7 +152,7 @@ export default function AdminUserDetailPage() {
           <CardTitle>Qisqacha</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-gray-600 dark:text-gray-400">
-          <p>Ro‘yxatdan o‘tgan: {user.created_at ? new Date(user.created_at).toLocaleString('uz-UZ') : '—'}</p>
+          <p>Ro‘yxatdan o‘tgan: {formatTashkentDateTime(user.created_at)} (Toshkent)</p>
           <p>Status: <Badge variant={user.status ? 'default' : 'secondary'}>{user.status ? 'Faol' : 'Nofaol'}</Badge></p>
           <p>Ta’rif: {user.tariff_name || user.tariff?.name || '—'}</p>
         </CardContent>

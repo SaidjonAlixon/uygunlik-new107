@@ -16,9 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, Pencil, Trash2, Gift, XCircle, Eye, EyeOff } from 'lucide-react';
+import { Search, UserPlus, Pencil, Trash2, Gift, XCircle, Eye, EyeOff, FileSpreadsheet } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatTashkentDateTime } from '@/lib/datetime';
 
 type UserRow = {
   id: number;
@@ -54,6 +55,7 @@ export default function AdminUsersPage() {
     status: true,
   });
   const [submitting, setSubmitting] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const debouncedSearch = useDebounce(search, 400);
 
   const loadUsers = useCallback(() => {
@@ -145,10 +147,52 @@ export default function AdminUsersPage() {
     }
   };
 
+  const handleExportExcel = async () => {
+    setExporting(true);
+    try {
+      const res = await adminApi.exportUsersExcel();
+      const blob = res.data instanceof Blob ? res.data : new Blob([res.data]);
+      const disposition = res.headers?.['content-disposition'] as string | undefined;
+      const match = disposition?.match(/filename="?([^"]+)"?/i);
+      const filename = match?.[1] || `foydalanuvchilar-${Date.now()}.xlsx`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      toast.success('Excel yuklandi');
+    } catch {
+      toast.error('Excel yuklashda xato');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / 20) || 1;
 
+  const tariffBadgeClass = (name?: string | null) => {
+    const n = (name || '').toLowerCase();
+    if (n.includes('vip') || n.includes('premium')) {
+      return 'bg-violet-100 text-violet-900 border-violet-300';
+    }
+    if (n.includes('optimal')) {
+      return 'bg-amber-100 text-amber-900 border-amber-300';
+    }
+    if (n.includes('start') || n.includes('boshlang') || n.includes('basic')) {
+      return 'bg-sky-100 text-sky-900 border-sky-300';
+    }
+    if (n.includes('standart') || n.includes('standard')) {
+      return 'bg-teal-100 text-teal-900 border-teal-300';
+    }
+    // Berilgan, lekin noma'lum tarif
+    return 'bg-[#5D1111]/10 text-[#5D1111] border-[#5D1111]/25';
+  };
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 w-full max-w-none">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-3xl font-serif font-bold text-[#5D1111]">Foydalanuvchilar</h1>
         <div className="flex gap-3">
@@ -162,6 +206,16 @@ export default function AdminUsersPage() {
               className="pl-10 h-11 bg-white border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] placeholder:text-[#5D1111]/40 rounded-xl shadow-sm transition-all"
             />
           </div>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={exporting}
+            onClick={handleExportExcel}
+            className="h-11 border-[#5D1111]/30 text-[#5D1111] hover:bg-[#5D1111]/5 rounded-xl px-4"
+          >
+            <FileSpreadsheet className="h-5 w-5 mr-2" />
+            {exporting ? 'Yuklanmoqda…' : 'Excel yuklash'}
+          </Button>
           <Button onClick={() => setAddOpen(true)} className="h-11 bg-[#5D1111] hover:bg-[#7A2E2E] text-white rounded-xl shadow-md transition-colors px-5">
             <UserPlus className="h-5 w-5 mr-2" />
             Qo&apos;shish
@@ -186,9 +240,9 @@ export default function AdminUsersPage() {
                     <th className="py-4 px-4 font-semibold w-[80px]">ID</th>
                     <th className="py-4 px-4 font-semibold">Ism Familiya</th>
                     <th className="py-4 px-4 font-semibold">Email</th>
-                    <th className="py-4 px-4 font-semibold w-[140px]">Ro'yxatdan o'tgan</th>
+                    <th className="py-4 px-4 font-semibold min-w-[180px]">Ro'yxatdan o'tgan</th>
                     <th className="py-4 px-4 font-semibold w-[100px]">Status</th>
-                    <th className="py-4 px-4 font-semibold w-[120px]">Ta'rif</th>
+                    <th className="py-4 px-4 font-semibold min-w-[180px] whitespace-nowrap">Ta'rif</th>
                     <th className="py-4 px-4 font-semibold text-right w-[160px]">Amallar</th>
                   </tr>
                 </thead>
@@ -198,8 +252,8 @@ export default function AdminUsersPage() {
                       <td className="py-4 px-4 text-[#5D1111]/70 font-medium">{u.id}</td>
                       <td className="py-4 px-4 font-semibold text-[#5D1111] whitespace-nowrap">{u.first_name} {u.last_name}</td>
                       <td className="py-4 px-4 text-[#5D1111]/80">{u.email}</td>
-                      <td className="py-4 px-4 text-[#5D1111]/70 text-sm">
-                        {u.created_at ? new Date(u.created_at).toLocaleDateString('uz-UZ') : '—'}
+                      <td className="py-4 px-4 text-[#5D1111]/80 text-sm whitespace-nowrap font-medium tabular-nums">
+                        {formatTashkentDateTime(u.created_at)}
                       </td>
                       <td className="py-4 px-4">
                         <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ${u.status ? 'bg-emerald-100 text-emerald-800 border border-emerald-200' : 'bg-red-100 text-red-800 border border-red-200'
@@ -207,12 +261,16 @@ export default function AdminUsersPage() {
                           {u.status ? 'Faol' : 'Nofaol'}
                         </span>
                       </td>
-                      <td className="py-4 px-4 text-[#5D1111] font-medium">
+                      <td className="py-4 px-4 text-[#5D1111] font-medium whitespace-nowrap">
                         {u.tariff_name || u.tariff_id ? (
-                          <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                          <span
+                            className={`inline-flex items-center whitespace-nowrap px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider border ${tariffBadgeClass(u.tariff_name)}`}
+                          >
                             {u.tariff_name || `Tarif #${u.tariff_id}`}
                           </span>
-                        ) : '—'}
+                        ) : (
+                          <span className="text-[#5D1111]/40">—</span>
+                        )}
                       </td>
                       <td className="py-4 px-4 text-right">
                         <div className="flex items-center justify-end gap-1.5">

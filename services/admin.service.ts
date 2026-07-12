@@ -22,6 +22,9 @@ export const adminApi = {
 
   deleteUser: (id: string) => api.delete(`/admin/users/${id}`),
 
+  exportUsersExcel: () =>
+    api.get<Blob>('/admin/users/export', { responseType: 'blob' }),
+
   grantTariff: (userId: string, tariffId: number | null) =>
     api.post<{ user: any }>(`/admin/users/${userId}/grant-tariff`, { tariffId }),
 

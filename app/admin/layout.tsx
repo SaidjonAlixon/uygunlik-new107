@@ -4,8 +4,9 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList } from 'lucide-react';
+import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { formatTashkentNow } from '@/lib/datetime';
 
 const nav = [
   { href: '/admin/dashboard', label: 'Bosh sahifa', icon: LayoutDashboard },
@@ -21,12 +22,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const router = useRouter();
   const { user, setUser } = useUserStore();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [nowLabel, setNowLabel] = useState('');
   const isLoginPage = pathname === '/admin/login';
 
   // Pathname o'zgarganda menyuni yopish (mobile uchun)
   useEffect(() => {
     setIsSidebarOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    const tick = () => setNowLabel(formatTashkentNow(new Date()));
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     if (isLoginPage) return;
@@ -114,13 +123,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Menu className="h-6 w-6" />
           </button>
 
-          <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-[#7A2E2E]/20 shadow-sm ml-auto">
-            <div className="h-8 w-8 rounded-full bg-[#5D1111] flex items-center justify-center text-[#FEFBEE] font-bold shrink-0">
-              {((user as { first_name?: string }).first_name || 'A').charAt(0).toUpperCase()}
+          <div className="flex items-center gap-3 ml-auto">
+            {nowLabel && (
+              <div className="flex items-center gap-2 rounded-full border border-[#7A2E2E]/15 bg-white px-2.5 sm:px-3 py-1.5 text-[10px] sm:text-xs font-medium text-[#5D1111] shadow-sm max-w-[55vw] sm:max-w-none">
+                <Clock className="h-3.5 w-3.5 text-[#7A2E2E] shrink-0" />
+                <span className="truncate whitespace-nowrap">
+                  <span className="hidden sm:inline">Toshkent: </span>
+                  {nowLabel}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-3 bg-white px-4 py-2 rounded-full border border-[#7A2E2E]/20 shadow-sm">
+              <div className="h-8 w-8 rounded-full bg-[#5D1111] flex items-center justify-center text-[#FEFBEE] font-bold shrink-0">
+                {((user as { first_name?: string }).first_name || 'A').charAt(0).toUpperCase()}
+              </div>
+              <span className="text-sm font-semibold text-[#5D1111] hidden sm:block">
+                {(user as { email?: string }).email}
+              </span>
             </div>
-            <span className="text-sm font-semibold text-[#5D1111] hidden sm:block">
-              {(user as { email?: string }).email}
-            </span>
           </div>
         </header>
         <div className="flex-1 overflow-auto p-4 md:p-8 custom-scrollbar">

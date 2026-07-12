@@ -1,12 +1,21 @@
 /**
  * Telegram bot — long polling rejimi (local development uchun)
  * Ishga tushirish: npm run telegram-bot
+ *
+ * Har 6 soatda foydalanuvchilar Excel faylini guruhga yuboradi.
+ * Production da Vercel Cron (/api/cron/users-excel) ishlatiladi.
  */
 import './load-env';
 import { initializeDatabase } from '../lib/postgres';
-import { handleTelegramUpdate, hasTelegramAdmins, isTelegramEnabled } from '../lib/telegram';
+import {
+  handleTelegramUpdate,
+  hasTelegramAdmins,
+  isTelegramEnabled,
+  sendUsersExcelToGroup,
+} from '../lib/telegram';
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
+const USERS_EXCEL_INTERVAL_MS = 6 * 60 * 60 * 1000;
 
 if (!token) {
   console.error('❌ TELEGRAM_BOT_TOKEN .env.local faylida belgilanmagan');
@@ -14,6 +23,16 @@ if (!token) {
 }
 
 let offset = 0;
+
+async function sendUsersExcelSafely(reason: string) {
+  if (!isTelegramEnabled()) return;
+  try {
+    const result = await sendUsersExcelToGroup();
+    console.log(`✅ Foydalanuvchilar Excel yuborildi (${reason}):`, result.filename, result.count);
+  } catch (err) {
+    console.error(`❌ Foydalanuvchilar Excel yuborilmadi (${reason}):`, err);
+  }
+}
 
 async function poll() {
   try {
@@ -56,6 +75,13 @@ async function main() {
 
   console.log('🤖 Telegram bot ishga tushdi (polling)...');
   console.log('   Adminlar botga shaxsiy chatda /start va /testlar yuborishi mumkin');
+  console.log('   Har 6 soatda foydalanuvchilar Excel guruhga yuboriladi');
+
+  // Ishga tushganda bir marta + keyin har 6 soatda
+  await sendUsersExcelSafely('start');
+  setInterval(() => {
+    void sendUsersExcelSafely('6h-interval');
+  }, USERS_EXCEL_INTERVAL_MS);
 
   while (true) {
     await poll();

@@ -254,6 +254,22 @@ async function runDatabaseInitialization() {
       console.log('✅ Default admin user created');
     }
 
+    // Bir xil created_at bo'lgan foydalanuvchilarga ID bo'yicha ketma-ket vaqt berish
+    await pool.query(`
+      WITH ranked AS (
+        SELECT
+          id,
+          created_at,
+          ROW_NUMBER() OVER (PARTITION BY date_trunc('second', created_at) ORDER BY id ASC) AS rn,
+          COUNT(*) OVER (PARTITION BY date_trunc('second', created_at)) AS grp_count
+        FROM users
+      )
+      UPDATE users u
+      SET created_at = u.created_at + ((r.rn - 1) * INTERVAL '1 minute')
+      FROM ranked r
+      WHERE u.id = r.id AND r.grp_count > 1 AND r.rn > 1
+    `);
+
     // Create sample video if not exists
     const videoExists = await pool.query('SELECT id FROM videos WHERE filename = $1', ['0406.mp4']);
     if (videoExists.rows.length === 0) {
@@ -303,8 +319,8 @@ export class UserService {
     status?: boolean;
   }) {
     const result = await pool.query(`
-      INSERT INTO users (first_name, last_name, email, password, role, status)
-      VALUES ($1, $2, $3, $4, $5, $6)
+      INSERT INTO users (first_name, last_name, email, password, role, status, created_at, updated_at)
+      VALUES ($1, $2, $3, $4, $5, $6, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       RETURNING *
     `, [
       userData.first_name,
@@ -382,7 +398,7 @@ export class UserService {
       query += ' WHERE u.first_name ILIKE $1 OR u.last_name ILIKE $1 OR u.email ILIKE $1';
       params.push(`%${search}%`);
     }
-    query += ` ORDER BY u.created_at DESC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
+    query += ` ORDER BY u.id ASC LIMIT $${params.length + 1} OFFSET $${params.length + 2}`;
     params.push(limit, offset);
 
     const result = await pool.query(query, params);
@@ -403,6 +419,27 @@ export class UserService {
       limit,
       totalPages: Math.ceil(total / limit)
     };
+  }
+
+  /** Excel export uchun barcha foydalanuvchilar (parolsiz), ID bo'yicha */
+  static async findAllForExport() {
+    const result = await pool.query(`
+      SELECT
+        u.id,
+        u.first_name,
+        u.last_name,
+        u.email,
+        u.role,
+        u.status,
+        u.tariff_id,
+        u.created_at,
+        u.updated_at,
+        t.name as tariff_name
+      FROM users u
+      LEFT JOIN tariffs t ON u.tariff_id = t.id
+      ORDER BY u.id ASC
+    `);
+    return result.rows;
   }
 
   static async update(id: number, updates: {

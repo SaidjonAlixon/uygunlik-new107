@@ -8,8 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ClipboardList, Users, ArrowRight, ExternalLink, Calendar, CheckCircle2 } from 'lucide-react';
-import { format } from 'date-fns';
-import { uz } from 'date-fns/locale';
+import { formatTashkentDateTime } from '@/lib/datetime';
 
 export default function AdminTestsPage() {
   const [lessons, setLessons] = useState<any[]>([]);
@@ -153,7 +152,7 @@ export default function AdminTestsPage() {
                           <td className="py-4 px-6 text-[#5D1111]/70">
                             <div className="flex items-center gap-1.5">
                               <Calendar className="h-3.5 w-3.5 text-[#7A2E2E]/40" />
-                              {format(new Date(sub.created_at), 'd-MMM, HH:mm', { locale: uz })}
+                              {formatTashkentDateTime(sub.created_at)}
                             </div>
                           </td>
                           <td className="py-4 px-6 text-right">

@@ -1,4 +1,10 @@
 {
+  "crons": [
+    {
+      "path": "/api/cron/users-excel",
+      "schedule": "0 */6 * * *"
+    }
+  ],
   "functions": {
     "app/api/upload/video/route.ts": {
       "maxDuration": 30
@@ -11,6 +17,12 @@
     },
     "app/api/tests/submit/route.ts": {
       "maxDuration": 30
+    },
+    "app/api/cron/users-excel/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/admin/users/export/route.ts": {
+      "maxDuration": 60
     }
   },
   "headers": [
