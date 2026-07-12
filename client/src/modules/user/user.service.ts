@@ -189,7 +189,7 @@ export class UserService {
 
   async createAdminIfNotExists() {
     const adminEmail = process.env.ADMIN_EMAIL || 'admin@uygunlik.uz';
-    const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!';
+    const adminPassword = process.env.ADMIN_PASSWORD;
     
     const existingAdmin = await this.userRepository.findOne({
       where: { email: adminEmail },
@@ -197,7 +197,7 @@ export class UserService {
 
     if (!existingAdmin) {
       const salt = await bcrypt.genSalt();
-      const hashedPassword = await bcrypt.hash(adminPassword, salt);
+      const hashedPassword = await bcrypt.hash(adminPassword || 'Admin123!', salt);
 
       const admin = this.userRepository.create({
         email: adminEmail,
@@ -211,7 +211,15 @@ export class UserService {
       await this.userRepository.save(admin);
       console.log('✅ Admin foydalanuvchi yaratildi:');
       console.log(`   Email: ${adminEmail}`);
-      console.log(`   Parol: ${adminPassword}`);
+    } else if (adminPassword) {
+      // Faqat ADMIN_PASSWORD env berilganda parolni yangilaydi
+      const salt = await bcrypt.genSalt();
+      existingAdmin.password = await bcrypt.hash(adminPassword, salt);
+      existingAdmin.role = 'admin';
+      existingAdmin.status = true;
+      await this.userRepository.save(existingAdmin);
+      console.log('ℹ️  Admin paroli ADMIN_PASSWORD bo\'yicha yangilandi');
+      console.log(`   Email: ${adminEmail}`);
     } else {
       console.log('ℹ️  Admin foydalanuvchi allaqachon mavjud');
       console.log(`   Email: ${adminEmail}`);
