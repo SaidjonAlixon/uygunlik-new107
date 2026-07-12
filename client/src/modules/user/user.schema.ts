@@ -36,9 +36,13 @@ export class User {
   @Column({ default: true })
   status: boolean;
 
-  @CreateDateColumn()
+  // Next.js schema owns this column — must exist on entity so synchronize never drops it
+  @Column({ type: 'int', nullable: true })
+  tariff_id: number | null;
+
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 }

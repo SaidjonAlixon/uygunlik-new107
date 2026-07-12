@@ -434,7 +434,9 @@ export class UserService {
     const query = `UPDATE users SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`;
     const result = await pool.query(query, values);
 
-    return result.rows[0] || null;
+    if (!result.rows[0]) return null;
+    // Return full user with tariff join so admin UI keeps tariff_name after grant/update
+    return this.findById(id);
   }
 
   static async delete(id: number) {

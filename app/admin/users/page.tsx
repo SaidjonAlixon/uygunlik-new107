@@ -207,9 +207,9 @@ export default function AdminUsersPage() {
                         </span>
                       </td>
                       <td className="py-4 px-4 text-[#5D1111] font-medium">
-                        {u.tariff_name ? (
+                        {u.tariff_name || u.tariff_id ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
-                            {u.tariff_name}
+                            {u.tariff_name || `Tarif #${u.tariff_id}`}
                           </span>
                         ) : '—'}
                       </td>

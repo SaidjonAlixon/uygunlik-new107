@@ -19,7 +19,8 @@ import { PurchaseModule } from './modules/purchase/purchase.module';
       type: 'postgres',
       url: process.env.DATABASE_URL,
       entities: [__dirname + '/**/*.schema{.ts,.js}'],
-      synchronize: true, // Use only in dev
+      // Schema is owned by Next.js (lib/postgres.ts). Never auto-sync — it drops columns like tariff_id.
+      synchronize: false,
       dropSchema: false,
       ssl: process.env.DATABASE_URL?.includes('railway') || process.env.NODE_ENV === 'production'
         ? { rejectUnauthorized: false }
