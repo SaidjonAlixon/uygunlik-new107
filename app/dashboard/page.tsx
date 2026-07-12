@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, FileText, ArrowLeft, ChevronRight, Layers } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, FileText, ArrowLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
@@ -59,6 +59,7 @@ export default function DashboardPage() {
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
   const [activeTab, setActiveTab] = useState('courses');
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
@@ -554,12 +555,23 @@ export default function DashboardPage() {
                           <FormItem>
                             <FormLabel>Yangi parol (ixtiyoriy)</FormLabel>
                             <FormControl>
-                              <Input
-                                type="password"
-                                placeholder="••••••••"
-                                {...field}
-                                autoComplete="new-password"
-                              />
+                              <div className="relative">
+                                <Input
+                                  type={showPassword ? "text" : "password"}
+                                  placeholder="••••••••"
+                                  className="pr-10"
+                                  {...field}
+                                  autoComplete="new-password"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => setShowPassword((v) => !v)}
+                                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800"
+                                  aria-label={showPassword ? "Parolni yashirish" : "Parolni ko‘rsatish"}
+                                >
+                                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                                </button>
+                              </div>
                             </FormControl>
                             <FormMessage />
                           </FormItem>

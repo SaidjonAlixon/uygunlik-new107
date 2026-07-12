@@ -19,7 +19,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { toast } from 'sonner';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 const schema = z.object({
   email: z.string().email("Noto'g'ri email"),
@@ -32,6 +32,7 @@ export default function AdminLoginPage() {
   const router = useRouter();
   const { setUser } = useUserStore();
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -112,11 +113,19 @@ export default function AdminLoginPage() {
                       <div className="relative">
                         <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-[#7A2E2E]/60" />
                         <Input
-                          type="password"
+                          type={showPassword ? 'text' : 'password'}
                           placeholder="••••••••"
-                          className="pl-10 h-12 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] placeholder:text-[#5D1111]/40 rounded-xl transition-all"
+                          className="pl-10 pr-11 h-12 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] placeholder:text-[#5D1111]/40 rounded-xl transition-all"
                           {...field}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword((v) => !v)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A2E2E]/70 hover:text-[#5D1111] transition-colors"
+                          aria-label={showPassword ? 'Parolni yashirish' : 'Parolni ko‘rsatish'}
+                        >
+                          {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                        </button>
                       </div>
                     </FormControl>
                     <FormMessage className="text-red-500" />

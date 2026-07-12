@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, Pencil, Trash2, Gift, XCircle } from 'lucide-react';
+import { Search, UserPlus, Pencil, Trash2, Gift, XCircle, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 
@@ -44,6 +44,7 @@ export default function AdminUsersPage() {
   const [selectedUser, setSelectedUser] = useState<UserRow | null>(null);
   const [tariffs, setTariffs] = useState<{ id: number; name: string }[]>([]);
   const [grantTariffId, setGrantTariffId] = useState<string>('');
+  const [showAddPassword, setShowAddPassword] = useState(false);
   const [form, setForm] = useState({
     first_name: '',
     last_name: '',
@@ -304,14 +305,24 @@ export default function AdminUsersPage() {
             </div>
             <div className="space-y-2">
               <Label className="text-[#5D1111] font-semibold">Parol * <span className="text-xs font-normal text-[#7A2E2E]/70">(kamida 8 belgi)</span></Label>
-              <Input
-                type="password"
-                className="h-11 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] rounded-xl"
-                value={form.password}
-                onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
-                required
-                minLength={8}
-              />
+              <div className="relative">
+                <Input
+                  type={showAddPassword ? 'text' : 'password'}
+                  className="h-11 pr-11 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] rounded-xl"
+                  value={form.password}
+                  onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                  required
+                  minLength={8}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#7A2E2E]/70 hover:text-[#5D1111]"
+                  aria-label={showAddPassword ? 'Parolni yashirish' : 'Parolni ko‘rsatish'}
+                >
+                  {showAddPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                </button>
+              </div>
             </div>
             <div className="flex gap-6 pt-2">
               <label className="flex items-center gap-2 cursor-pointer group">
