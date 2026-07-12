@@ -118,8 +118,9 @@ export function getYouTubeEmbedUrl(
     iv_load_policy: '3',
     playsinline: '1',
     fs: '0',
-    controls: '1',
+    controls: '0',
     disablekb: '1',
+    enablejsapi: '1',
   });
   if (options?.autoplay) params.set('autoplay', '1');
   const origin =

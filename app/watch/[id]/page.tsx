@@ -3,11 +3,12 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut, Play } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { useUserStore } from "@/store/user.store";
 import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
 import { Lesson } from "@/types/lesson";
+import { LockedYouTubePlayer } from "@/components/locked-youtube-player";
 import {
   isGoogleDriveUrl,
   convertGoogleDriveUrl,
@@ -51,29 +52,6 @@ function WatchLayout({
   );
 }
 
-/**
- * Video kadrini yashirmaydi — faqat YouTube tashqi linklariga bosishni bloklaydi.
- * Progress scrubber markazda ochiq qoladi.
- */
-function YouTubeClickShield() {
-  return (
-    <div className="absolute inset-0 z-20 pointer-events-none select-none">
-      {/* Sarlavha / kanal linki */}
-      <div className="absolute top-0 inset-x-0 h-12 sm:h-11 pointer-events-auto" aria-hidden />
-      {/* Yonlar */}
-      <div className="absolute top-12 bottom-14 left-0 w-8 pointer-events-auto" aria-hidden />
-      <div className="absolute top-12 bottom-14 right-0 w-8 pointer-events-auto" aria-hidden />
-      {/* Pastki chap */}
-      <div className="absolute bottom-0 left-0 h-11 w-12 pointer-events-auto" aria-hidden />
-      {/* YouTube logosi — shaffof, faqat bosishni bloklaydi */}
-      <div
-        className="absolute bottom-0 right-0 h-11 w-[38%] min-w-[120px] max-w-[200px] pointer-events-auto sm:w-36 sm:min-w-0 sm:max-w-none"
-        aria-hidden
-      />
-    </div>
-  );
-}
-
 export default function WatchPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -87,7 +65,6 @@ export default function WatchPage() {
   const lastProgressSaveRef = useRef(0);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [progressReady, setProgressReady] = useState(false);
-  const [youtubePlaying, setYoutubePlaying] = useState(false);
 
   // Timeout for video loading — qotib qolmasin
   useEffect(() => {
@@ -150,7 +127,6 @@ export default function WatchPage() {
         setError(null);
         setVideoUrl(null);
         setLesson(null);
-        setYoutubePlaying(false);
         setCurrentProgress(0);
         setProgressReady(false);
 
@@ -257,25 +233,18 @@ export default function WatchPage() {
     fetchVideo();
   }, [user, userLoading, router, id]);
 
-  useEffect(() => {
-    setYoutubePlaying(false);
-  }, [id, videoUrl]);
-
-  // YouTube ko'rilganda progress (qayta ko'rishda 100% bo'lsa ishlamaydi)
-  useEffect(() => {
-    if (!youtubePlaying || !lesson?.id || !progressReady || currentProgress >= 100) return;
-
-    let step = Math.floor(currentProgress / 25);
-    const interval = setInterval(() => {
-      step += 1;
-      const percent = Math.min(100, step * 25);
-      setCurrentProgress((prev) => Math.max(prev, percent));
-      api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: percent }).catch(() => { });
-      if (percent >= 100) clearInterval(interval);
-    }, 20000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [youtubePlaying, lesson?.id, progressReady, currentProgress >= 100]);
+  const bumpWatchProgress = (percent: number) => {
+    if (!lesson?.id) return;
+    const p = Math.min(100, Math.max(0, Math.round(percent)));
+    setCurrentProgress((prev) => {
+      if (p <= prev) return prev;
+      if (Date.now() - lastProgressSaveRef.current >= 4000 || p >= 100) {
+        lastProgressSaveRef.current = Date.now();
+        api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: p }).catch(() => { });
+      }
+      return p;
+    });
+  };
 
   // Faqat video hali yo'q bo'lsa to'liq spinner — qayta ochilganda o'yinchi ochiq qolsin
   if ((loading || userLoading) && !videoUrl) {
@@ -306,7 +275,7 @@ export default function WatchPage() {
               Dars: {lesson.title}
             </p>
           )}
-          {videoUrl && (
+          {videoUrl && !isYouTubeUrl(videoUrl) && (
             <a
               href={videoUrl}
               target="_blank"
@@ -359,54 +328,14 @@ export default function WatchPage() {
   const isYouTubeEmbed = Boolean(youtubeVideoId);
 
   if (isYouTubeEmbed && youtubeVideoId) {
-    const activeEmbedUrl = youtubePlaying
-      ? getYouTubeEmbedUrl(`https://www.youtube.com/watch?v=${youtubeVideoId}`, { autoplay: true })
-      : null;
-
     return (
       <WatchLayout sectionId={lesson?.section_id}>
         <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
-          {!youtubePlaying ? (
-            <button
-              type="button"
-              onClick={() => setYoutubePlaying(true)}
-              className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 text-white"
-              aria-label="Darsni boshlash"
-            >
-              <img
-                src={`https://img.youtube.com/vi/${youtubeVideoId}/hqdefault.jpg`}
-                alt=""
-                className="absolute inset-0 h-full w-full object-cover opacity-50"
-              />
-              <div className="absolute inset-0 bg-black/45" />
-              <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-red-600 shadow-xl">
-                <Play className="h-10 w-10 ml-1 fill-white text-white" />
-              </span>
-              <span className="relative text-sm font-semibold">
-                {currentProgress >= 100 ? "Qayta ko'rish" : "Darsni boshlash"}
-              </span>
-            </button>
-          ) : (
-            <>
-              <iframe
-                ref={iframeRef}
-                key={activeEmbedUrl || youtubeVideoId}
-                src={activeEmbedUrl || undefined}
-                className="absolute inset-0 w-full h-full border-0"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                referrerPolicy="strict-origin-when-cross-origin"
-                title="Dars videosi"
-                style={{ width: '100%', height: '100%', border: 'none', zIndex: 10 }}
-                onLoad={() => setLoading(false)}
-              />
-              <YouTubeClickShield />
-            </>
-          )}
-          {loading && youtubePlaying && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30 pointer-events-none">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
-            </div>
-          )}
+          <LockedYouTubePlayer
+            videoId={youtubeVideoId}
+            startLabel={currentProgress >= 100 ? "Qayta ko'rish" : "Darsni boshlash"}
+            onWatchProgress={bumpWatchProgress}
+          />
         </div>
         {pdfIframeSrc && (
           <div className="w-full max-w-5xl" style={{ marginTop: '30px' }}>
