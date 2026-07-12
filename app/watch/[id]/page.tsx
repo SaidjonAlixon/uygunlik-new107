@@ -51,14 +51,25 @@ function WatchLayout({
   );
 }
 
+/**
+ * Video kadrini yashirmaydi — faqat YouTube tashqi linklariga bosishni bloklaydi.
+ * Progress scrubber markazda ochiq qoladi.
+ */
 function YouTubeClickShield() {
   return (
-    <div className="absolute inset-0 z-20 pointer-events-none">
-      <div className="absolute top-0 inset-x-0 h-16 sm:h-14 pointer-events-auto" aria-hidden />
-      <div className="absolute bottom-0 inset-x-0 h-24 sm:h-16 pointer-events-auto" aria-hidden />
-      <div className="absolute top-16 bottom-24 left-0 w-20 sm:w-24 pointer-events-auto" aria-hidden />
-      <div className="absolute top-16 bottom-24 right-0 w-20 sm:w-24 pointer-events-auto" aria-hidden />
-      <div className="absolute bottom-0 right-0 h-28 w-[70%] max-w-[300px] pointer-events-auto sm:hidden" aria-hidden />
+    <div className="absolute inset-0 z-20 pointer-events-none select-none">
+      {/* Sarlavha / kanal linki */}
+      <div className="absolute top-0 inset-x-0 h-12 sm:h-11 pointer-events-auto" aria-hidden />
+      {/* Yonlar */}
+      <div className="absolute top-12 bottom-14 left-0 w-8 pointer-events-auto" aria-hidden />
+      <div className="absolute top-12 bottom-14 right-0 w-8 pointer-events-auto" aria-hidden />
+      {/* Pastki chap */}
+      <div className="absolute bottom-0 left-0 h-11 w-12 pointer-events-auto" aria-hidden />
+      {/* YouTube logosi — shaffof, faqat bosishni bloklaydi */}
+      <div
+        className="absolute bottom-0 right-0 h-11 w-[38%] min-w-[120px] max-w-[200px] pointer-events-auto sm:w-36 sm:min-w-0 sm:max-w-none"
+        aria-hidden
+      />
     </div>
   );
 }
@@ -75,45 +86,54 @@ export default function WatchPage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const lastProgressSaveRef = useRef(0);
   const [currentProgress, setCurrentProgress] = useState(0);
+  const [progressReady, setProgressReady] = useState(false);
   const [youtubePlaying, setYoutubePlaying] = useState(false);
 
-  // Timeout for video loading
+  // Timeout for video loading — qotib qolmasin
   useEffect(() => {
     if (loading && videoUrl) {
       const timeout = setTimeout(() => {
         setLoading(false);
-      }, 5000);
+      }, 2500);
 
       return () => clearTimeout(timeout);
     }
   }, [loading, videoUrl]);
 
-  // PDF ko'rilgan vaqtiga qarab dars foizini oshirish (har 15 soniyada 25%, 50%, 75%, 100%)
+  // PDF progress — faqat hali 100% bo'lmagan darslarda (qayta ko'rishda interval yo'q)
   useEffect(() => {
     const pdfUrl = lesson?.pdf_url?.trim() || null;
-    const hasPdf = pdfUrl && (isGoogleDriveUrl(pdfUrl) || pdfUrl.startsWith('http'));
-    if (!lesson?.id || !hasPdf) return;
-    let step = 0;
+    const hasPdf = Boolean(pdfUrl && (isGoogleDriveUrl(pdfUrl) || pdfUrl.startsWith('http')));
+    if (!lesson?.id || !hasPdf || !progressReady || currentProgress >= 100) return;
+
+    let step = Math.floor(currentProgress / 25);
     const interval = setInterval(() => {
       step += 1;
       const percent = Math.min(100, step * 25);
+      setCurrentProgress((prev) => Math.max(prev, percent));
       api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: percent }).catch(() => { });
       if (percent >= 100) clearInterval(interval);
     }, 15000);
     return () => clearInterval(interval);
-  }, [lesson?.id, lesson?.pdf_url]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lesson?.id, lesson?.pdf_url, progressReady, currentProgress >= 100]);
 
   // Dastlabki progressni yuklash
   useEffect(() => {
-    if (lesson?.id && lesson?.tariff_id) {
-      api.get(`/lesson-progress?tariffId=${lesson.tariff_id}`)
-        .then(res => {
-          if (res.data && res.data[lesson.id] !== undefined) {
-            setCurrentProgress(res.data[lesson.id]);
-          }
-        })
-        .catch(() => { });
+    setProgressReady(false);
+    setCurrentProgress(0);
+    if (!lesson?.id || !lesson?.tariff_id) {
+      setProgressReady(true);
+      return;
     }
+    api.get(`/lesson-progress?tariffId=${lesson.tariff_id}`)
+      .then(res => {
+        if (res.data && res.data[lesson.id] !== undefined) {
+          setCurrentProgress(Number(res.data[lesson.id]) || 0);
+        }
+      })
+      .catch(() => { })
+      .finally(() => setProgressReady(true));
   }, [lesson?.id, lesson?.tariff_id]);
 
   useEffect(() => {
@@ -128,6 +148,11 @@ export default function WatchPage() {
       try {
         setLoading(true);
         setError(null);
+        setVideoUrl(null);
+        setLesson(null);
+        setYoutubePlaying(false);
+        setCurrentProgress(0);
+        setProgressReady(false);
 
         let idStr = id as string;
 
@@ -236,7 +261,24 @@ export default function WatchPage() {
     setYoutubePlaying(false);
   }, [id, videoUrl]);
 
-  if (loading || userLoading) {
+  // YouTube ko'rilganda progress (qayta ko'rishda 100% bo'lsa ishlamaydi)
+  useEffect(() => {
+    if (!youtubePlaying || !lesson?.id || !progressReady || currentProgress >= 100) return;
+
+    let step = Math.floor(currentProgress / 25);
+    const interval = setInterval(() => {
+      step += 1;
+      const percent = Math.min(100, step * 25);
+      setCurrentProgress((prev) => Math.max(prev, percent));
+      api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: percent }).catch(() => { });
+      if (percent >= 100) clearInterval(interval);
+    }, 20000);
+    return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [youtubePlaying, lesson?.id, progressReady, currentProgress >= 100]);
+
+  // Faqat video hali yo'q bo'lsa to'liq spinner — qayta ochilganda o'yinchi ochiq qolsin
+  if ((loading || userLoading) && !videoUrl) {
     return (
       <WatchLayout>
         <div className="flex items-center justify-center min-h-[60vh] text-white">
@@ -340,7 +382,9 @@ export default function WatchPage() {
               <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-red-600 shadow-xl">
                 <Play className="h-10 w-10 ml-1 fill-white text-white" />
               </span>
-              <span className="relative text-sm font-semibold">Darsni boshlash</span>
+              <span className="relative text-sm font-semibold">
+                {currentProgress >= 100 ? "Qayta ko'rish" : "Darsni boshlash"}
+              </span>
             </button>
           ) : (
             <>
@@ -350,6 +394,7 @@ export default function WatchPage() {
                 src={activeEmbedUrl || undefined}
                 className="absolute inset-0 w-full h-full border-0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                referrerPolicy="strict-origin-when-cross-origin"
                 title="Dars videosi"
                 style={{ width: '100%', height: '100%', border: 'none', zIndex: 10 }}
                 onLoad={() => setLoading(false)}
@@ -358,9 +403,8 @@ export default function WatchPage() {
             </>
           )}
           {loading && youtubePlaying && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-95 z-30 pointer-events-auto">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30 pointer-events-none">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
-              <p className="absolute bottom-8 text-white text-sm">Video yuklanmoqda...</p>
             </div>
           )}
         </div>
@@ -422,9 +466,8 @@ export default function WatchPage() {
             onError={() => setError("Videoni yuklashda xatolik yuz berdi.")}
           />
           {loading && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-95 z-30">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto mb-4" />
-              <p className="text-white text-lg">Video yuklanmoqda...</p>
+            <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-30 pointer-events-none">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600" />
             </div>
           )}
         </div>

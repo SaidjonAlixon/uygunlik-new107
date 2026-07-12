@@ -408,7 +408,9 @@ export default function DashboardPage() {
                                   <Link href={`/watch/${lesson.id}`} className="w-full">
                                     <Button className="w-full bg-red-600 hover:bg-red-700">
                                       <PlayCircle className="mr-2 h-4 w-4" />
-                                      Darsni ko'rish
+                                      {(lessonProgress[lesson.id] ?? 0) >= 100
+                                        ? "Qayta ko'rish"
+                                        : "Darsni ko'rish"}
                                     </Button>
                                   </Link>
                                 ) : (
