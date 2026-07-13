@@ -20,6 +20,8 @@ type YTPlayer = {
   getCurrentTime: () => number;
   getDuration: () => number;
   destroy: () => void;
+  loadModule?: (module: string) => void;
+  setOption?: (module: string, option: string, value: unknown) => void;
 };
 
 function loadYouTubeAPI(): Promise<void> {
@@ -50,6 +52,15 @@ function formatTime(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+function enableCaptions(player: YTPlayer) {
+  try {
+    player.loadModule?.("captions");
+    player.setOption?.("captions", "reload", true);
+  } catch {
+    /* ignore */
+  }
+}
+
 type Props = {
   videoId: string;
   startLabel?: string;
@@ -59,11 +70,13 @@ type Props = {
 /**
  * Platformada ko'rish: YouTube UI/havolalar bosilmaydi.
  * controls=0 + to'liq overlay + o'z scrubber.
+ * Subtitrlar yoqilgan; pastki panel o'ynayotganda yashirinadi.
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const seekingRef = useRef(false);
+  const hideTimerRef = useRef<number | null>(null);
   const onProgressRef = useRef(onWatchProgress);
   onProgressRef.current = onWatchProgress;
 
@@ -72,6 +85,26 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [playing, setPlaying] = useState(false);
   const [duration, setDuration] = useState(0);
   const [current, setCurrent] = useState(0);
+  const [controlsVisible, setControlsVisible] = useState(true);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current != null) {
+      window.clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  const scheduleHideControls = useCallback(() => {
+    clearHideTimer();
+    hideTimerRef.current = window.setTimeout(() => {
+      setControlsVisible(false);
+    }, 2200);
+  }, [clearHideTimer]);
+
+  const revealControls = useCallback(() => {
+    setControlsVisible(true);
+    scheduleHideControls();
+  }, [scheduleHideControls]);
 
   useEffect(() => {
     let destroyed = false;
@@ -82,6 +115,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     setPlaying(false);
     setCurrent(0);
     setDuration(0);
+    setControlsVisible(true);
 
     loadYouTubeAPI().then(() => {
       if (destroyed || !hostRef.current || !window.YT?.Player) return;
@@ -102,13 +136,16 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           rel: 0,
           iv_load_policy: 3,
           playsinline: 1,
-          cc_load_policy: 0,
+          // Subtitrlar yoqiladi (havolalar overlay bilan bloklanadi)
+          cc_load_policy: 1,
+          cc_lang_pref: "uz",
           origin: window.location.origin,
         },
         events: {
           onReady: (event: { target: YTPlayer }) => {
             if (destroyed) return;
             playerRef.current = event.target;
+            enableCaptions(event.target);
             setReady(true);
             try {
               setDuration(event.target.getDuration() || 0);
@@ -119,10 +156,21 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           onStateChange: (event: { data: number }) => {
             if (destroyed || !window.YT) return;
             const { PLAYING, PAUSED, ENDED } = window.YT.PlayerState;
-            if (event.data === PLAYING) setPlaying(true);
-            if (event.data === PAUSED) setPlaying(false);
+            if (event.data === PLAYING) {
+              setPlaying(true);
+              if (playerRef.current) enableCaptions(playerRef.current);
+              setControlsVisible(true);
+              scheduleHideControls();
+            }
+            if (event.data === PAUSED) {
+              setPlaying(false);
+              clearHideTimer();
+              setControlsVisible(true);
+            }
             if (event.data === ENDED) {
               setPlaying(false);
+              clearHideTimer();
+              setControlsVisible(true);
               onProgressRef.current?.(100);
             }
           },
@@ -133,6 +181,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
 
     return () => {
       destroyed = true;
+      clearHideTimer();
       try {
         playerRef.current?.destroy();
       } catch {
@@ -140,7 +189,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       }
       playerRef.current = null;
     };
-  }, [videoId]);
+  }, [videoId, clearHideTimer, scheduleHideControls]);
 
   useEffect(() => {
     if (!started || !ready) return;
@@ -167,10 +216,11 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     try {
       playerRef.current?.playVideo();
       setPlaying(true);
+      revealControls();
     } catch {
       /* ignore */
     }
-  }, []);
+  }, [revealControls]);
 
   const togglePlay = useCallback(() => {
     const p = playerRef.current;
@@ -178,10 +228,11 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     try {
       if (playing) p.pauseVideo();
       else p.playVideo();
+      revealControls();
     } catch {
       /* ignore */
     }
-  }, [playing]);
+  }, [playing, revealControls]);
 
   const onSeek = useCallback(
     (pct: number) => {
@@ -196,11 +247,13 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
         /* ignore */
       }
       seekingRef.current = false;
+      revealControls();
     },
-    [duration]
+    [duration, revealControls]
   );
 
   const progressPct = duration > 0 ? (current / duration) * 100 : 0;
+  const showChrome = !started || controlsVisible || !playing;
 
   return (
     <div className="absolute inset-0 bg-black select-none">
@@ -238,53 +291,72 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           <>
             <button
               type="button"
-              className="absolute inset-0 bottom-16"
-              onClick={togglePlay}
+              className="absolute inset-0"
+              onClick={() => {
+                if (!controlsVisible) {
+                  revealControls();
+                  return;
+                }
+                togglePlay();
+              }}
               aria-label={playing ? "Pauza" : "Davom etish"}
             />
-            {!playing && (
-              <div className="pointer-events-none absolute inset-0 bottom-16 flex items-center justify-center">
+            {showChrome && !playing && (
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-14">
                 <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 shadow-lg">
-                  <Play className="h-8 w-8 ml-1 fill-white text-white" />
+                  <Play className="h-8 w-8 ml-1 fill-white" />
                 </span>
               </div>
             )}
 
-            {/* Platforma scrubber — YouTube pastki tugmalari yashirin + bosilmaydi */}
-            <div className="absolute bottom-0 inset-x-0 z-30 bg-gradient-to-t from-black via-black/90 to-transparent px-3 pb-3 pt-10">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={togglePlay}
-                  className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
-                  aria-label={playing ? "Pauza" : "Play"}
-                >
-                  {playing ? (
-                    <Pause className="h-5 w-5" />
-                  ) : (
-                    <Play className="h-5 w-5 fill-white" />
-                  )}
-                </button>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  step={0.1}
-                  value={progressPct}
-                  onChange={(e) => onSeek(Number(e.target.value))}
-                  onPointerDown={() => {
-                    seekingRef.current = true;
-                  }}
-                  onPointerUp={() => {
-                    seekingRef.current = false;
-                  }}
-                  className="yt-seek-locked flex-1 cursor-pointer"
-                  style={{ touchAction: "none" }}
-                  aria-label="Video progress"
-                />
-                <span className="w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
-                  {formatTime(current)} / {formatTime(duration)}
-                </span>
+            {/* Pastki panel: o'ynayotganda yashirinadi — subtitrlar to'liq ko'rinsin */}
+            <div
+              className={`absolute bottom-0 inset-x-0 z-30 transition-opacity duration-300 ${
+                showChrome ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
+            >
+              <div className="bg-gradient-to-t from-black/85 via-black/50 to-transparent px-3 pb-3 pt-8">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      togglePlay();
+                    }}
+                    className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
+                    aria-label={playing ? "Pauza" : "Play"}
+                  >
+                    {playing ? (
+                      <Pause className="h-5 w-5" />
+                    ) : (
+                      <Play className="h-5 w-5 fill-white" />
+                    )}
+                  </button>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    step={0.1}
+                    value={progressPct}
+                    onChange={(e) => onSeek(Number(e.target.value))}
+                    onPointerDown={(e) => {
+                      e.stopPropagation();
+                      seekingRef.current = true;
+                      clearHideTimer();
+                      setControlsVisible(true);
+                    }}
+                    onPointerUp={() => {
+                      seekingRef.current = false;
+                      scheduleHideControls();
+                    }}
+                    className="yt-seek-locked flex-1 cursor-pointer"
+                    style={{ touchAction: "none" }}
+                    aria-label="Video progress"
+                  />
+                  <span className="w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
+                    {formatTime(current)} / {formatTime(duration)}
+                  </span>
+                </div>
               </div>
             </div>
           </>

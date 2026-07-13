@@ -775,7 +775,7 @@ export default function HomePage() {
               transition={{ duration: 1.2, delay: 1 }}
             />
             {/* CTA Button Overlay */}
-            <div className="absolute top-[38%] sm:top-[48%] lg:top-[65%] inset-x-0 flex justify-center -translate-y-1/2 z-40 lg:z-50 pointer-events-none">
+            <div className="absolute top-[54%] sm:top-[48%] lg:top-[65%] inset-x-0 flex justify-center -translate-y-1/2 z-40 lg:z-50 pointer-events-none">
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{
@@ -788,7 +788,7 @@ export default function HomePage() {
                 <Link
                   href="#pricing"
                   onClick={(e) => handleSectionNavClick(e, "pricing")}
-                  className="h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 border-2 border-white rounded-full flex items-center justify-center text-white hover:scale-105 transition-transform duration-300 relative"
+                  className="h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 border-2 border-white/55 sm:border-white/80 rounded-full flex items-center justify-center text-white/65 sm:text-white/90 hover:scale-105 transition-transform duration-300 relative"
                 >
                   <p className="text-sm sm:text-base lg:text-lg text-center font-medium leading-tight">
                     ISHTIROK <br /> ETAMAN
@@ -798,7 +798,7 @@ export default function HomePage() {
                     style={{ rotate }}
                     className="absolute inset-0 w-full h-full pointer-events-none"
                   >
-                    <span className="h-4 w-4 bg-white rounded-full absolute -right-2 top-1/2 -translate-y-1/2 shadow-lg"></span>
+                    <span className="h-4 w-4 bg-white/55 sm:bg-white/85 rounded-full absolute -right-2 top-1/2 -translate-y-1/2 shadow-md"></span>
                   </motion.div>
                 </Link>
               </motion.div>

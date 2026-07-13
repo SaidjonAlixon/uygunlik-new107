@@ -42,10 +42,10 @@ function WatchLayout({
 }) {
   return (
     <main className="min-h-screen bg-black flex flex-col">
-      <header className="sticky top-0 z-[80] shrink-0 border-b border-white/10 bg-black px-4 py-3">
+      <header className="sticky top-0 z-[80] shrink-0 border-b border-white/10 bg-black px-3 sm:px-4 py-2.5 sm:py-3">
         <WatchExitButton sectionId={sectionId} />
       </header>
-      <div className="flex w-full flex-col items-center gap-6 px-4 py-4 flex-1">
+      <div className="flex w-full flex-col items-center gap-4 sm:gap-6 px-0 sm:px-4 py-2 sm:py-4 flex-1">
         {children}
       </div>
     </main>
@@ -330,7 +330,7 @@ export default function WatchPage() {
   if (isYouTubeEmbed && youtubeVideoId) {
     return (
       <WatchLayout sectionId={lesson?.section_id}>
-        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
+        <div className="w-full max-w-5xl aspect-video relative rounded-none sm:rounded-xl overflow-hidden shadow-2xl bg-black mt-0 sm:mt-1">
           <LockedYouTubePlayer
             videoId={youtubeVideoId}
             startLabel={currentProgress >= 100 ? "Qayta ko'rish" : "Darsni boshlash"}
@@ -338,7 +338,7 @@ export default function WatchPage() {
           />
         </div>
         {pdfIframeSrc && (
-          <div className="w-full max-w-5xl" style={{ marginTop: '30px' }}>
+          <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
             <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
             <iframe
               src={pdfIframeSrc}
@@ -350,7 +350,7 @@ export default function WatchPage() {
           </div>
         )}
         {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
-          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800" style={{ marginTop: '20px' }}>
+          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
             <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
             <button
               onClick={() => {
@@ -381,7 +381,7 @@ export default function WatchPage() {
   if (isGoogleDriveUrl(videoUrl)) {
     return (
       <WatchLayout sectionId={lesson?.section_id}>
-        <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
+        <div className="w-full max-w-5xl aspect-video relative rounded-none sm:rounded-xl overflow-hidden shadow-2xl bg-black mt-0 sm:mt-1">
           <iframe
             ref={iframeRef}
             key={videoUrl}
@@ -401,7 +401,7 @@ export default function WatchPage() {
           )}
         </div>
         {pdfIframeSrc && (
-          <div className="w-full max-w-5xl" style={{ marginTop: '30px' }}>
+          <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
             <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
             <iframe
               src={pdfIframeSrc}
@@ -413,7 +413,7 @@ export default function WatchPage() {
           </div>
         )}
         {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
-          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800" style={{ marginTop: '20px' }}>
+          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
             <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
             <button
               onClick={() => {
@@ -452,11 +452,11 @@ export default function WatchPage() {
   // Oddiy video bo'lsa, video tag ko'rsatish
   return (
     <WatchLayout sectionId={lesson?.section_id}>
-      <div className="w-full max-w-5xl aspect-video relative rounded-xl overflow-hidden shadow-2xl bg-black mt-1">
+      <div className="w-full max-w-5xl aspect-video relative rounded-none sm:rounded-xl overflow-hidden shadow-2xl bg-black mt-0 sm:mt-1">
         <video
           ref={videoRef}
           src={videoUrl.startsWith('http') ? videoUrl : `${API_URL}/video-stream/stream/${videoUrl.split("/").pop()}`}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-contain bg-black"
           controls={true}
           controlsList="nodownload"
           disablePictureInPicture
@@ -482,7 +482,7 @@ export default function WatchPage() {
         />
       </div>
       {pdfIframeSrc && (
-        <div className="w-full max-w-5xl" style={{ marginTop: '30px' }}>
+        <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
           <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
           <iframe
             src={pdfIframeSrc}
@@ -494,7 +494,7 @@ export default function WatchPage() {
         </div>
       )}
       {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
-        <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800" style={{ marginTop: '20px' }}>
+        <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
           <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
           <button
             onClick={() => {
