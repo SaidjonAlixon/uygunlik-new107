@@ -20,8 +20,14 @@ type YTPlayer = {
   getCurrentTime: () => number;
   getDuration: () => number;
   destroy: () => void;
+  setSize?: (width: number, height: number) => void;
   loadModule?: (module: string) => void;
   setOption?: (module: string, option: string, value: unknown) => void;
+};
+
+type OrientationLock = {
+  lock?: (orientation: string) => Promise<void>;
+  unlock?: () => void;
 };
 
 function loadYouTubeAPI(): Promise<void> {
@@ -61,7 +67,6 @@ function enableCaptions(player: YTPlayer) {
   }
 }
 
-/** iOS/Safari'da div requestFullscreen ishlamaydi — CSS immersive ishlatamiz */
 function isMobileLike() {
   if (typeof window === "undefined") return false;
   const ua = navigator.userAgent || "";
@@ -69,35 +74,21 @@ function isMobileLike() {
   return navigator.maxTouchPoints > 1 && Math.min(window.innerWidth, window.innerHeight) < 900;
 }
 
+function viewportSize() {
+  const vv = window.visualViewport;
+  return {
+    w: Math.round(vv?.width ?? window.innerWidth),
+    h: Math.round(vv?.height ?? window.innerHeight),
+  };
+}
+
+/** Butun ekranni qoplovchi stil — rotate YO'Q (iOS'da yonboshi bo'lib qolmasin) */
 function computeImmersiveStyle(): CSSProperties {
-  const w = window.visualViewport?.width ?? window.innerWidth;
-  const h = window.visualViewport?.height ?? window.innerHeight;
-  const portrait = h > w;
-
-  // Portrait telefonda: 90° aylantirib gorizontal katta ekran
-  if (portrait) {
-    return {
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      width: `${h}px`,
-      height: `${w}px`,
-      maxWidth: "none",
-      transform: "translate(-50%, -50%) rotate(90deg)",
-      transformOrigin: "center center",
-      zIndex: 2147483000,
-      borderRadius: 0,
-      background: "#000",
-      inset: "auto",
-    };
-  }
-
+  const { w, h } = viewportSize();
   return {
     position: "fixed",
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
     width: `${w}px`,
     height: `${h}px`,
     maxWidth: "none",
@@ -105,7 +96,26 @@ function computeImmersiveStyle(): CSSProperties {
     zIndex: 2147483000,
     borderRadius: 0,
     background: "#000",
+    inset: "auto",
   };
+}
+
+async function lockLandscape() {
+  try {
+    const orientation = screen.orientation as OrientationLock | undefined;
+    await orientation?.lock?.("landscape");
+  } catch {
+    /* iOS ruxsat bermaydi — foydalanuvchi o'zi aylantiradi */
+  }
+}
+
+function unlockOrientation() {
+  try {
+    const orientation = screen.orientation as OrientationLock | undefined;
+    orientation?.unlock?.();
+  } catch {
+    /* ignore */
+  }
 }
 
 type Props = {
@@ -116,7 +126,7 @@ type Props = {
 
 /**
  * Platformada ko'rish: YouTube UI/havolalar bosilmaydi.
- * Mobilda katta ekran = CSS immersive + gorizontal (iOS Fullscreen API yo'q).
+ * Mobilda katta ekran: butun viewport + YouTube setSize (iOS Fullscreen API yo'q).
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -136,6 +146,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsStyle, setFsStyle] = useState<CSSProperties | undefined>(undefined);
+  const [isPortraitFs, setIsPortraitFs] = useState(false);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -156,10 +167,36 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     scheduleHideControls();
   }, [scheduleHideControls]);
 
+  /** YouTube iframe pixel o'lchamini konteynerga moslash (asosiy tuzatish) */
+  const syncPlayerSize = useCallback((fullscreen: boolean) => {
+    const player = playerRef.current;
+    const root = rootRef.current;
+    if (!player?.setSize) return;
+
+    if (fullscreen) {
+      const { w, h } = viewportSize();
+      player.setSize(w, h);
+      setIsPortraitFs(h > w);
+      return;
+    }
+
+    if (root) {
+      const rect = root.getBoundingClientRect();
+      const w = Math.max(1, Math.round(rect.width));
+      const h = Math.max(1, Math.round(rect.height));
+      player.setSize(w, h);
+    }
+    setIsPortraitFs(false);
+  }, []);
+
   const refreshFsLayout = useCallback(() => {
     if (!isFullscreen) return;
     setFsStyle(computeImmersiveStyle());
-  }, [isFullscreen]);
+    // Kechiktirib setSize — layout yangilangandan keyin
+    requestAnimationFrame(() => {
+      syncPlayerSize(true);
+    });
+  }, [isFullscreen, syncPlayerSize]);
 
   useEffect(() => {
     if (!isFullscreen) return;
@@ -179,6 +216,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     return () => {
       document.body.classList.remove("yt-player-fs-open");
       document.documentElement.classList.remove("yt-player-fs-open");
+      unlockOrientation();
     };
   }, []);
 
@@ -186,42 +224,35 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     const el = rootRef.current;
     if (!el) return;
 
-    // iOS/mobile: faqat CSS immersive (native FS ishlamaydi)
+    document.body.classList.add("yt-player-fs-open");
+    document.documentElement.classList.add("yt-player-fs-open");
+
     if (isMobileLike()) {
-      document.body.classList.add("yt-player-fs-open");
-      document.documentElement.classList.add("yt-player-fs-open");
       setFsStyle(computeImmersiveStyle());
       setIsFullscreen(true);
+      await lockLandscape();
+      requestAnimationFrame(() => {
+        syncPlayerSize(true);
+        // ikkinchi marta — ba'zi mobil brauzerlar uchun
+        setTimeout(() => syncPlayerSize(true), 120);
+      });
       revealControls();
       return;
     }
 
-    // Desktop: native fullscreen, bo'lmasa CSS
     try {
       if (el.requestFullscreen) {
         await el.requestFullscreen();
-        document.body.classList.add("yt-player-fs-open");
-        setFsStyle({
-          position: "fixed",
-          inset: 0,
-          width: "100vw",
-          height: "100vh",
-          zIndex: 2147483000,
-          background: "#000",
-        });
-        setIsFullscreen(true);
-      } else {
-        document.body.classList.add("yt-player-fs-open");
-        setFsStyle(computeImmersiveStyle());
-        setIsFullscreen(true);
       }
     } catch {
-      document.body.classList.add("yt-player-fs-open");
-      setFsStyle(computeImmersiveStyle());
-      setIsFullscreen(true);
+      /* CSS fallback below */
     }
+
+    setFsStyle(computeImmersiveStyle());
+    setIsFullscreen(true);
+    requestAnimationFrame(() => syncPlayerSize(true));
     revealControls();
-  }, [revealControls]);
+  }, [revealControls, syncPlayerSize]);
 
   const exitFullscreen = useCallback(async () => {
     try {
@@ -233,10 +264,16 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     }
     document.body.classList.remove("yt-player-fs-open");
     document.documentElement.classList.remove("yt-player-fs-open");
+    unlockOrientation();
     setFsStyle(undefined);
     setIsFullscreen(false);
+    setIsPortraitFs(false);
+    requestAnimationFrame(() => {
+      // Oddiy rejimga qaytgach ota konteyner o'lchamiga moslash
+      setTimeout(() => syncPlayerSize(false), 50);
+    });
     revealControls();
-  }, [revealControls]);
+  }, [revealControls, syncPlayerSize]);
 
   useEffect(() => {
     const onFsChange = () => {
@@ -245,11 +282,13 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
         document.documentElement.classList.remove("yt-player-fs-open");
         setFsStyle(undefined);
         setIsFullscreen(false);
+        setIsPortraitFs(false);
+        syncPlayerSize(false);
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, []);
+  }, [syncPlayerSize]);
 
   const toggleFullscreen = useCallback(
     (e?: SyntheticEvent) => {
@@ -305,6 +344,16 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
             } catch {
               /* ignore */
             }
+            // Birinchi o'lcham
+            requestAnimationFrame(() => {
+              const root = rootRef.current;
+              if (!root || !event.target.setSize) return;
+              const rect = root.getBoundingClientRect();
+              event.target.setSize(
+                Math.max(1, Math.round(rect.width)),
+                Math.max(1, Math.round(rect.height))
+              );
+            });
           },
           onStateChange: (event: { data: number }) => {
             if (destroyed || !window.YT) return;
@@ -418,7 +467,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     >
       <div
         ref={hostRef}
-        className="absolute inset-0 pointer-events-none [&>div]:!h-full [&>div]:!w-full [&>iframe]:!h-full [&>iframe]:!w-full"
+        className="absolute inset-0 pointer-events-none yt-host [&>div]:!h-full [&>div]:!w-full [&_iframe]:!h-full [&_iframe]:!w-full [&_iframe]:!max-w-none"
       />
 
       <div
@@ -463,6 +512,14 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center pb-14">
                 <span className="flex h-16 w-16 items-center justify-center rounded-full bg-red-600/90 shadow-lg">
                   <Play className="h-8 w-8 ml-1 fill-white" />
+                </span>
+              </div>
+            )}
+
+            {isFullscreen && isPortraitFs && showChrome && (
+              <div className="pointer-events-none absolute top-4 inset-x-0 flex justify-center z-40 px-4">
+                <span className="rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white/90 border border-white/20">
+                  Katta ko‘rish uchun telefonni gorizontal tuting
                 </span>
               </div>
             )}
@@ -516,7 +573,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
                   <button
                     type="button"
                     onClick={(e) => {
-                      // iOS touchEnd dan keyin keladigan fake click ni o'tkazib yuborish
                       if (touchFsRef.current) {
                         touchFsRef.current = false;
                         e.preventDefault();
@@ -576,16 +632,24 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           cursor: pointer;
         }
         .yt-locked-root:fullscreen,
-        .yt-locked-root:-webkit-full-screen {
-          width: 100vw !important;
-          height: 100vh !important;
-          background: #000;
+        .yt-locked-root:-webkit-full-screen,
+        .yt-locked-root.yt-fs-on {
+          background: #000 !important;
+        }
+        .yt-fs-on .yt-host,
+        .yt-fs-on .yt-host > div,
+        .yt-fs-on .yt-host iframe {
+          width: 100% !important;
+          height: 100% !important;
+          max-width: none !important;
+          max-height: none !important;
         }
         html.yt-player-fs-open,
         body.yt-player-fs-open {
           overflow: hidden !important;
           touch-action: none;
           overscroll-behavior: none;
+          height: 100% !important;
         }
         .safe-bottom {
           padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
