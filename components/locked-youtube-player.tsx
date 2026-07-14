@@ -82,9 +82,32 @@ function viewportSize() {
   };
 }
 
-/** Butun ekranni qoplovchi stil — rotate YO'Q (iOS'da yonboshi bo'lib qolmasin) */
+/**
+ * YouTube mobil kabi:
+ * - Portrait: gorizontal "oyna" (H×W) + 90° rotate → butun telefon ekranini to'ldiradi
+ * - Landscape: oddiy butun ekran
+ */
 function computeImmersiveStyle(): CSSProperties {
   const { w, h } = viewportSize();
+  const portrait = h > w;
+
+  if (portrait && isMobileLike()) {
+    return {
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      width: `${h}px`,
+      height: `${w}px`,
+      maxWidth: "none",
+      transform: "translate(-50%, -50%) rotate(90deg)",
+      transformOrigin: "center center",
+      zIndex: 2147483000,
+      borderRadius: 0,
+      background: "#000",
+      inset: "auto",
+    };
+  }
+
   return {
     position: "fixed",
     top: 0,
@@ -100,12 +123,22 @@ function computeImmersiveStyle(): CSSProperties {
   };
 }
 
+/** Fullscreen uchun YouTube o'lchami (rotate bo'lsa H×W) */
+function fullscreenPlayerBox() {
+  const { w, h } = viewportSize();
+  const portrait = h > w;
+  if (portrait && isMobileLike()) {
+    return { width: h, height: w, portrait: true };
+  }
+  return { width: w, height: h, portrait: false };
+}
+
 async function lockLandscape() {
   try {
     const orientation = screen.orientation as OrientationLock | undefined;
     await orientation?.lock?.("landscape");
   } catch {
-    /* iOS ruxsat bermaydi — foydalanuvchi o'zi aylantiradi */
+    /* iOS ruxsat bermaydi */
   }
 }
 
@@ -125,8 +158,7 @@ type Props = {
 };
 
 /**
- * Platformada ko'rish: YouTube UI/havolalar bosilmaydi.
- * Mobilda katta ekran: butun viewport + YouTube setSize (iOS Fullscreen API yo'q).
+ * YouTube-kabi: maximize → katta gorizontal; yana → vertikal kichik.
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -135,6 +167,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const seekingRef = useRef(false);
   const hideTimerRef = useRef<number | null>(null);
   const touchFsRef = useRef(false);
+  const fsRef = useRef(false);
   const onProgressRef = useRef(onWatchProgress);
   onProgressRef.current = onWatchProgress;
 
@@ -146,7 +179,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsStyle, setFsStyle] = useState<CSSProperties | undefined>(undefined);
-  const [isPortraitFs, setIsPortraitFs] = useState(false);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -167,41 +199,40 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     scheduleHideControls();
   }, [scheduleHideControls]);
 
-  /** YouTube iframe pixel o'lchamini konteynerga moslash (asosiy tuzatish) */
   const syncPlayerSize = useCallback((fullscreen: boolean) => {
     const player = playerRef.current;
-    const root = rootRef.current;
     if (!player?.setSize) return;
 
     if (fullscreen) {
-      const { w, h } = viewportSize();
-      player.setSize(w, h);
-      setIsPortraitFs(h > w);
+      const box = fullscreenPlayerBox();
+      player.setSize(box.width, box.height);
       return;
     }
 
+    const root = rootRef.current;
     if (root) {
       const rect = root.getBoundingClientRect();
-      const w = Math.max(1, Math.round(rect.width));
-      const h = Math.max(1, Math.round(rect.height));
-      player.setSize(w, h);
+      player.setSize(
+        Math.max(1, Math.round(rect.width)),
+        Math.max(1, Math.round(rect.height))
+      );
     }
-    setIsPortraitFs(false);
   }, []);
 
-  const refreshFsLayout = useCallback(() => {
-    if (!isFullscreen) return;
+  const applyFullscreenLayout = useCallback(() => {
+    if (!fsRef.current) return;
     setFsStyle(computeImmersiveStyle());
-    // Kechiktirib setSize — layout yangilangandan keyin
     requestAnimationFrame(() => {
       syncPlayerSize(true);
+      setTimeout(() => syncPlayerSize(true), 80);
+      setTimeout(() => syncPlayerSize(true), 250);
     });
-  }, [isFullscreen, syncPlayerSize]);
+  }, [syncPlayerSize]);
 
   useEffect(() => {
     if (!isFullscreen) return;
-    refreshFsLayout();
-    const onResize = () => refreshFsLayout();
+    applyFullscreenLayout();
+    const onResize = () => applyFullscreenLayout();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
@@ -210,10 +241,11 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       window.removeEventListener("orientationchange", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
     };
-  }, [isFullscreen, refreshFsLayout]);
+  }, [isFullscreen, applyFullscreenLayout]);
 
   useEffect(() => {
     return () => {
+      fsRef.current = false;
       document.body.classList.remove("yt-player-fs-open");
       document.documentElement.classList.remove("yt-player-fs-open");
       unlockOrientation();
@@ -224,37 +256,28 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     const el = rootRef.current;
     if (!el) return;
 
+    fsRef.current = true;
     document.body.classList.add("yt-player-fs-open");
     document.documentElement.classList.add("yt-player-fs-open");
 
-    if (isMobileLike()) {
-      setFsStyle(computeImmersiveStyle());
-      setIsFullscreen(true);
-      await lockLandscape();
-      requestAnimationFrame(() => {
-        syncPlayerSize(true);
-        // ikkinchi marta — ba'zi mobil brauzerlar uchun
-        setTimeout(() => syncPlayerSize(true), 120);
-      });
-      revealControls();
-      return;
-    }
-
-    try {
-      if (el.requestFullscreen) {
-        await el.requestFullscreen();
+    if (!isMobileLike()) {
+      try {
+        await el.requestFullscreen?.();
+      } catch {
+        /* CSS immersive */
       }
-    } catch {
-      /* CSS fallback below */
+    } else {
+      await lockLandscape();
     }
 
     setFsStyle(computeImmersiveStyle());
     setIsFullscreen(true);
-    requestAnimationFrame(() => syncPlayerSize(true));
+    applyFullscreenLayout();
     revealControls();
-  }, [revealControls, syncPlayerSize]);
+  }, [applyFullscreenLayout, revealControls]);
 
   const exitFullscreen = useCallback(async () => {
+    fsRef.current = false;
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
@@ -267,22 +290,20 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     unlockOrientation();
     setFsStyle(undefined);
     setIsFullscreen(false);
-    setIsPortraitFs(false);
     requestAnimationFrame(() => {
-      // Oddiy rejimga qaytgach ota konteyner o'lchamiga moslash
-      setTimeout(() => syncPlayerSize(false), 50);
+      setTimeout(() => syncPlayerSize(false), 60);
     });
     revealControls();
   }, [revealControls, syncPlayerSize]);
 
   useEffect(() => {
     const onFsChange = () => {
-      if (!document.fullscreenElement && !isMobileLike()) {
+      if (!document.fullscreenElement && !isMobileLike() && fsRef.current) {
+        fsRef.current = false;
         document.body.classList.remove("yt-player-fs-open");
         document.documentElement.classList.remove("yt-player-fs-open");
         setFsStyle(undefined);
         setIsFullscreen(false);
-        setIsPortraitFs(false);
         syncPlayerSize(false);
       }
     };
@@ -344,7 +365,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
             } catch {
               /* ignore */
             }
-            // Birinchi o'lcham
             requestAnimationFrame(() => {
               const root = rootRef.current;
               if (!root || !event.target.setSize) return;
@@ -516,14 +536,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
               </div>
             )}
 
-            {isFullscreen && isPortraitFs && showChrome && (
-              <div className="pointer-events-none absolute top-4 inset-x-0 flex justify-center z-40 px-4">
-                <span className="rounded-full bg-black/70 px-3 py-1.5 text-[11px] text-white/90 border border-white/20">
-                  Katta ko‘rish uchun telefonni gorizontal tuting
-                </span>
-              </div>
-            )}
-
             <div
               className={`absolute bottom-0 inset-x-0 z-30 transition-opacity duration-300 ${
                 showChrome ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -588,7 +600,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
                       toggleFullscreen(e);
                     }}
                     className="shrink-0 rounded-full p-2 text-white hover:bg-white/10 active:bg-white/20"
-                    aria-label={isFullscreen ? "Oddiy rejim" : "Katta ekran"}
+                    aria-label={isFullscreen ? "Kichik oynaga qaytish" : "Katta ekran"}
                   >
                     {isFullscreen ? (
                       <Minimize className="h-5 w-5" strokeWidth={2.25} />
@@ -631,8 +643,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           border: 2px solid #fff;
           cursor: pointer;
         }
-        .yt-locked-root:fullscreen,
-        .yt-locked-root:-webkit-full-screen,
         .yt-locked-root.yt-fs-on {
           background: #000 !important;
         }
@@ -650,6 +660,9 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           touch-action: none;
           overscroll-behavior: none;
           height: 100% !important;
+        }
+        body.yt-player-fs-open .watch-page-header {
+          display: none !important;
         }
         .safe-bottom {
           padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
