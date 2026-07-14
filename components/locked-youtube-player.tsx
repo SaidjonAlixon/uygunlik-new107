@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 declare global {
@@ -22,11 +22,6 @@ type YTPlayer = {
   destroy: () => void;
   loadModule?: (module: string) => void;
   setOption?: (module: string, option: string, value: unknown) => void;
-};
-
-type OrientationLock = {
-  lock?: (orientation: string) => Promise<void>;
-  unlock?: () => void;
 };
 
 function loadYouTubeAPI(): Promise<void> {
@@ -66,22 +61,51 @@ function enableCaptions(player: YTPlayer) {
   }
 }
 
-async function lockLandscape() {
-  try {
-    const orientation = screen.orientation as OrientationLock | undefined;
-    await orientation?.lock?.("landscape");
-  } catch {
-    /* ba'zi brauzerlar ruxsat bermaydi */
-  }
+/** iOS/Safari'da div requestFullscreen ishlamaydi — CSS immersive ishlatamiz */
+function isMobileLike() {
+  if (typeof window === "undefined") return false;
+  const ua = navigator.userAgent || "";
+  if (/iPhone|iPad|iPod|Android/i.test(ua)) return true;
+  return navigator.maxTouchPoints > 1 && Math.min(window.innerWidth, window.innerHeight) < 900;
 }
 
-function unlockOrientation() {
-  try {
-    const orientation = screen.orientation as OrientationLock | undefined;
-    orientation?.unlock?.();
-  } catch {
-    /* ignore */
+function computeImmersiveStyle(): CSSProperties {
+  const w = window.visualViewport?.width ?? window.innerWidth;
+  const h = window.visualViewport?.height ?? window.innerHeight;
+  const portrait = h > w;
+
+  // Portrait telefonda: 90° aylantirib gorizontal katta ekran
+  if (portrait) {
+    return {
+      position: "fixed",
+      top: "50%",
+      left: "50%",
+      width: `${h}px`,
+      height: `${w}px`,
+      maxWidth: "none",
+      transform: "translate(-50%, -50%) rotate(90deg)",
+      transformOrigin: "center center",
+      zIndex: 2147483000,
+      borderRadius: 0,
+      background: "#000",
+      inset: "auto",
+    };
   }
+
+  return {
+    position: "fixed",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    width: `${w}px`,
+    height: `${h}px`,
+    maxWidth: "none",
+    transform: "none",
+    zIndex: 2147483000,
+    borderRadius: 0,
+    background: "#000",
+  };
 }
 
 type Props = {
@@ -92,7 +116,7 @@ type Props = {
 
 /**
  * Platformada ko'rish: YouTube UI/havolalar bosilmaydi.
- * controls=0 + to'liq overlay + o'z scrubber + fullscreen.
+ * Mobilda katta ekran = CSS immersive + gorizontal (iOS Fullscreen API yo'q).
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -100,6 +124,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const playerRef = useRef<YTPlayer | null>(null);
   const seekingRef = useRef(false);
   const hideTimerRef = useRef<number | null>(null);
+  const touchFsRef = useRef(false);
   const onProgressRef = useRef(onWatchProgress);
   onProgressRef.current = onWatchProgress;
 
@@ -110,6 +135,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [current, setCurrent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [fsStyle, setFsStyle] = useState<CSSProperties | undefined>(undefined);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -130,45 +156,29 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     scheduleHideControls();
   }, [scheduleHideControls]);
 
-  const syncFullscreenState = useCallback(() => {
-    const el = rootRef.current;
-    const active =
-      document.fullscreenElement === el ||
-      // @ts-expect-error webkit
-      document.webkitFullscreenElement === el ||
-      el?.classList.contains("yt-fs-fallback");
-    setIsFullscreen(Boolean(active));
-  }, []);
+  const refreshFsLayout = useCallback(() => {
+    if (!isFullscreen) return;
+    setFsStyle(computeImmersiveStyle());
+  }, [isFullscreen]);
 
   useEffect(() => {
-    const onFsChange = () => {
-      const el = rootRef.current;
-      const nativeFs =
-        document.fullscreenElement === el ||
-        // @ts-expect-error webkit
-        document.webkitFullscreenElement === el;
-      if (!nativeFs && el?.classList.contains("yt-fs-fallback")) {
-        // native chiqdi — fallback ham yopiladi
-      }
-      if (!nativeFs) {
-        el?.classList.remove("yt-fs-fallback");
-        document.body.classList.remove("yt-player-fs-open");
-        unlockOrientation();
-      }
-      syncFullscreenState();
-    };
-    document.addEventListener("fullscreenchange", onFsChange);
-    document.addEventListener("webkitfullscreenchange", onFsChange as EventListener);
+    if (!isFullscreen) return;
+    refreshFsLayout();
+    const onResize = () => refreshFsLayout();
+    window.addEventListener("resize", onResize);
+    window.addEventListener("orientationchange", onResize);
+    window.visualViewport?.addEventListener("resize", onResize);
     return () => {
-      document.removeEventListener("fullscreenchange", onFsChange);
-      document.removeEventListener("webkitfullscreenchange", onFsChange as EventListener);
+      window.removeEventListener("resize", onResize);
+      window.removeEventListener("orientationchange", onResize);
+      window.visualViewport?.removeEventListener("resize", onResize);
     };
-  }, [syncFullscreenState]);
+  }, [isFullscreen, refreshFsLayout]);
 
   useEffect(() => {
     return () => {
       document.body.classList.remove("yt-player-fs-open");
-      unlockOrientation();
+      document.documentElement.classList.remove("yt-player-fs-open");
     };
   }, []);
 
@@ -176,47 +186,75 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     const el = rootRef.current;
     if (!el) return;
 
+    // iOS/mobile: faqat CSS immersive (native FS ishlamaydi)
+    if (isMobileLike()) {
+      document.body.classList.add("yt-player-fs-open");
+      document.documentElement.classList.add("yt-player-fs-open");
+      setFsStyle(computeImmersiveStyle());
+      setIsFullscreen(true);
+      revealControls();
+      return;
+    }
+
+    // Desktop: native fullscreen, bo'lmasa CSS
     try {
       if (el.requestFullscreen) {
         await el.requestFullscreen();
+        document.body.classList.add("yt-player-fs-open");
+        setFsStyle({
+          position: "fixed",
+          inset: 0,
+          width: "100vw",
+          height: "100vh",
+          zIndex: 2147483000,
+          background: "#000",
+        });
+        setIsFullscreen(true);
       } else {
-        // @ts-expect-error webkit
-        await el.webkitRequestFullscreen?.();
+        document.body.classList.add("yt-player-fs-open");
+        setFsStyle(computeImmersiveStyle());
+        setIsFullscreen(true);
       }
-      document.body.classList.add("yt-player-fs-open");
-      await lockLandscape();
     } catch {
-      // API ishlamasa — CSS fallback: butun ekran + landscape CSS
-      el.classList.add("yt-fs-fallback");
       document.body.classList.add("yt-player-fs-open");
-      await lockLandscape();
+      setFsStyle(computeImmersiveStyle());
+      setIsFullscreen(true);
     }
-    setIsFullscreen(true);
     revealControls();
   }, [revealControls]);
 
   const exitFullscreen = useCallback(async () => {
-    const el = rootRef.current;
     try {
       if (document.fullscreenElement) {
         await document.exitFullscreen();
-      } else {
-        // @ts-expect-error webkit
-        document.webkitExitFullscreen?.();
       }
     } catch {
       /* ignore */
     }
-    el?.classList.remove("yt-fs-fallback");
     document.body.classList.remove("yt-player-fs-open");
-    unlockOrientation();
+    document.documentElement.classList.remove("yt-player-fs-open");
+    setFsStyle(undefined);
     setIsFullscreen(false);
     revealControls();
   }, [revealControls]);
 
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && !isMobileLike()) {
+        document.body.classList.remove("yt-player-fs-open");
+        document.documentElement.classList.remove("yt-player-fs-open");
+        setFsStyle(undefined);
+        setIsFullscreen(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, []);
+
   const toggleFullscreen = useCallback(
-    (e?: React.MouseEvent) => {
+    (e?: SyntheticEvent) => {
       e?.stopPropagation();
+      e?.preventDefault();
       if (isFullscreen) void exitFullscreen();
       else void enterFullscreen();
     },
@@ -225,7 +263,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
 
   useEffect(() => {
     let destroyed = false;
-    let player: YTPlayer | null = null;
 
     setReady(false);
     setStarted(false);
@@ -240,7 +277,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       const mount = document.createElement("div");
       hostRef.current.appendChild(mount);
 
-      player = new window.YT.Player(mount, {
+      const player = new window.YT.Player(mount, {
         videoId,
         width: "100%",
         height: "100%",
@@ -374,9 +411,11 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   return (
     <div
       ref={rootRef}
-      className="absolute inset-0 bg-black select-none yt-locked-root"
+      className={`bg-black select-none yt-locked-root ${
+        isFullscreen ? "yt-fs-on" : "absolute inset-0"
+      }`}
+      style={isFullscreen ? fsStyle : undefined}
     >
-      {/* Iframe bosilmaydi — barcha interaktivlik overlayda */}
       <div
         ref={hostRef}
         className="absolute inset-0 pointer-events-none [&>div]:!h-full [&>div]:!w-full [&>iframe]:!h-full [&>iframe]:!w-full"
@@ -428,7 +467,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
               </div>
             )}
 
-            {/* Pastki panel */}
             <div
               className={`absolute bottom-0 inset-x-0 z-30 transition-opacity duration-300 ${
                 showChrome ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -477,8 +515,23 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
                   </span>
                   <button
                     type="button"
-                    onClick={toggleFullscreen}
-                    className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
+                    onClick={(e) => {
+                      // iOS touchEnd dan keyin keladigan fake click ni o'tkazib yuborish
+                      if (touchFsRef.current) {
+                        touchFsRef.current = false;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return;
+                      }
+                      toggleFullscreen(e);
+                    }}
+                    onTouchEnd={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      touchFsRef.current = true;
+                      toggleFullscreen(e);
+                    }}
+                    className="shrink-0 rounded-full p-2 text-white hover:bg-white/10 active:bg-white/20"
                     aria-label={isFullscreen ? "Oddiy rejim" : "Katta ekran"}
                   >
                     {isFullscreen ? (
@@ -526,37 +579,13 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
         .yt-locked-root:-webkit-full-screen {
           width: 100vw !important;
           height: 100vh !important;
-          max-width: none !important;
-          background: #000;
-          inset: 0;
-          position: fixed !important;
-        }
-        /* Fullscreen API ishlamasa — butun ekran fallback */
-        .yt-locked-root.yt-fs-fallback {
-          position: fixed !important;
-          inset: 0 !important;
-          width: 100vw !important;
-          height: 100dvh !important;
-          max-width: none !important;
-          z-index: 99999 !important;
-          border-radius: 0 !important;
           background: #000;
         }
-        /* Mobil portrait'da fallback: video horizontal (90°) va butun ekran */
-        @media (max-width: 900px) and (orientation: portrait) {
-          .yt-locked-root.yt-fs-fallback {
-            width: 100dvh !important;
-            height: 100dvw !important;
-            top: 50% !important;
-            left: 50% !important;
-            right: auto !important;
-            bottom: auto !important;
-            transform: translate(-50%, -50%) rotate(90deg);
-            transform-origin: center center;
-          }
-        }
+        html.yt-player-fs-open,
         body.yt-player-fs-open {
           overflow: hidden !important;
+          touch-action: none;
+          overscroll-behavior: none;
         }
         .safe-bottom {
           padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
