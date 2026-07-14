@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Maximize, Minimize, Pause, Play } from "lucide-react";
 
 declare global {
   interface Window {
@@ -22,6 +22,11 @@ type YTPlayer = {
   destroy: () => void;
   loadModule?: (module: string) => void;
   setOption?: (module: string, option: string, value: unknown) => void;
+};
+
+type OrientationLock = {
+  lock?: (orientation: string) => Promise<void>;
+  unlock?: () => void;
 };
 
 function loadYouTubeAPI(): Promise<void> {
@@ -61,6 +66,24 @@ function enableCaptions(player: YTPlayer) {
   }
 }
 
+async function lockLandscape() {
+  try {
+    const orientation = screen.orientation as OrientationLock | undefined;
+    await orientation?.lock?.("landscape");
+  } catch {
+    /* ba'zi brauzerlar ruxsat bermaydi */
+  }
+}
+
+function unlockOrientation() {
+  try {
+    const orientation = screen.orientation as OrientationLock | undefined;
+    orientation?.unlock?.();
+  } catch {
+    /* ignore */
+  }
+}
+
 type Props = {
   videoId: string;
   startLabel?: string;
@@ -69,10 +92,10 @@ type Props = {
 
 /**
  * Platformada ko'rish: YouTube UI/havolalar bosilmaydi.
- * controls=0 + to'liq overlay + o'z scrubber.
- * Subtitrlar yoqilgan; pastki panel o'ynayotganda yashirinadi.
+ * controls=0 + to'liq overlay + o'z scrubber + fullscreen.
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
+  const rootRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const seekingRef = useRef(false);
@@ -86,6 +109,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [duration, setDuration] = useState(0);
   const [current, setCurrent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -105,6 +129,99 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     setControlsVisible(true);
     scheduleHideControls();
   }, [scheduleHideControls]);
+
+  const syncFullscreenState = useCallback(() => {
+    const el = rootRef.current;
+    const active =
+      document.fullscreenElement === el ||
+      // @ts-expect-error webkit
+      document.webkitFullscreenElement === el ||
+      el?.classList.contains("yt-fs-fallback");
+    setIsFullscreen(Boolean(active));
+  }, []);
+
+  useEffect(() => {
+    const onFsChange = () => {
+      const el = rootRef.current;
+      const nativeFs =
+        document.fullscreenElement === el ||
+        // @ts-expect-error webkit
+        document.webkitFullscreenElement === el;
+      if (!nativeFs && el?.classList.contains("yt-fs-fallback")) {
+        // native chiqdi — fallback ham yopiladi
+      }
+      if (!nativeFs) {
+        el?.classList.remove("yt-fs-fallback");
+        document.body.classList.remove("yt-player-fs-open");
+        unlockOrientation();
+      }
+      syncFullscreenState();
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    document.addEventListener("webkitfullscreenchange", onFsChange as EventListener);
+    return () => {
+      document.removeEventListener("fullscreenchange", onFsChange);
+      document.removeEventListener("webkitfullscreenchange", onFsChange as EventListener);
+    };
+  }, [syncFullscreenState]);
+
+  useEffect(() => {
+    return () => {
+      document.body.classList.remove("yt-player-fs-open");
+      unlockOrientation();
+    };
+  }, []);
+
+  const enterFullscreen = useCallback(async () => {
+    const el = rootRef.current;
+    if (!el) return;
+
+    try {
+      if (el.requestFullscreen) {
+        await el.requestFullscreen();
+      } else {
+        // @ts-expect-error webkit
+        await el.webkitRequestFullscreen?.();
+      }
+      document.body.classList.add("yt-player-fs-open");
+      await lockLandscape();
+    } catch {
+      // API ishlamasa — CSS fallback: butun ekran + landscape CSS
+      el.classList.add("yt-fs-fallback");
+      document.body.classList.add("yt-player-fs-open");
+      await lockLandscape();
+    }
+    setIsFullscreen(true);
+    revealControls();
+  }, [revealControls]);
+
+  const exitFullscreen = useCallback(async () => {
+    const el = rootRef.current;
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        // @ts-expect-error webkit
+        document.webkitExitFullscreen?.();
+      }
+    } catch {
+      /* ignore */
+    }
+    el?.classList.remove("yt-fs-fallback");
+    document.body.classList.remove("yt-player-fs-open");
+    unlockOrientation();
+    setIsFullscreen(false);
+    revealControls();
+  }, [revealControls]);
+
+  const toggleFullscreen = useCallback(
+    (e?: React.MouseEvent) => {
+      e?.stopPropagation();
+      if (isFullscreen) void exitFullscreen();
+      else void enterFullscreen();
+    },
+    [isFullscreen, enterFullscreen, exitFullscreen]
+  );
 
   useEffect(() => {
     let destroyed = false;
@@ -136,7 +253,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           rel: 0,
           iv_load_policy: 3,
           playsinline: 1,
-          // Subtitrlar yoqiladi (havolalar overlay bilan bloklanadi)
           cc_load_policy: 1,
           cc_lang_pref: "uz",
           origin: window.location.origin,
@@ -256,7 +372,10 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const showChrome = !started || controlsVisible || !playing;
 
   return (
-    <div className="absolute inset-0 bg-black select-none">
+    <div
+      ref={rootRef}
+      className="absolute inset-0 bg-black select-none yt-locked-root"
+    >
       {/* Iframe bosilmaydi — barcha interaktivlik overlayda */}
       <div
         ref={hostRef}
@@ -309,14 +428,14 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
               </div>
             )}
 
-            {/* Pastki panel: o'ynayotganda yashirinadi — subtitrlar to'liq ko'rinsin */}
+            {/* Pastki panel */}
             <div
               className={`absolute bottom-0 inset-x-0 z-30 transition-opacity duration-300 ${
                 showChrome ? "opacity-100" : "opacity-0 pointer-events-none"
               }`}
             >
-              <div className="bg-gradient-to-t from-black/85 via-black/50 to-transparent px-3 pb-3 pt-8">
-                <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-t from-black/85 via-black/50 to-transparent px-3 pb-3 pt-8 safe-bottom">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <button
                     type="button"
                     onClick={(e) => {
@@ -353,9 +472,21 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
                     style={{ touchAction: "none" }}
                     aria-label="Video progress"
                   />
-                  <span className="w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
+                  <span className="w-[72px] sm:w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
                     {formatTime(current)} / {formatTime(duration)}
                   </span>
+                  <button
+                    type="button"
+                    onClick={toggleFullscreen}
+                    className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
+                    aria-label={isFullscreen ? "Oddiy rejim" : "Katta ekran"}
+                  >
+                    {isFullscreen ? (
+                      <Minimize className="h-5 w-5" strokeWidth={2.25} />
+                    ) : (
+                      <Maximize className="h-5 w-5" strokeWidth={2.25} />
+                    )}
+                  </button>
                 </div>
               </div>
             </div>
@@ -390,6 +521,45 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           background: #dc2626;
           border: 2px solid #fff;
           cursor: pointer;
+        }
+        .yt-locked-root:fullscreen,
+        .yt-locked-root:-webkit-full-screen {
+          width: 100vw !important;
+          height: 100vh !important;
+          max-width: none !important;
+          background: #000;
+          inset: 0;
+          position: fixed !important;
+        }
+        /* Fullscreen API ishlamasa — butun ekran fallback */
+        .yt-locked-root.yt-fs-fallback {
+          position: fixed !important;
+          inset: 0 !important;
+          width: 100vw !important;
+          height: 100dvh !important;
+          max-width: none !important;
+          z-index: 99999 !important;
+          border-radius: 0 !important;
+          background: #000;
+        }
+        /* Mobil portrait'da fallback: video horizontal (90°) va butun ekran */
+        @media (max-width: 900px) and (orientation: portrait) {
+          .yt-locked-root.yt-fs-fallback {
+            width: 100dvh !important;
+            height: 100dvw !important;
+            top: 50% !important;
+            left: 50% !important;
+            right: auto !important;
+            bottom: auto !important;
+            transform: translate(-50%, -50%) rotate(90deg);
+            transform-origin: center center;
+          }
+        }
+        body.yt-player-fs-open {
+          overflow: hidden !important;
+        }
+        .safe-bottom {
+          padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
         }
       `}</style>
     </div>
