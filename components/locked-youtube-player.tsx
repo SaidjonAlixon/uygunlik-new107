@@ -77,60 +77,52 @@ function isMobileLike() {
 function viewportSize() {
   const vv = window.visualViewport;
   return {
-    w: Math.round(vv?.width ?? window.innerWidth),
-    h: Math.round(vv?.height ?? window.innerHeight),
+    w: Math.max(1, Math.round(vv?.width ?? window.innerWidth)),
+    h: Math.max(1, Math.round(vv?.height ?? window.innerHeight)),
   };
 }
 
-/**
- * YouTube mobil kabi:
- * - Portrait: gorizontal "oyna" (H×W) + 90° rotate → butun telefon ekranini to'ldiradi
- * - Landscape: oddiy butun ekran
- */
-function computeImmersiveStyle(): CSSProperties {
-  const { w, h } = viewportSize();
-  const portrait = h > w;
-
-  if (portrait && isMobileLike()) {
-    return {
-      position: "fixed",
-      top: "50%",
-      left: "50%",
-      width: `${h}px`,
-      height: `${w}px`,
-      maxWidth: "none",
-      transform: "translate(-50%, -50%) rotate(90deg)",
-      transformOrigin: "center center",
-      zIndex: 2147483000,
-      borderRadius: 0,
-      background: "#000",
-      inset: "auto",
-    };
+/** Ekranga sig‘adigan eng katta 16:9 (video to‘liq ko‘rinsin, kesilmasin) */
+function fitContain16x9(vw: number, vh: number) {
+  const screenRatio = vw / vh;
+  if (screenRatio > 16 / 9) {
+    const height = vh;
+    const width = Math.round((height * 16) / 9);
+    return { width, height };
   }
-
-  return {
-    position: "fixed",
-    top: 0,
-    left: 0,
-    width: `${w}px`,
-    height: `${h}px`,
-    maxWidth: "none",
-    transform: "none",
-    zIndex: 2147483000,
-    borderRadius: 0,
-    background: "#000",
-    inset: "auto",
-  };
+  const width = vw;
+  const height = Math.round((width * 9) / 16);
+  return { width, height };
 }
 
-/** Fullscreen uchun YouTube o'lchami (rotate bo'lsa H×W) */
-function fullscreenPlayerBox() {
-  const { w, h } = viewportSize();
-  const portrait = h > w;
-  if (portrait && isMobileLike()) {
-    return { width: h, height: w, portrait: true };
+function forceDomFill(root: HTMLElement, width: number, height: number) {
+  const host = root.querySelector(".yt-host") as HTMLElement | null;
+  if (host) {
+    host.style.cssText =
+      "position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;";
   }
-  return { width: w, height: h, portrait: false };
+
+  root.querySelectorAll(".yt-host > div, .yt-host iframe").forEach((node) => {
+    const el = node as HTMLElement;
+    el.style.setProperty("width", `${width}px`, "important");
+    el.style.setProperty("height", `${height}px`, "important");
+    el.style.setProperty("max-width", "none", "important");
+    el.style.setProperty("max-height", "none", "important");
+    el.setAttribute("width", String(width));
+    el.setAttribute("height", String(height));
+  });
+}
+
+function clearDomFill(root: HTMLElement) {
+  const host = root.querySelector(".yt-host") as HTMLElement | null;
+  if (host) host.style.cssText = "";
+  root.querySelectorAll(".yt-host > div, .yt-host iframe").forEach((node) => {
+    const el = node as HTMLElement;
+    el.style.removeProperty("width");
+    el.style.removeProperty("height");
+    el.style.removeProperty("max-width");
+    el.style.removeProperty("max-height");
+  });
 }
 
 async function lockLandscape() {
@@ -158,10 +150,13 @@ type Props = {
 };
 
 /**
- * YouTube-kabi: maximize → katta gorizontal; yana → vertikal kichik.
+ * Maximize → butun ekran, video to‘liq ko‘rinadi.
+ * Minimize → vertikal oddiy oyna.
+ * Rotate YO‘Q — burchakda yonboshi bo‘lib qolmasin.
  */
 export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YTPlayer | null>(null);
   const seekingRef = useRef(false);
@@ -178,7 +173,8 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const [current, setCurrent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [fsStyle, setFsStyle] = useState<CSSProperties | undefined>(undefined);
+  const [fsShellStyle, setFsShellStyle] = useState<CSSProperties | undefined>(undefined);
+  const [stageStyle, setStageStyle] = useState<CSSProperties | undefined>(undefined);
 
   const clearHideTimer = useCallback(() => {
     if (hideTimerRef.current != null) {
@@ -199,40 +195,61 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     scheduleHideControls();
   }, [scheduleHideControls]);
 
-  const syncPlayerSize = useCallback((fullscreen: boolean) => {
+  const sizeToContainer = useCallback(() => {
     const player = playerRef.current;
-    if (!player?.setSize) return;
+    const root = rootRef.current;
+    const stage = stageRef.current;
+    if (!player?.setSize || !root) return;
 
-    if (fullscreen) {
-      const box = fullscreenPlayerBox();
+    if (fsRef.current) {
+      const { w: vw, h: vh } = viewportSize();
+      const box = fitContain16x9(vw, vh);
+      setFsShellStyle({
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: `${vw}px`,
+        height: `${vh}px`,
+        zIndex: 2147483000,
+        background: "#000",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transform: "none",
+        borderRadius: 0,
+        maxWidth: "none",
+      });
+      setStageStyle({
+        position: "relative",
+        width: `${box.width}px`,
+        height: `${box.height}px`,
+        maxWidth: "100%",
+        maxHeight: "100%",
+        flexShrink: 0,
+        background: "#000",
+      });
       player.setSize(box.width, box.height);
+      // Stage ichidagi DOM ni majburan to‘ldirish
+      requestAnimationFrame(() => {
+        const stageEl = stageRef.current;
+        if (stageEl) forceDomFill(stageEl, box.width, box.height);
+      });
       return;
     }
 
-    const root = rootRef.current;
-    if (root) {
-      const rect = root.getBoundingClientRect();
-      player.setSize(
-        Math.max(1, Math.round(rect.width)),
-        Math.max(1, Math.round(rect.height))
-      );
-    }
+    setFsShellStyle(undefined);
+    setStageStyle({ position: "absolute", inset: 0, width: "100%", height: "100%" });
+    const rect = (stage ?? root).getBoundingClientRect();
+    const w = Math.max(1, Math.round(rect.width));
+    const h = Math.max(1, Math.round(rect.height));
+    player.setSize(w, h);
+    clearDomFill(stage ?? root);
   }, []);
-
-  const applyFullscreenLayout = useCallback(() => {
-    if (!fsRef.current) return;
-    setFsStyle(computeImmersiveStyle());
-    requestAnimationFrame(() => {
-      syncPlayerSize(true);
-      setTimeout(() => syncPlayerSize(true), 80);
-      setTimeout(() => syncPlayerSize(true), 250);
-    });
-  }, [syncPlayerSize]);
 
   useEffect(() => {
     if (!isFullscreen) return;
-    applyFullscreenLayout();
-    const onResize = () => applyFullscreenLayout();
+    sizeToContainer();
+    const onResize = () => sizeToContainer();
     window.addEventListener("resize", onResize);
     window.addEventListener("orientationchange", onResize);
     window.visualViewport?.addEventListener("resize", onResize);
@@ -241,7 +258,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       window.removeEventListener("orientationchange", onResize);
       window.visualViewport?.removeEventListener("resize", onResize);
     };
-  }, [isFullscreen, applyFullscreenLayout]);
+  }, [isFullscreen, sizeToContainer]);
 
   useEffect(() => {
     return () => {
@@ -270,11 +287,15 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       await lockLandscape();
     }
 
-    setFsStyle(computeImmersiveStyle());
     setIsFullscreen(true);
-    applyFullscreenLayout();
+    // state yangilangach o‘lcham
+    requestAnimationFrame(() => {
+      sizeToContainer();
+      setTimeout(() => sizeToContainer(), 100);
+      setTimeout(() => sizeToContainer(), 300);
+    });
     revealControls();
-  }, [applyFullscreenLayout, revealControls]);
+  }, [revealControls, sizeToContainer]);
 
   const exitFullscreen = useCallback(async () => {
     fsRef.current = false;
@@ -288,13 +309,14 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
     document.body.classList.remove("yt-player-fs-open");
     document.documentElement.classList.remove("yt-player-fs-open");
     unlockOrientation();
-    setFsStyle(undefined);
     setIsFullscreen(false);
+    setFsShellStyle(undefined);
+    setStageStyle({ position: "absolute", inset: 0, width: "100%", height: "100%" });
     requestAnimationFrame(() => {
-      setTimeout(() => syncPlayerSize(false), 60);
+      setTimeout(() => sizeToContainer(), 50);
     });
     revealControls();
-  }, [revealControls, syncPlayerSize]);
+  }, [revealControls, sizeToContainer]);
 
   useEffect(() => {
     const onFsChange = () => {
@@ -302,14 +324,14 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
         fsRef.current = false;
         document.body.classList.remove("yt-player-fs-open");
         document.documentElement.classList.remove("yt-player-fs-open");
-        setFsStyle(undefined);
         setIsFullscreen(false);
-        syncPlayerSize(false);
+        setFsShellStyle(undefined);
+        sizeToContainer();
       }
     };
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
-  }, [syncPlayerSize]);
+  }, [sizeToContainer]);
 
   const toggleFullscreen = useCallback(
     (e?: SyntheticEvent) => {
@@ -365,15 +387,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
             } catch {
               /* ignore */
             }
-            requestAnimationFrame(() => {
-              const root = rootRef.current;
-              if (!root || !event.target.setSize) return;
-              const rect = root.getBoundingClientRect();
-              event.target.setSize(
-                Math.max(1, Math.round(rect.width)),
-                Math.max(1, Math.round(rect.height))
-              );
-            });
+            requestAnimationFrame(() => sizeToContainer());
           },
           onStateChange: (event: { data: number }) => {
             if (destroyed || !window.YT) return;
@@ -411,7 +425,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       }
       playerRef.current = null;
     };
-  }, [videoId, clearHideTimer, scheduleHideControls]);
+  }, [videoId, clearHideTimer, scheduleHideControls, sizeToContainer]);
 
   useEffect(() => {
     if (!started || !ready) return;
@@ -483,12 +497,19 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       className={`bg-black select-none yt-locked-root ${
         isFullscreen ? "yt-fs-on" : "absolute inset-0"
       }`}
-      style={isFullscreen ? fsStyle : undefined}
+      style={isFullscreen ? fsShellStyle : undefined}
     >
+      {/* Video stage — FS da 16:9 markazda, oddiyda to‘liq ota */}
       <div
-        ref={hostRef}
-        className="absolute inset-0 pointer-events-none yt-host [&>div]:!h-full [&>div]:!w-full [&_iframe]:!h-full [&_iframe]:!w-full [&_iframe]:!max-w-none"
-      />
+        ref={stageRef}
+        className={isFullscreen ? "yt-stage" : "absolute inset-0"}
+        style={stageStyle ?? { position: "absolute", inset: 0, width: "100%", height: "100%" }}
+      >
+        <div
+          ref={hostRef}
+          className="absolute inset-0 pointer-events-none yt-host [&>div]:!h-full [&>div]:!w-full [&_iframe]:!h-full [&_iframe]:!w-full [&_iframe]:!max-w-none"
+        />
+      </div>
 
       <div
         className="absolute inset-0 z-20"
@@ -642,9 +663,6 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           background: #dc2626;
           border: 2px solid #fff;
           cursor: pointer;
-        }
-        .yt-locked-root.yt-fs-on {
-          background: #000 !important;
         }
         .yt-fs-on .yt-host,
         .yt-fs-on .yt-host > div,
