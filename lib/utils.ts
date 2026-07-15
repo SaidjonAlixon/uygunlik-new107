@@ -121,8 +121,7 @@ export function getYouTubeEmbedUrl(
     controls: '0',
     disablekb: '1',
     enablejsapi: '1',
-    cc_load_policy: '1',
-    cc_lang_pref: 'uz',
+    cc_load_policy: '0',
   });
   if (options?.autoplay) params.set('autoplay', '1');
   const origin =

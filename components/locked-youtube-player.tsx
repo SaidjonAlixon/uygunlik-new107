@@ -22,6 +22,7 @@ type YTPlayer = {
   destroy: () => void;
   setSize?: (width: number, height: number) => void;
   loadModule?: (module: string) => void;
+  unloadModule?: (module: string) => void;
   setOption?: (module: string, option: string, value: unknown) => void;
 };
 
@@ -58,10 +59,12 @@ function formatTime(seconds: number) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
-function enableCaptions(player: YTPlayer) {
+/** YouTube avtomatik / CC subtitrlarini o‘chiradi (video ichidagi burned-in ga tegmaydi) */
+function disableYouTubeCaptions(player: YTPlayer) {
   try {
-    player.loadModule?.("captions");
-    player.setOption?.("captions", "reload", true);
+    player.unloadModule?.("captions");
+    player.unloadModule?.("cc");
+    player.setOption?.("captions", "track", {});
   } catch {
     /* ignore */
   }
@@ -372,15 +375,14 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           rel: 0,
           iv_load_policy: 3,
           playsinline: 1,
-          cc_load_policy: 1,
-          cc_lang_pref: "uz",
+          cc_load_policy: 0,
           origin: window.location.origin,
         },
         events: {
           onReady: (event: { target: YTPlayer }) => {
             if (destroyed) return;
             playerRef.current = event.target;
-            enableCaptions(event.target);
+            disableYouTubeCaptions(event.target);
             setReady(true);
             try {
               setDuration(event.target.getDuration() || 0);
@@ -394,7 +396,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
             const { PLAYING, PAUSED, ENDED } = window.YT.PlayerState;
             if (event.data === PLAYING) {
               setPlaying(true);
-              if (playerRef.current) enableCaptions(playerRef.current);
+              if (playerRef.current) disableYouTubeCaptions(playerRef.current);
               setControlsVisible(true);
               scheduleHideControls();
             }
