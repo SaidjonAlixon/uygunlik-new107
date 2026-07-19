@@ -359,7 +359,24 @@ export default function DashboardPage() {
                               )}
                               <p className="text-xs text-gray-400 mt-2 font-medium">
                                 {selectedSection.lessons?.length || 0} ta dars
+                                {" · "}Progress: {getSectionProgress(selectedSection)}%
                               </p>
+                              {Array.isArray(selectedSection.test_questions) &&
+                                selectedSection.test_questions.length > 0 && (
+                                  <div className="mt-4">
+                                    <Button
+                                      className="bg-red-600 hover:bg-red-700"
+                                      disabled={getSectionProgress(selectedSection) < 100}
+                                      onClick={() => {
+                                        window.open(`/quiz/section/${selectedSection.id}`, "_blank");
+                                      }}
+                                    >
+                                      {getSectionProgress(selectedSection) >= 100
+                                        ? "Bo'lim yakuniy testini boshlash"
+                                        : `Bo'lim testi (barcha darslarni ko'ring: ${getSectionProgress(selectedSection)}%)`}
+                                    </Button>
+                                  </div>
+                                )}
                             </div>
                           </div>
                         </div>

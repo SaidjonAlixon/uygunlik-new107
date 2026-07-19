@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { TestSubmissionService } from '@/lib/postgres';
+import { formatTashkentDateTime } from '@/lib/datetime';
 
 export type TelegramAnswer = {
   question?: string;
@@ -14,7 +15,8 @@ export type TelegramAnswer = {
 export type DetailedSubmission = {
   id: number;
   user_id: number;
-  lesson_id: number;
+  lesson_id?: number | null;
+  section_id?: number | null;
   score: number;
   total_questions: number;
   answers: TelegramAnswer[] | string;
@@ -22,9 +24,10 @@ export type DetailedSubmission = {
   first_name: string;
   last_name: string;
   email: string;
-  lesson_title: string;
+  lesson_title?: string | null;
   section_name?: string;
   tariff_name?: string;
+  retake_allowed?: boolean;
 };
 
 function getConfig() {
@@ -169,51 +172,48 @@ function escapeHtml(text: string) {
 }
 
 export function formatSubmissionMessage(submission: DetailedSubmission): string {
-  const answers = parseAnswers(submission.answers);
   const wrong = submission.total_questions - submission.score;
   const percent = submission.total_questions > 0
     ? Math.round((submission.score * 1000) / submission.total_questions) / 10
     : 0;
   const fullName = `${submission.first_name || ''} ${submission.last_name || ''}`.trim();
   const date = submission.created_at
-    ? new Date(submission.created_at).toLocaleString('uz-UZ')
+    ? formatTashkentDateTime(submission.created_at)
     : '—';
   const resultLabel = percent >= 70 ? "✅ O'TDI" : "❌ O'TMADI";
+  const testLabel = submission.lesson_title
+    || (submission.section_name ? `${submission.section_name} (bo'lim testi)` : '—');
+
+  const answers = parseAnswers(submission.answers);
+  const questionLines =
+    answers.length > 0
+      ? answers.map((a, idx) => {
+          const ok = a.isCorrect ?? a.selected === a.correct;
+          return `${idx + 1}-savol ${ok ? '✅' : '❌'}`;
+        })
+      : Array.from(
+          { length: Math.max(0, submission.total_questions || 0) },
+          (_, idx) => `${idx + 1}-savol —`
+        );
 
   const lines: string[] = [
     '📝 <b>YANGI TEST NATIJASI</b>',
     `${resultLabel} — <b>${percent}%</b> (${submission.score}/${submission.total_questions})`,
     `👤 <b>Foydalanuvchi:</b> ${escapeHtml(fullName)}`,
     `📧 <b>Email:</b> ${escapeHtml(submission.email || '—')}`,
-    `📚 <b>Darslik:</b> ${escapeHtml(submission.lesson_title || '—')}`,
+    `📚 <b>Test:</b> ${escapeHtml(testLabel)}`,
     `📂 <b>Bo'lim:</b> ${escapeHtml(submission.section_name || '—')}`,
     `💳 <b>Tarif:</b> ${escapeHtml(submission.tariff_name || '—')}`,
-    `📅 <b>Sana:</b> ${escapeHtml(date)}`,
+    `📅 <b>Sana (Toshkent):</b> ${escapeHtml(date)}`,
     '',
     '━━━━━━━━━━━━━━━━',
-    '<b>SAVOLLAR VA JAVOBLAR</b>',
+    '<b>📊 SAVOLLAR</b>',
     '━━━━━━━━━━━━━━━━',
+    ...questionLines,
+    '',
+    `✅ To'g'ri: <b>${submission.score}</b> · ❌ Noto'g'ri: <b>${wrong}</b>`,
+    `📋 Jami: <b>${submission.total_questions}</b> · 📈 Foiz: <b>${percent}%</b>`,
   ];
-
-  answers.forEach((a, i) => {
-    const isCorrect = a.isCorrect ?? a.selected === a.correct;
-    const icon = isCorrect ? '✅' : '❌';
-    const selectedText = a.selectedText || optionLabel(a.selected ?? -1, a.options);
-    const correctText = a.correctText || optionLabel(a.correct ?? -1, a.options);
-    lines.push('');
-    lines.push(`${icon} <b>${i + 1}-savol:</b> ${escapeHtml(a.question || '—')}`);
-    lines.push(`   Tanlangan: ${escapeHtml(selectedText)}`);
-    lines.push(`   To'g'ri: ${escapeHtml(correctText)}`);
-  });
-
-  lines.push('');
-  lines.push('━━━━━━━━━━━━━━━━');
-  lines.push('<b>📊 UMUMIY NATIJA</b>');
-  lines.push('━━━━━━━━━━━━━━━━');
-  lines.push(`✅ To'g'ri javoblar: <b>${submission.score}</b>`);
-  lines.push(`❌ Noto'g'ri javoblar: <b>${wrong}</b>`);
-  lines.push(`📋 Jami savollar: <b>${submission.total_questions}</b>`);
-  lines.push(`📈 Foiz: <b>${percent}%</b>`);
 
   return lines.join('\n');
 }

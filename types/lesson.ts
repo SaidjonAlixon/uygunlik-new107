@@ -12,6 +12,8 @@ export interface Lesson {
   order_number: number;
   additional_resources?: any[];
   test_questions?: any[];
+  /** Shu dars testi yana qaysi darslarda ko'rinsin */
+  test_visible_lesson_ids?: number[];
   createdAt?: string;
   updatedAt?: string;
 }

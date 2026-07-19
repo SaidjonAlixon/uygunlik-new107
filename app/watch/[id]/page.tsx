@@ -65,6 +65,23 @@ export default function WatchPage() {
   const lastProgressSaveRef = useRef(0);
   const [currentProgress, setCurrentProgress] = useState(0);
   const [progressReady, setProgressReady] = useState(false);
+  const [hasInternalQuiz, setHasInternalQuiz] = useState(false);
+
+  useEffect(() => {
+    if (!lesson?.id) {
+      setHasInternalQuiz(false);
+      return;
+    }
+    const own = Array.isArray(lesson.test_questions) && lesson.test_questions.length > 0;
+    if (own) {
+      setHasInternalQuiz(true);
+      return;
+    }
+    api
+      .get(`/lessons/${lesson.id}/quiz`)
+      .then(() => setHasInternalQuiz(true))
+      .catch(() => setHasInternalQuiz(false));
+  }, [lesson?.id, lesson?.test_questions]);
 
   // Timeout for video loading — qotib qolmasin
   useEffect(() => {
@@ -349,12 +366,12 @@ export default function WatchPage() {
             />
           </div>
         )}
-        {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
+        {(lesson?.test_url || hasInternalQuiz) && (
           <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
             <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
             <button
               onClick={() => {
-                if (lesson.test_questions && (lesson.test_questions as any[]).length > 0) {
+                if (hasInternalQuiz) {
                   window.open(`/quiz/${lesson.id}`, '_blank');
                 } else if (lesson.test_url) {
                   window.open(lesson.test_url, '_blank');
@@ -412,12 +429,12 @@ export default function WatchPage() {
             />
           </div>
         )}
-        {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
+        {(lesson?.test_url || hasInternalQuiz) && (
           <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
             <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
             <button
               onClick={() => {
-                if (lesson.test_questions && (lesson.test_questions as any[]).length > 0) {
+                if (hasInternalQuiz) {
                   window.open(`/quiz/${lesson.id}`, '_blank');
                 } else if (lesson.test_url) {
                   window.open(lesson.test_url, '_blank');
@@ -493,12 +510,12 @@ export default function WatchPage() {
           />
         </div>
       )}
-      {(lesson?.test_url || (lesson?.test_questions && (lesson.test_questions as any[]).length > 0)) && (
+      {(lesson?.test_url || hasInternalQuiz) && (
         <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
           <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
           <button
             onClick={() => {
-              if (lesson.test_questions && (lesson.test_questions as any[]).length > 0) {
+              if (hasInternalQuiz) {
                 window.open(`/quiz/${lesson.id}`, '_blank');
               } else if (lesson.test_url) {
                 window.open(lesson.test_url, '_blank');

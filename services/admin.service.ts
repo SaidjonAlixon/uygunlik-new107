@@ -38,4 +38,10 @@ export const adminApi = {
 
   deleteTariff: (id: number) => api.delete(`/admin/tariffs/${id}`),
   getTestSubmissions: () => api.get<any[]>('/admin/tests/submissions'),
+
+  exportTestsExcel: () =>
+    api.get<Blob>('/admin/tests/export', { responseType: 'blob' }),
+
+  allowTestRetake: (submissionId: number) =>
+    api.post(`/admin/tests/submissions/${submissionId}/allow-retake`),
 };

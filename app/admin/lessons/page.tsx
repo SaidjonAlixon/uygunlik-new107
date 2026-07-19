@@ -31,6 +31,7 @@ import { Plus, Eye, Trash2, FolderPlus, Pencil } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lesson } from '@/types/lesson';
 import { LessonSection } from '@/types/section';
+import { Checkbox } from '@/components/ui/checkbox';
 
 type Tariff = { id: number; name: string };
 
@@ -44,7 +45,12 @@ export default function AdminLessonsPage() {
   const [addSectionOpen, setAddSectionOpen] = useState(false);
   const [addLessonOpen, setAddLessonOpen] = useState(false);
   const [editSectionOpen, setEditSectionOpen] = useState(false);
-  const [sectionForm, setSectionForm] = useState({ name: '', description: '', order_number: '1' });
+  const [sectionForm, setSectionForm] = useState({
+    name: '',
+    description: '',
+    order_number: '1',
+    tariff_ids: [] as number[],
+  });
   const [editingSection, setEditingSection] = useState<LessonSection | null>(null);
   const [lessonForm, setLessonForm] = useState({
     title: '',
@@ -107,10 +113,35 @@ export default function AdminLessonsPage() {
     setAddLessonOpen(true);
   };
 
+  const toggleSectionTariff = (tariffId: number, checked: boolean) => {
+    setSectionForm((f) => {
+      const set = new Set(f.tariff_ids);
+      if (checked) set.add(tariffId);
+      else set.delete(tariffId);
+      return { ...f, tariff_ids: [...set] };
+    });
+  };
+
+  const openCreateSection = () => {
+    const currentId = selectedTariffId ? Number(selectedTariffId) : NaN;
+    const nextOrder = sections.length === 0 ? 1 : Math.max(0, ...sections.map((s) => s.order_number)) + 1;
+    setSectionForm({
+      name: '',
+      description: '',
+      order_number: String(nextOrder),
+      tariff_ids: Number.isFinite(currentId) ? [currentId] : [],
+    });
+    setAddSectionOpen(true);
+  };
+
   const handleCreateSection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedTariffId || !sectionForm.name.trim()) {
       toast.error("Bo'lim nomi to'ldirilishi kerak");
+      return;
+    }
+    if (sectionForm.tariff_ids.length === 0) {
+      toast.error("Kamida bitta tarif tanlanishi kerak");
       return;
     }
     setSubmitting(true);
@@ -120,10 +151,11 @@ export default function AdminLessonsPage() {
         name: sectionForm.name.trim(),
         description: sectionForm.description.trim() || undefined,
         order_number: parseInt(sectionForm.order_number, 10) || nextOrder,
+        tariff_ids: sectionForm.tariff_ids,
       });
       toast.success("Bo'lim qo'shildi");
       setAddSectionOpen(false);
-      setSectionForm({ name: '', description: '', order_number: '1' });
+      setSectionForm({ name: '', description: '', order_number: '1', tariff_ids: [] });
       await loadSections(selectedTariffId);
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Xato');
@@ -135,12 +167,17 @@ export default function AdminLessonsPage() {
   const handleUpdateSection = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingSection || !sectionForm.name.trim()) return;
+    if (sectionForm.tariff_ids.length === 0) {
+      toast.error("Kamida bitta tarif tanlanishi kerak");
+      return;
+    }
     setSubmitting(true);
     try {
       await api.patch(`/sections/${editingSection.id}`, {
         name: sectionForm.name.trim(),
         description: sectionForm.description.trim() || '',
         order_number: parseInt(sectionForm.order_number, 10) || editingSection.order_number,
+        tariff_ids: sectionForm.tariff_ids,
       });
       toast.success("Bo'lim yangilandi");
       setEditSectionOpen(false);
@@ -220,11 +257,7 @@ export default function AdminLessonsPage() {
             ))}
           </select>
           <Button
-            onClick={() => {
-              const nextOrder = sections.length === 0 ? 1 : Math.max(0, ...sections.map((s) => s.order_number)) + 1;
-              setSectionForm({ name: '', description: '', order_number: String(nextOrder) });
-              setAddSectionOpen(true);
-            }}
+            onClick={openCreateSection}
             disabled={!selectedTariffId}
             variant="outline"
             className="w-full sm:w-auto h-11 border-[#7A2E2E]/30 text-[#5D1111] hover:bg-[#FEFBEE] rounded-xl"
@@ -253,7 +286,7 @@ export default function AdminLessonsPage() {
           <CardContent className="py-12 text-center">
             <p className="text-[#7A2E2E]/80 font-medium mb-4">Ushbu ta'rifda hali bo'limlar mavjud emas.</p>
             <Button
-              onClick={() => setAddSectionOpen(true)}
+              onClick={openCreateSection}
               className="bg-[#5D1111] hover:bg-[#7A2E2E] text-white rounded-xl"
             >
               <FolderPlus className="h-4 w-4 mr-2" />
@@ -282,6 +315,20 @@ export default function AdminLessonsPage() {
                       <p className="text-sm text-[#7A2E2E]/60 mt-1.5">
                         {section.lessons?.length || 0} ta dars · Tartib: {section.order_number}
                       </p>
+                      {(() => {
+                        const ids = section.tariff_ids?.length
+                          ? section.tariff_ids
+                          : [section.tariff_id];
+                        const names = ids
+                          .map((id) => tariffs.find((t) => t.id === id)?.name)
+                          .filter(Boolean);
+                        if (names.length <= 1) return null;
+                        return (
+                          <p className="text-xs text-[#5D1111]/70 mt-1.5">
+                            Tariflar: {names.join(', ')}
+                          </p>
+                        );
+                      })()}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -295,6 +342,9 @@ export default function AdminLessonsPage() {
                           name: section.name,
                           description: section.description || '',
                           order_number: String(section.order_number),
+                          tariff_ids: section.tariff_ids?.length
+                            ? [...section.tariff_ids]
+                            : [section.tariff_id],
                         });
                         setEditSectionOpen(true);
                       }}
@@ -427,6 +477,29 @@ export default function AdminLessonsPage() {
                 onChange={(e) => setSectionForm((f) => ({ ...f, order_number: e.target.value }))}
               />
             </div>
+            <div className="space-y-2">
+              <Label className="text-[#5D1111] font-semibold">Qaysi tariflarda chiqsin? *</Label>
+              <div className="rounded-xl border border-[#7A2E2E]/15 bg-[#FEFBEE]/40 p-3 space-y-2 max-h-44 overflow-y-auto">
+                {tariffs.map((t) => {
+                  const checked = sectionForm.tariff_ids.includes(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-white/70"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => toggleSectionTariff(t.id, v === true)}
+                      />
+                      <span className="text-sm text-[#5D1111] font-medium">{t.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-[#7A2E2E]/70">
+                Bir nechta tarifni belgilashingiz mumkin (masalan Standard + Premium).
+              </p>
+            </div>
             <DialogFooter className="pt-4 border-t border-[#7A2E2E]/10">
               <Button type="button" variant="outline" onClick={() => setAddSectionOpen(false)}>Bekor qilish</Button>
               <Button type="submit" className="bg-[#5D1111] hover:bg-[#7A2E2E] text-white" disabled={submitting}>
@@ -471,6 +544,26 @@ export default function AdminLessonsPage() {
                 value={sectionForm.order_number}
                 onChange={(e) => setSectionForm((f) => ({ ...f, order_number: e.target.value }))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-[#5D1111] font-semibold">Qaysi tariflarda chiqsin? *</Label>
+              <div className="rounded-xl border border-[#7A2E2E]/15 bg-[#FEFBEE]/40 p-3 space-y-2 max-h-44 overflow-y-auto">
+                {tariffs.map((t) => {
+                  const checked = sectionForm.tariff_ids.includes(t.id);
+                  return (
+                    <label
+                      key={t.id}
+                      className="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-white/70"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onCheckedChange={(v) => toggleSectionTariff(t.id, v === true)}
+                      />
+                      <span className="text-sm text-[#5D1111] font-medium">{t.name}</span>
+                    </label>
+                  );
+                })}
+              </div>
             </div>
             <DialogFooter className="pt-4 border-t border-[#7A2E2E]/10">
               <Button type="button" variant="outline" onClick={() => setEditSectionOpen(false)}>Bekor qilish</Button>

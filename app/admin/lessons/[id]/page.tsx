@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Save, Plus, Trash2, ClipboardList, X } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -17,7 +18,17 @@ export default function AdminLessonEditPage() {
   const id = String(params.id);
   const [lesson, setLesson] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ title: '', description: '', video_url: '', pdf_url: '', test_url: '', order_number: '1', test_questions: [] as any[] });
+  const [form, setForm] = useState({
+    title: '',
+    description: '',
+    video_url: '',
+    pdf_url: '',
+    test_url: '',
+    order_number: '1',
+    test_questions: [] as any[],
+    test_visible_lesson_ids: [] as number[],
+  });
+  const [allLessons, setAllLessons] = useState<any[]>([]);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -33,6 +44,9 @@ export default function AdminLessonEditPage() {
           test_url: l.test_url || '',
           order_number: String(l.order_number ?? 1),
           test_questions: Array.isArray(l.test_questions) ? l.test_questions : [],
+          test_visible_lesson_ids: Array.isArray(l.test_visible_lesson_ids)
+            ? l.test_visible_lesson_ids.map(Number)
+            : [],
         });
       })
       .catch(() => {
@@ -40,6 +54,10 @@ export default function AdminLessonEditPage() {
         router.push('/admin/lessons');
       })
       .finally(() => setLoading(false));
+
+    api.get('/admin/lessons/all')
+      .then((r) => setAllLessons(Array.isArray(r.data) ? r.data : []))
+      .catch(() => setAllLessons([]));
   }, [id, router]);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -54,6 +72,7 @@ export default function AdminLessonEditPage() {
         test_url: form.test_url || undefined,
         order_number: parseInt(form.order_number, 10) || 1,
         test_questions: form.test_questions,
+        test_visible_lesson_ids: form.test_visible_lesson_ids,
       });
       toast.success('Saqlandi');
       const r = await api.get(`/lessons/${id}`);
@@ -283,6 +302,46 @@ export default function AdminLessonEditPage() {
                     </div>
                   </div>
                 ))
+              )}
+
+              {form.test_questions.length > 0 && (
+                <div className="rounded-2xl border border-[#7A2E2E]/15 bg-[#FEFBEE]/40 p-4 space-y-3">
+                  <Label className="text-[#5D1111] font-bold">Bu test qaysi darslarda ko&apos;rinsin?</Label>
+                  <p className="text-xs text-[#7A2E2E]/70">
+                    Joriy darsda har doim ko&apos;rinadi. Qo&apos;shimcha darslarni belgilashingiz mumkin.
+                  </p>
+                  <div className="max-h-48 overflow-y-auto space-y-2">
+                    {allLessons
+                      .filter((l) => String(l.id) !== id)
+                      .map((l) => {
+                        const checked = form.test_visible_lesson_ids.includes(Number(l.id));
+                        return (
+                          <label
+                            key={l.id}
+                            className="flex items-center gap-3 cursor-pointer rounded-lg px-2 py-1.5 hover:bg-white/70"
+                          >
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={(v) => {
+                                setForm((f) => {
+                                  const set = new Set(f.test_visible_lesson_ids);
+                                  if (v === true) set.add(Number(l.id));
+                                  else set.delete(Number(l.id));
+                                  return { ...f, test_visible_lesson_ids: [...set] };
+                                });
+                              }}
+                            />
+                            <span className="text-sm text-[#5D1111]">
+                              {l.title}
+                              <span className="text-xs text-[#7A2E2E]/60 ml-2">
+                                {l.tariff_name || ''}
+                              </span>
+                            </span>
+                          </label>
+                        );
+                      })}
+                  </div>
+                </div>
               )}
 
               {form.test_questions.length > 0 && (

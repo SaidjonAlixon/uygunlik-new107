@@ -1,5 +1,12 @@
-import { Pool } from 'pg';
+import { Pool, types } from 'pg';
 import type { RatingEntry } from '@/types/rating';
+
+// TIMESTAMP WITHOUT TIME ZONE — Railway UTC saqlaydi; lokal TZ (+5) qo'shib o'qimaslik
+types.setTypeParser(types.builtins.TIMESTAMP, (value: string) => {
+  const normalized = value.includes('T') ? value : value.replace(' ', 'T');
+  const hasTz = /[zZ]|[+-]\d{2}(:?\d{2})?$/.test(normalized);
+  return new Date(hasTz ? normalized : `${normalized}Z`);
+});
 
 // PostgreSQL connection pool
 export const pool = new Pool({
@@ -15,6 +22,7 @@ export const pool = new Pool({
 const globalForDb = globalThis as typeof globalThis & {
   __uygunlikDbReady?: boolean;
   __uygunlikDbInit?: Promise<void>;
+  __uygunlikSchemaVersion?: number;
 };
 
 async function runDatabaseInitialization() {
@@ -211,6 +219,25 @@ async function runDatabaseInitialization() {
       ALTER TABLE lesson_sections ADD COLUMN IF NOT EXISTS description TEXT
     `);
 
+    // Bo'lim ↔ tarif (ko'p-ko'p): bitta bo'lim bir nechta tarifda chiqishi mumkin
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS section_tariffs (
+        id SERIAL PRIMARY KEY,
+        section_id INTEGER NOT NULL REFERENCES lesson_sections(id) ON DELETE CASCADE,
+        tariff_id INTEGER NOT NULL REFERENCES tariffs(id) ON DELETE CASCADE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE(section_id, tariff_id)
+      )
+    `);
+
+    // Mavjud bo'limlarni junction jadvaliga ko'chirish
+    await pool.query(`
+      INSERT INTO section_tariffs (section_id, tariff_id)
+      SELECT id, tariff_id FROM lesson_sections
+      WHERE tariff_id IS NOT NULL
+      ON CONFLICT (section_id, tariff_id) DO NOTHING
+    `);
+
     // Migrate existing lessons without section into default section per tariff
     const tariffsWithOrphanLessons = await pool.query(`
       SELECT DISTINCT tariff_id FROM lessons WHERE section_id IS NULL AND tariff_id IS NOT NULL
@@ -222,6 +249,11 @@ async function runDatabaseInitialization() {
         VALUES ($1, 'Umumiy bo''lim', 1)
         RETURNING id
       `, [tariffId]);
+      await pool.query(`
+        INSERT INTO section_tariffs (section_id, tariff_id)
+        VALUES ($1, $2)
+        ON CONFLICT (section_id, tariff_id) DO NOTHING
+      `, [defaultSection.rows[0].id, tariffId]);
       await pool.query(`
         UPDATE lessons SET section_id = $1 WHERE tariff_id = $2 AND section_id IS NULL
       `, [defaultSection.rows[0].id, tariffId]);
@@ -238,6 +270,31 @@ async function runDatabaseInitialization() {
         answers JSONB DEFAULT '[]'::jsonb,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Bo'lim testi + qayta ishlash ruxsati
+    await pool.query(`
+      ALTER TABLE test_submissions ALTER COLUMN lesson_id DROP NOT NULL
+    `).catch(() => { /* already nullable */ });
+    await pool.query(`
+      ALTER TABLE test_submissions
+        ADD COLUMN IF NOT EXISTS section_id INTEGER REFERENCES lesson_sections(id) ON DELETE CASCADE
+    `);
+    await pool.query(`
+      ALTER TABLE test_submissions
+        ADD COLUMN IF NOT EXISTS retake_allowed BOOLEAN DEFAULT FALSE
+    `);
+
+    // Bo'lim uchun umumiy test savollari
+    await pool.query(`
+      ALTER TABLE lesson_sections
+        ADD COLUMN IF NOT EXISTS test_questions JSONB DEFAULT '[]'::jsonb
+    `);
+
+    // Dars testi boshqa darslarda ham ko'rinsin (lesson id lar)
+    await pool.query(`
+      ALTER TABLE lessons
+        ADD COLUMN IF NOT EXISTS test_visible_lesson_ids INTEGER[] DEFAULT '{}'
     `);
 
     // Create default admin user if not exists (admin panel kirish uchun)
@@ -295,10 +352,25 @@ async function runDatabaseInitialization() {
 }
 
 export async function initializeDatabase() {
-  if (globalForDb.__uygunlikDbReady) return;
+  const SCHEMA_VERSION = 3; // bump when adding columns so HMR/restart re-runs migrations
+  if (
+    globalForDb.__uygunlikDbReady &&
+    globalForDb.__uygunlikSchemaVersion === SCHEMA_VERSION
+  ) {
+    return;
+  }
+
+  // Schema yangilanganda qayta migratsiya
+  if (globalForDb.__uygunlikSchemaVersion !== SCHEMA_VERSION) {
+    globalForDb.__uygunlikDbReady = false;
+    globalForDb.__uygunlikDbInit = undefined;
+  }
 
   if (!globalForDb.__uygunlikDbInit) {
     globalForDb.__uygunlikDbInit = runDatabaseInitialization()
+      .then(() => {
+        globalForDb.__uygunlikSchemaVersion = SCHEMA_VERSION;
+      })
       .catch((error) => {
         globalForDb.__uygunlikDbInit = undefined;
         throw error;
@@ -706,35 +778,129 @@ export class TariffService {
 
 // Lesson section (bo'lim) operations
 export class SectionService {
+  static async getTariffIds(sectionId: number): Promise<number[]> {
+    const result = await pool.query(
+      'SELECT tariff_id FROM section_tariffs WHERE section_id = $1 ORDER BY tariff_id ASC',
+      [sectionId]
+    );
+    const ids = result.rows.map((r: { tariff_id: number }) => Number(r.tariff_id));
+    if (ids.length > 0) return ids;
+
+    // Fallback: eski yozuvlar uchun primary tariff_id
+    const section = await pool.query('SELECT tariff_id FROM lesson_sections WHERE id = $1', [sectionId]);
+    const primary = section.rows[0]?.tariff_id;
+    return primary != null ? [Number(primary)] : [];
+  }
+
+  static async setTariffIds(sectionId: number, tariffIds: number[]) {
+    const unique = [...new Set(
+      tariffIds.map((id) => Number(id)).filter((id) => Number.isFinite(id) && id > 0)
+    )];
+    if (unique.length === 0) {
+      throw new Error("Bo'lim uchun kamida bitta tarif tanlanishi kerak");
+    }
+
+    await pool.query('DELETE FROM section_tariffs WHERE section_id = $1', [sectionId]);
+    for (const tariffId of unique) {
+      await pool.query(
+        `INSERT INTO section_tariffs (section_id, tariff_id)
+         VALUES ($1, $2)
+         ON CONFLICT (section_id, tariff_id) DO NOTHING`,
+        [sectionId, tariffId]
+      );
+    }
+
+    // Primary tariff_id ni saqlab turamiz (orqaga moslik)
+    await pool.query(
+      `UPDATE lesson_sections
+       SET tariff_id = $1, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $2`,
+      [unique[0], sectionId]
+    );
+
+    return unique;
+  }
+
+  static async attachTariffIds<T extends { id: number; tariff_id?: number }>(section: T) {
+    const tariff_ids = await this.getTariffIds(section.id);
+    return { ...section, tariff_ids };
+  }
+
+  static async findAll() {
+    const result = await pool.query(`
+      SELECT s.*
+      FROM lesson_sections s
+      ORDER BY s.order_number ASC, s.created_at ASC
+    `);
+    return Promise.all(
+      result.rows.map(async (section: { id: number }) => this.attachTariffIds(section))
+    );
+  }
+
   static async findAllByTariff(tariffId: number) {
     const result = await pool.query(`
-      SELECT * FROM lesson_sections
-      WHERE tariff_id = $1
-      ORDER BY order_number ASC, created_at ASC
+      SELECT DISTINCT s.*
+      FROM lesson_sections s
+      LEFT JOIN section_tariffs st ON st.section_id = s.id
+      WHERE s.tariff_id = $1 OR st.tariff_id = $1
+      ORDER BY s.order_number ASC, s.created_at ASC
     `, [tariffId]);
-    return result.rows;
+
+    const sections = result.rows;
+    const withTariffs = await Promise.all(
+      sections.map(async (section: { id: number }) => this.attachTariffIds(section))
+    );
+    return withTariffs;
   }
 
   static async findById(id: number) {
     const result = await pool.query('SELECT * FROM lesson_sections WHERE id = $1', [id]);
-    return result.rows[0] || null;
+    const section = result.rows[0];
+    if (!section) return null;
+    return this.attachTariffIds(section);
   }
 
-  static async create(data: { tariff_id: number; name: string; description?: string; order_number?: number }) {
+  static async create(data: {
+    tariff_id: number;
+    name: string;
+    description?: string;
+    order_number?: number;
+    tariff_ids?: number[];
+  }) {
     const result = await pool.query(`
       INSERT INTO lesson_sections (tariff_id, name, description, order_number)
       VALUES ($1, $2, $3, $4)
       RETURNING *
     `, [data.tariff_id, data.name, data.description || '', data.order_number || 0]);
-    return result.rows[0];
+
+    const section = result.rows[0];
+    const tariffIds = data.tariff_ids?.length
+      ? data.tariff_ids
+      : [data.tariff_id];
+    const normalized = tariffIds.includes(data.tariff_id)
+      ? tariffIds
+      : [data.tariff_id, ...tariffIds];
+
+    await this.setTariffIds(section.id, normalized);
+    return this.attachTariffIds(section);
   }
 
-  static async update(id: number, updates: { name?: string; description?: string; order_number?: number }) {
+  static async update(
+    id: number,
+    updates: {
+      name?: string;
+      description?: string;
+      order_number?: number;
+      tariff_ids?: number[];
+      test_questions?: any[];
+    }
+  ) {
+    const { tariff_ids, test_questions, ...rest } = updates;
     const fields: string[] = [];
     const values: unknown[] = [];
     let paramCount = 1;
 
-    Object.entries(updates).forEach(([key, value]) => {
+    Object.entries(rest).forEach(([key, value]) => {
       if (value !== undefined) {
         fields.push(`${key} = $${paramCount}`);
         values.push(value);
@@ -742,16 +908,26 @@ export class SectionService {
       }
     });
 
-    if (fields.length === 0) return null;
+    if (test_questions !== undefined) {
+      fields.push(`test_questions = $${paramCount}`);
+      values.push(JSON.stringify(test_questions));
+      paramCount++;
+    }
 
-    fields.push('updated_at = CURRENT_TIMESTAMP');
-    values.push(id);
+    if (fields.length > 0) {
+      fields.push('updated_at = CURRENT_TIMESTAMP');
+      values.push(id);
+      await pool.query(
+        `UPDATE lesson_sections SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
+        values
+      );
+    }
 
-    const result = await pool.query(
-      `UPDATE lesson_sections SET ${fields.join(', ')} WHERE id = $${paramCount} RETURNING *`,
-      values
-    );
-    return result.rows[0] || null;
+    if (tariff_ids !== undefined) {
+      await this.setTariffIds(id, tariff_ids);
+    }
+
+    return this.findById(id);
   }
 
   static async delete(id: number) {
@@ -764,7 +940,7 @@ export class SectionService {
     const lessons = await LessonService.findAllByTariff(tariffId);
     return sections.map((section) => ({
       ...section,
-      lessons: lessons.filter((l) => l.section_id === section.id),
+      lessons: lessons.filter((l: { section_id?: number }) => l.section_id === section.id),
     }));
   }
 }
@@ -772,19 +948,58 @@ export class SectionService {
 // Lesson operations
 export class LessonService {
   static async findAllByTariff(tariffId: number) {
+    // Bo'lim boshqa tarifga ham biriktirilgan bo'lsa — darslar shu tarifda ham chiqadi
     const result = await pool.query(`
-      SELECT l.*, s.name as section_name, s.order_number as section_order
+      SELECT DISTINCT ON (l.id)
+        l.*, s.name as section_name, s.order_number as section_order
       FROM lessons l
       LEFT JOIN lesson_sections s ON s.id = l.section_id
+      LEFT JOIN section_tariffs st ON st.section_id = l.section_id
       WHERE l.tariff_id = $1
-      ORDER BY s.order_number ASC NULLS LAST, l.order_number ASC, l.created_at ASC
+         OR st.tariff_id = $1
+         OR s.tariff_id = $1
+      ORDER BY l.id, s.order_number ASC NULLS LAST, l.order_number ASC, l.created_at ASC
     `, [tariffId]);
-    return result.rows;
+
+    // DISTINCT ON tartibini saqlash uchun qayta sort
+    return result.rows.sort((a: any, b: any) => {
+      const so = (a.section_order ?? 9999) - (b.section_order ?? 9999);
+      if (so !== 0) return so;
+      return (a.order_number ?? 0) - (b.order_number ?? 0);
+    });
   }
 
   static async findById(id: number) {
     const result = await pool.query('SELECT * FROM lessons WHERE id = $1', [id]);
     return result.rows[0] || null;
+  }
+
+  /** Shu darsda ko'rsatiladigan test: o'z testi yoki boshqa darsdan ulangan */
+  static async findQuizSourceForLesson(lessonId: number) {
+    const own = await this.findById(lessonId);
+    if (!own) return null;
+
+    const ownQs = typeof own.test_questions === 'string'
+      ? JSON.parse(own.test_questions || '[]')
+      : (own.test_questions || []);
+    if (Array.isArray(ownQs) && ownQs.length > 0) {
+      return { sourceLesson: own, questions: ownQs };
+    }
+
+    const linked = await pool.query(
+      `SELECT * FROM lessons
+       WHERE $1 = ANY(COALESCE(test_visible_lesson_ids, '{}'))
+         AND jsonb_array_length(COALESCE(test_questions, '[]'::jsonb)) > 0
+       ORDER BY id ASC
+       LIMIT 1`,
+      [lessonId]
+    );
+    if (!linked.rows[0]) return null;
+    const src = linked.rows[0];
+    const qs = typeof src.test_questions === 'string'
+      ? JSON.parse(src.test_questions || '[]')
+      : (src.test_questions || []);
+    return { sourceLesson: src, questions: qs };
   }
 
   static async create(lessonData: {
@@ -824,6 +1039,8 @@ export class LessonService {
     video_url?: string;
     pdf_url?: string;
     test_url?: string;
+    test_questions?: any[];
+    test_visible_lesson_ids?: number[];
     order_number?: number;
     section_id?: number;
     additional_resources?: any[];
@@ -837,6 +1054,9 @@ export class LessonService {
         if (key === 'additional_resources' || key === 'test_questions') {
           fields.push(`${key} = $${paramCount}`);
           values.push(JSON.stringify(value));
+        } else if (key === 'test_visible_lesson_ids') {
+          fields.push(`${key} = $${paramCount}`);
+          values.push(Array.isArray(value) ? value : []);
         } else {
           fields.push(`${key} = $${paramCount}`);
           values.push(value);
@@ -899,33 +1119,111 @@ export class LessonProgressService {
 }
 
 export class TestSubmissionService {
+  /** Oxirgi urinish: qayta ishlash mumkinmi? */
+  static async getAttemptStatus(params: {
+    user_id: number;
+    lesson_id?: number | null;
+    section_id?: number | null;
+  }) {
+    let result;
+    if (params.section_id) {
+      result = await pool.query(
+        `SELECT id, retake_allowed, score, total_questions, created_at
+         FROM test_submissions
+         WHERE user_id = $1 AND section_id = $2
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [params.user_id, params.section_id]
+      );
+    } else if (params.lesson_id) {
+      result = await pool.query(
+        `SELECT id, retake_allowed, score, total_questions, created_at
+         FROM test_submissions
+         WHERE user_id = $1 AND lesson_id = $2 AND section_id IS NULL
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [params.user_id, params.lesson_id]
+      );
+    } else {
+      return { hasAttempt: false, canRetake: true, submission: null };
+    }
+
+    const row = result.rows[0];
+    if (!row) return { hasAttempt: false, canRetake: true, submission: null };
+    return {
+      hasAttempt: true,
+      canRetake: Boolean(row.retake_allowed),
+      submission: row,
+    };
+  }
+
   static async create(data: {
     user_id: number;
-    lesson_id: number;
+    lesson_id?: number | null;
+    section_id?: number | null;
     score: number;
     total_questions: number;
     answers: any[];
   }) {
+    if (!data.lesson_id && !data.section_id) {
+      throw new Error('lesson_id yoki section_id kerak');
+    }
+
+    const status = await this.getAttemptStatus({
+      user_id: data.user_id,
+      lesson_id: data.lesson_id,
+      section_id: data.section_id,
+    });
+
+    if (status.hasAttempt && !status.canRetake) {
+      throw new Error("Bu testni allaqachon ishlagansiz. Qayta ishlash uchun admin ruxsati kerak.");
+    }
+
+    // Yangi urinish — eski retake flagni o'chiramiz
+    if (status.submission?.id) {
+      await pool.query(
+        `UPDATE test_submissions SET retake_allowed = FALSE WHERE id = $1`,
+        [status.submission.id]
+      );
+    }
+
     const result = await pool.query(`
-      INSERT INTO test_submissions (user_id, lesson_id, score, total_questions, answers)
-      VALUES ($1, $2, $3, $4, $5)
+      INSERT INTO test_submissions (user_id, lesson_id, section_id, score, total_questions, answers, retake_allowed)
+      VALUES ($1, $2, $3, $4, $5, $6, FALSE)
       RETURNING *
-    `, [data.user_id, data.lesson_id, data.score, data.total_questions, JSON.stringify(data.answers)]);
+    `, [
+      data.user_id,
+      data.lesson_id || null,
+      data.section_id || null,
+      data.score,
+      data.total_questions,
+      JSON.stringify(data.answers),
+    ]);
     return result.rows[0];
+  }
+
+  static async allowRetake(submissionId: number) {
+    const result = await pool.query(
+      `UPDATE test_submissions SET retake_allowed = TRUE WHERE id = $1 RETURNING *`,
+      [submissionId]
+    );
+    return result.rows[0] || null;
   }
 
   static async findDetailedById(id: number) {
     const result = await pool.query(`
       SELECT ts.*,
         u.first_name, u.last_name, u.email,
-        l.title as lesson_title,
-        ls.name as section_name,
-        t.name as tariff_name
+        COALESCE(l.title, CASE WHEN ts.section_id IS NOT NULL THEN ls2.name || ' (bo''lim testi)' ELSE NULL END) as lesson_title,
+        COALESCE(ls.name, ls2.name) as section_name,
+        COALESCE(t.name, t2.name) as tariff_name
       FROM test_submissions ts
       JOIN users u ON u.id = ts.user_id
-      JOIN lessons l ON l.id = ts.lesson_id
+      LEFT JOIN lessons l ON l.id = ts.lesson_id
       LEFT JOIN lesson_sections ls ON ls.id = l.section_id
       LEFT JOIN tariffs t ON t.id = l.tariff_id
+      LEFT JOIN lesson_sections ls2 ON ls2.id = ts.section_id
+      LEFT JOIN tariffs t2 ON t2.id = ls2.tariff_id
       WHERE ts.id = $1
     `, [id]);
     return result.rows[0] || null;
@@ -935,37 +1233,38 @@ export class TestSubmissionService {
     const result = await pool.query(`
       SELECT ts.*,
         u.first_name, u.last_name, u.email,
-        l.title as lesson_title,
-        ls.name as section_name,
-        t.name as tariff_name
+        COALESCE(l.title, CASE WHEN ts.section_id IS NOT NULL THEN ls2.name || ' (bo''lim testi)' ELSE NULL END) as lesson_title,
+        COALESCE(ls.name, ls2.name) as section_name,
+        COALESCE(t.name, t2.name) as tariff_name
       FROM test_submissions ts
       JOIN users u ON u.id = ts.user_id
-      JOIN lessons l ON l.id = ts.lesson_id
+      LEFT JOIN lessons l ON l.id = ts.lesson_id
       LEFT JOIN lesson_sections ls ON ls.id = l.section_id
       LEFT JOIN tariffs t ON t.id = l.tariff_id
+      LEFT JOIN lesson_sections ls2 ON ls2.id = ts.section_id
+      LEFT JOIN tariffs t2 ON t2.id = ls2.tariff_id
       ORDER BY ts.created_at DESC
     `);
     return result.rows;
   }
 
   static async findAll() {
-    const result = await pool.query(`
-      SELECT ts.*, u.first_name, u.last_name, u.email, l.title as lesson_title
-      FROM test_submissions ts
-      JOIN users u ON u.id = ts.user_id
-      JOIN lessons l ON l.id = ts.lesson_id
-      ORDER BY ts.created_at DESC
-    `);
-    return result.rows;
+    return this.findAllDetailed();
   }
 
   static async findByLesson(lessonId: number) {
-    const result = await pool.query('SELECT * FROM test_submissions WHERE lesson_id = $1 ORDER BY created_at DESC', [lessonId]);
+    const result = await pool.query(
+      'SELECT * FROM test_submissions WHERE lesson_id = $1 ORDER BY created_at DESC',
+      [lessonId]
+    );
     return result.rows;
   }
 
   static async findByUser(userId: number) {
-    const result = await pool.query('SELECT * FROM test_submissions WHERE user_id = $1 ORDER BY created_at DESC', [userId]);
+    const result = await pool.query(
+      'SELECT * FROM test_submissions WHERE user_id = $1 ORDER BY created_at DESC',
+      [userId]
+    );
     return result.rows;
   }
 }

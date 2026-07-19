@@ -75,14 +75,38 @@ function pad2(n: number) {
   return String(n).padStart(2, '0');
 }
 
-/** Masalan: 12.07.2026, 18:38:24 */
+/**
+ * DB/API sanasini UTC sifatida o'qiydi.
+ * Timezone yo'q timestamp (masalan "2026-07-19 07:48:34") lokal TZ bilan chalkashmasin.
+ */
+export function parseToDate(value: string | Date | null | undefined): Date | null {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  // "2026-07-19 07:48:34.275" yoki "2026-07-19T07:48:34" — TZ yo'q bo'lsa UTC deb olamiz
+  if (/^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}/.test(raw)) {
+    const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T');
+    const hasTz = /[zZ]|[+-]\d{2}(:?\d{2})?$/.test(normalized);
+    const date = new Date(hasTz ? normalized : `${normalized}Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/** Masalan: 12.07.2026, 18:38:24 (Asia/Tashkent) */
 export function formatTashkentDateTime(
   value: string | Date | null | undefined,
   options?: { withSeconds?: boolean }
 ): string {
-  if (!value) return '—';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  const date = parseToDate(value);
+  if (!date) return '—';
 
   const p = getTashkentParts(date);
   const withSeconds = options?.withSeconds ?? true;
@@ -95,9 +119,8 @@ export function formatTashkentDateTime(
 
 /** Masalan: 12.07.2026 */
 export function formatTashkentDate(value: string | Date | null | undefined): string {
-  if (!value) return '—';
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  const date = parseToDate(value);
+  if (!date) return '—';
 
   const p = getTashkentParts(date);
   return `${pad2(p.day)}.${pad2(p.month)}.${p.year}`;

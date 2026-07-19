@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock } from 'lucide-react';
+import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock, FolderOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatTashkentNow } from '@/lib/datetime';
 
@@ -12,6 +12,7 @@ const nav = [
   { href: '/admin/dashboard', label: 'Bosh sahifa', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Foydalanuvchilar', icon: Users },
   { href: '/admin/tariffs', label: "Ta'riflar", icon: Gift },
+  { href: '/admin/sections', label: "Bo'limlar", icon: FolderOpen },
   { href: '/admin/lessons', label: 'Darslar', icon: BookOpen },
   { href: '/admin/tests', label: 'Testlar', icon: ClipboardList },
   { href: '/admin/reviews', label: 'Sharhlar', icon: MessageSquare },
@@ -94,7 +95,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${pathname === href
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 ${pathname === href || pathname.startsWith(href + '/')
                 ? 'bg-[#FEFBEE] text-[#5D1111] shadow-md'
                 : 'text-[#FEFBEE]/80 hover:bg-white/10 hover:text-white'
                 }`}
