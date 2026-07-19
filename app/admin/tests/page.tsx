@@ -30,6 +30,7 @@ import {
   Search,
   XCircle,
   Percent,
+  X,
 } from 'lucide-react';
 import { formatTashkentDateTime } from '@/lib/datetime';
 import { toast } from 'sonner';
@@ -120,6 +121,21 @@ export default function AdminTestsPage() {
       toast.error(err?.response?.data?.error || 'Xato');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const clearSectionTest = async (section: LessonSection) => {
+    if (!confirm(`"${section.name}" bo'limidagi barcha test savollari o'chirilsinmi?`)) return;
+    try {
+      await api.patch(`/sections/${section.id}`, { test_questions: [] });
+      toast.success("Bo'lim testi tozalandi");
+      if (editingSection?.id === section.id) {
+        setSectionDialogOpen(false);
+        setEditingSection(null);
+      }
+      loadAll();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Xato');
     }
   };
 
@@ -332,14 +348,28 @@ export default function AdminTestsPage() {
                               )}
                             </td>
                             <td className="py-4 px-6 text-right">
-                              <Button
-                                variant="ghost"
-                                className="text-[#5D1111] hover:bg-[#FEFBEE] rounded-xl"
-                                onClick={() => openSectionTest(section)}
-                              >
-                                {qCount > 0 ? 'Tahrirlash' : "Test yaratish"}
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                              </Button>
+                              <div className="inline-flex items-center gap-1">
+                                <Button
+                                  variant="ghost"
+                                  className="text-[#5D1111] hover:bg-[#FEFBEE] rounded-xl"
+                                  onClick={() => openSectionTest(section)}
+                                >
+                                  {qCount > 0 ? 'Tahrirlash' : "Test yaratish"}
+                                  <ArrowRight className="ml-2 h-4 w-4" />
+                                </Button>
+                                {qCount > 0 && (
+                                  <Button
+                                    type="button"
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-9 w-9 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl"
+                                    title="Testni tozalash"
+                                    onClick={() => clearSectionTest(section)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         );
@@ -561,17 +591,23 @@ export default function AdminTestsPage() {
               <div key={q.id} className="rounded-xl border border-[#7A2E2E]/15 p-4 space-y-3 bg-[#FEFBEE]/30">
                 <div className="flex justify-between items-center">
                   <Label className="font-semibold text-[#5D1111]">{qi + 1}-savol</Label>
-                  {questions.length > 1 && (
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="text-red-500"
-                      onClick={() => setQuestions((prev) => prev.filter((_, i) => i !== qi))}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                    title="Savolni o'chirish"
+                    onClick={() =>
+                      setQuestions((prev) => {
+                        const next = prev.filter((_, i) => i !== qi);
+                        return next.length
+                          ? next
+                          : [{ id: Date.now(), question: '', options: ['', ''], correctOptionIndex: 0 }];
+                      })
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
                 <Input
                   value={q.question}
@@ -596,6 +632,8 @@ export default function AdminTestsPage() {
                           )
                         )
                       }
+                      className="h-4 w-4 accent-[#5D1111] cursor-pointer"
+                      title="To'g'ri javob sifatida belgilash"
                     />
                     <Input
                       value={opt}
@@ -610,8 +648,33 @@ export default function AdminTestsPage() {
                         )
                       }
                       placeholder={`${oi + 1}-variant`}
-                      className="rounded-xl"
+                      className="rounded-xl flex-1"
                     />
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      disabled={q.options.length <= 2}
+                      className="h-8 w-8 shrink-0 text-gray-400 hover:text-red-500 rounded-lg"
+                      title="Variantni o'chirish"
+                      onClick={() =>
+                        setQuestions((prev) =>
+                          prev.map((item, i) => {
+                            if (i !== qi) return item;
+                            const options = item.options.filter((_, idx) => idx !== oi);
+                            const correctOptionIndex =
+                              item.correctOptionIndex === oi
+                                ? 0
+                                : item.correctOptionIndex > oi
+                                  ? item.correctOptionIndex - 1
+                                  : item.correctOptionIndex;
+                            return { ...item, options, correctOptionIndex };
+                          })
+                        )
+                      }
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
                   </div>
                 ))}
                 <Button
