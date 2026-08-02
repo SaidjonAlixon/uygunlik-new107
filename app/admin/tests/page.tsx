@@ -149,6 +149,27 @@ export default function AdminTestsPage() {
     }
   };
 
+  const deleteSubmission = async (sub: {
+    id: number;
+    first_name?: string;
+    last_name?: string;
+    lesson_title?: string;
+    section_name?: string;
+  }) => {
+    const who = [sub.first_name, sub.last_name].filter(Boolean).join(' ') || 'foydalanuvchi';
+    const testName = sub.lesson_title || sub.section_name || 'test';
+    if (!confirm(`"${who}" — ${testName} natijasi o'chirilsinmi?\nBu amalni qaytarib bo'lmaydi.`)) {
+      return;
+    }
+    try {
+      await adminApi.deleteTestSubmission(sub.id);
+      toast.success("Natija o'chirildi");
+      loadAll();
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Xato');
+    }
+  };
+
   const filteredSubmissions = useMemo(() => {
     const q = resultsSearch.trim().toLowerCase();
     return submissions.filter((sub) => {
@@ -548,20 +569,34 @@ export default function AdminTestsPage() {
                               </div>
                             </td>
                             <td className="py-3.5 px-4 text-right">
-                              {!sub.retake_allowed ? (
+                              <div className="inline-flex items-center justify-end gap-1.5">
+                                {!sub.retake_allowed ? (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="rounded-xl border-[#7A2E2E]/25"
+                                    onClick={() => allowRetake(sub.id)}
+                                    title="Qayta ishlashga ruxsat"
+                                  >
+                                    <RefreshCw className="h-3.5 w-3.5 mr-1" />
+                                    Qayta ruxsat
+                                  </Button>
+                                ) : (
+                                  <span className="text-xs text-emerald-600 font-medium px-1">
+                                    Ruxsat berilgan
+                                  </span>
+                                )}
                                 <Button
-                                  size="sm"
-                                  variant="outline"
-                                  className="rounded-xl border-[#7A2E2E]/25"
-                                  onClick={() => allowRetake(sub.id)}
-                                  title="Qayta ishlashga ruxsat"
+                                  type="button"
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-9 w-9 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50"
+                                  title="Natijani o'chirish"
+                                  onClick={() => deleteSubmission(sub)}
                                 >
-                                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                                  Qayta ruxsat
+                                  <Trash2 className="h-4 w-4" />
                                 </Button>
-                              ) : (
-                                <span className="text-xs text-emerald-600 font-medium">Ruxsat berilgan</span>
-                              )}
+                              </div>
                             </td>
                           </tr>
                         );

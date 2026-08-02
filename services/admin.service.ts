@@ -44,4 +44,7 @@ export const adminApi = {
 
   allowTestRetake: (submissionId: number) =>
     api.post(`/admin/tests/submissions/${submissionId}/allow-retake`),
+
+  deleteTestSubmission: (submissionId: number) =>
+    api.delete(`/admin/tests/submissions/${submissionId}`),
 };

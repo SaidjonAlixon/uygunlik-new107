@@ -202,7 +202,7 @@ export default function AdminSectionsPage() {
         </div>
       )}
       <p className="text-xs text-[#7A2E2E]/70">
-        Bir nechta tarifni belgilashingiz mumkin (masalan Standard + Premium).
+        Bir nechta tarifni belgilashingiz mumkin (masalan Uyg'un Boshlanish + Uyg'un Oila).
       </p>
     </div>
   );

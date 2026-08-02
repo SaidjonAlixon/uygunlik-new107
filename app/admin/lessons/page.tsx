@@ -497,7 +497,7 @@ export default function AdminLessonsPage() {
                 })}
               </div>
               <p className="text-xs text-[#7A2E2E]/70">
-                Bir nechta tarifni belgilashingiz mumkin (masalan Standard + Premium).
+                Bir nechta tarifni belgilashingiz mumkin (masalan Uyg'un Boshlanish + Uyg'un Oila).
               </p>
             </div>
             <DialogFooter className="pt-4 border-t border-[#7A2E2E]/10">

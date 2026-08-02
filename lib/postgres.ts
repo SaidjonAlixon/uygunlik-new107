@@ -1210,6 +1210,14 @@ export class TestSubmissionService {
     return result.rows[0] || null;
   }
 
+  static async delete(submissionId: number) {
+    const result = await pool.query(
+      `DELETE FROM test_submissions WHERE id = $1 RETURNING id`,
+      [submissionId]
+    );
+    return result.rows[0] || null;
+  }
+
   static async findDetailedById(id: number) {
     const result = await pool.query(`
       SELECT ts.*,

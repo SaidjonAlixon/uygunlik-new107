@@ -28,12 +28,16 @@ import {
   Tags,
   MessageSquare,
   LogIn,
+  Compass,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
 import { useUserStore } from "@/store/user.store";
 import { subtitleFont } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
+import { CourseStartTicket } from "@/components/course-start-ticket";
+import { PricingPlansGrid } from "@/components/pricing-plans-grid";
+import { ProgramPathsSection } from "@/components/program-paths-section";
 
 // Loading Screen Component
 const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
@@ -486,7 +490,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const sectionIds = ["main", "courses", "author", "faq", "pricing", "reviews"];
+    const sectionIds = ["main", "courses", "author", "faq", "paths", "pricing", "reviews"];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -510,6 +514,7 @@ export default function HomePage() {
   const navLinks = [
     { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
     { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
+    { href: "#paths", label: "Yo‘nalishlar", shortLabel: "Yo‘l", icon: Compass, id: "paths" },
     { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
     { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
     { href: "#pricing", label: "Tariflar", shortLabel: "Tarif", icon: Tags, id: "pricing" },
@@ -578,7 +583,7 @@ export default function HomePage() {
                   key={link.href}
                   href={link.href}
                   onClick={(e) => {
-                    if (["auth", "dashboard"].includes(link.id)) return;
+                    if (["auth", "dashboard"].includes(link.id) || (link.href.startsWith("/") && !link.href.startsWith("/#") && !link.href.startsWith("#"))) return;
                     handleSectionNavClick(e, link.id);
                   }}
                   className={cn(
@@ -743,16 +748,9 @@ export default function HomePage() {
                   scale: showMainContent ? 1 : 0.8
                 }}
                 transition={{ duration: 0.5, delay: 0.8 }}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="relative z-50 mt-2 sm:mt-3"
+                className="relative z-50 mt-2 sm:mt-3 w-full flex justify-center"
               >
-                <ul className="text-[#5D1111] flex items-center flex-col sm:flex-row gap-x-2 text-base sm:text-lg md:text-xl">
-                  <li className="font-bold">Start:</li>
-                  <li>Iyul, 2026</li>
-                  <li className="font-bold">Davomiyligi:</li>
-                  <li>12 hafta</li>
-                </ul>
+                <CourseStartTicket showMeta={false} />
               </motion.div>
             </div>
           </div>
@@ -1921,6 +1919,10 @@ export default function HomePage() {
           </div>
         </section>
 
+        <ProgramPathsSection
+          onPricingClick={(e) => handleSectionNavClick(e, "pricing")}
+        />
+
         {/* --- Pricing Section --- */}
         <section id="pricing" className="py-0 relative overflow-hidden -mt-8">
           {/* Orqa fon rasmi */}
@@ -1961,159 +1963,11 @@ export default function HomePage() {
                 Tariflar
               </h2>
               <p className="max-w-3xl mx-auto text-lg text-gray-600">
-                O'zingizga mos tarifni tanlang va sog'lom hayot sari ilk qadamni
+                O&apos;zingizga mos tarifni tanlang va sog&apos;lom hayot sari ilk qadamni
                 tashlang.
               </p>
             </motion.div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6 max-w-5xl mx-auto items-stretch">
-
-
-              {/* OPTIMAL */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="h-full"
-              >
-                <Card className="border-red-500 h-full flex flex-col shadow-lg hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-xl text-red-900">
-                      OPTIMAL
-                    </CardTitle>
-                    <div className="text-2xl font-bold text-red-800 mb-1">
-                      3.999.000 UZS
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
-                    <ul className="space-y-2">
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">STM darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Ayollik Fiqhi darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Bonus dars "Yoni-steam"</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Juftlar munosabati bo'yicha dars
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          4 oy davomida kurs materiallariga kirish
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          1 to'liq hayz xaritasi kuzatuvi
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Foydalanuvchi Sertifikati (o'rgatish huquqisiz)
-                        </span>
-                      </li>
-                    </ul>
-                    <Link
-                      href={`https://t.me/stm_kurs?text=Assalomu alaykum yaxshimisiz. Men sizning OPTIMAL kursingizni sotib olmoqchiman.`}
-                      className="block pt-4"
-                    >
-                      <Button className="w-full bg-red-800 hover:bg-red-900">
-                        Sotib olish
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              {/* VIP */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.3 }}
-                className="h-full"
-              >
-                <Card className="border-red-300 h-full flex flex-col hover:shadow-xl hover:-translate-y-2 transition-all duration-300">
-                  <CardHeader className="text-center">
-                    <CardTitle className="text-xl text-red-900">VIP</CardTitle>
-                    <div className="text-2xl font-bold text-red-800 mb-1">
-                      4.999.000 UZS
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4 flex-grow flex flex-col justify-between">
-                    <ul className="space-y-2">
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">STM darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Ayollik Fiqhi darslari</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">Bonus dars "Yoni-steam"</span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Juftlar munosabati bo'yicha dars
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Sog'lom Ayollik Sirlari darsi
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          6 oy davomida kurs materiallariga kirish
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          3 to'liq hayz xaritasi kuzatuvi
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm">
-                          Foydalanuvchi Sertifikati (o'rgatish huquqisiz)
-                        </span>
-                      </li>
-                      <li className="flex items-start">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2 mt-1 flex-shrink-0" />
-                        <span className="text-sm font-semibold text-red-600">
-                          SOVG'A - ko'p martalik prokladka + maxsus termometr
-                        </span>
-                      </li>
-                    </ul>
-                    <Link
-                      href={`https://t.me/stm_kurs?text=Assalomu alaykum yaxshimisiz. Men sizning VIP kursingizni sotib olmoqchiman.`}
-                      className="block pt-4"
-                    >
-                      <Button className="w-full bg-red-800 hover:bg-red-900">
-                        Sotib olish
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </div>
+            <PricingPlansGrid />
           </div>
         </section>
 
@@ -2218,7 +2072,17 @@ export default function HomePage() {
                 </li>
                 <li>
                   <Link
+                    href="#paths"
+                    onClick={(e) => handleSectionNavClick(e, "paths")}
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Yo‘nalishlar
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="#pricing"
+                    onClick={(e) => handleSectionNavClick(e, "pricing")}
                     className="hover:text-white transition-colors text-sm"
                   >
                     Tariflar

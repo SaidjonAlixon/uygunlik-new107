@@ -191,7 +191,7 @@ export default function AdminTariffsPage() {
                 className="h-11 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] rounded-xl"
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Masalan: Premium"
+                placeholder="Masalan: Uyg'un Boshlanish"
                 required
               />
             </div>
@@ -235,7 +235,7 @@ export default function AdminTariffsPage() {
                 className="h-11 bg-[#FEFBEE]/50 border-[#7A2E2E]/20 text-[#5D1111] focus-visible:ring-[#5D1111] focus-visible:border-[#5D1111] rounded-xl"
                 value={editForm.name}
                 onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))}
-                placeholder="Masalan: Premium"
+                placeholder="Masalan: Uyg'un Boshlanish"
                 required
               />
             </div>
