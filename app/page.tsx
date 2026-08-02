@@ -605,26 +605,26 @@ export default function HomePage() {
       </nav>
 
       {/* --- Desktop Sticky Navbar (markazda) --- */}
-      <header className="hidden lg:flex fixed top-0 left-0 right-0 z-50 justify-center px-4 pointer-events-none">
+      <header className="hidden lg:flex fixed top-0 left-0 right-0 z-50 justify-center px-3 xl:px-4 pointer-events-none">
         <div
-          className={`pointer-events-auto w-full max-w-5xl transition-all duration-500 ${
+          className={`pointer-events-auto w-full max-w-[72rem] transition-all duration-500 ${
             navScrolled ? 'mt-3' : 'mt-5'
           }`}
         >
           <div
-            className={`flex items-center justify-center gap-1 rounded-full border transition-all duration-500 ${
+            className={`flex items-center justify-center gap-0.5 xl:gap-1 rounded-full border transition-all duration-500 whitespace-nowrap ${
               navScrolled
-                ? 'bg-[#FEFBEE]/95 backdrop-blur-2xl border-[#5D1111]/15 shadow-[0_12px_40px_rgba(93,17,17,0.12)] py-2 px-3'
-                : 'bg-[#FEFBEE]/70 backdrop-blur-xl border-[#5D1111]/10 shadow-[0_8px_32px_rgba(93,17,17,0.06)] py-2.5 px-4'
+                ? 'bg-[#FEFBEE]/95 backdrop-blur-2xl border-[#5D1111]/15 shadow-[0_12px_40px_rgba(93,17,17,0.12)] py-1.5 px-2.5'
+                : 'bg-[#FEFBEE]/70 backdrop-blur-xl border-[#5D1111]/10 shadow-[0_8px_32px_rgba(93,17,17,0.06)] py-2 px-3'
             }`}
           >
-            <nav className="flex items-center flex-wrap justify-center gap-0.5">
+            <nav className="flex items-center flex-nowrap justify-center gap-0 min-w-0">
               {navLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
                   onClick={(e) => handleSectionNavClick(e, link.id)}
-                  className="group relative px-3 xl:px-3.5 py-2 text-[10px] xl:text-[11px] font-semibold uppercase tracking-[0.16em] text-[#5D1111]/70 hover:text-[#5D1111] transition-colors duration-200"
+                  className="group relative shrink-0 px-1.5 xl:px-2.5 2xl:px-3 py-2 text-[9px] xl:text-[10px] 2xl:text-[11px] font-semibold uppercase tracking-[0.08em] xl:tracking-[0.12em] text-[#5D1111]/70 hover:text-[#5D1111] transition-colors duration-200"
                 >
                   {link.label}
                   <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-[1.5px] bg-[#5D1111] rounded-full transition-all duration-300 group-hover:w-4/5" />
@@ -632,16 +632,16 @@ export default function HomePage() {
               ))}
             </nav>
 
-            <span className="mx-1.5 h-5 w-px bg-gradient-to-b from-transparent via-[#5D1111]/25 to-transparent shrink-0" />
+            <span className="mx-1 h-5 w-px bg-gradient-to-b from-transparent via-[#5D1111]/25 to-transparent shrink-0" />
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-1.5 xl:gap-2 shrink-0">
               {user ? (
                 <>
                   <Link href="/dashboard">
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.12em] text-[10px] px-4"
+                      className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3 xl:px-4"
                     >
                       {user.first_name}
                     </Button>
@@ -650,7 +650,7 @@ export default function HomePage() {
                     variant="outline"
                     size="sm"
                     onClick={handleLogout}
-                    className="h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.12em] text-[10px] px-4"
+                    className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3 xl:px-4"
                   >
                     <LogOut className="h-3.5 w-3.5 mr-1.5" />
                     Chiqish
@@ -662,7 +662,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       size="sm"
-                      className="h-9 rounded-full bg-transparent border-[#5D1111]/25 text-[#5D1111] hover:bg-white/60 hover:border-[#5D1111]/40 font-semibold uppercase tracking-[0.12em] text-[10px] px-5"
+                      className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/25 text-[#5D1111] hover:bg-white/60 hover:border-[#5D1111]/40 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3.5 xl:px-5"
                     >
                       Kirish
                     </Button>
@@ -670,7 +670,7 @@ export default function HomePage() {
                   <Link href="/register">
                     <Button
                       size="sm"
-                      className="h-9 rounded-full bg-[#5D1111] text-[#FEFBEE] hover:bg-[#7A2E2E] border-0 font-semibold uppercase tracking-[0.12em] text-[10px] px-5 shadow-md shadow-[#5D1111]/20"
+                      className="h-8 xl:h-9 rounded-full bg-[#5D1111] text-[#FEFBEE] hover:bg-[#7A2E2E] border-0 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3.5 xl:px-5 shadow-md shadow-[#5D1111]/20"
                     >
                       Ro&apos;yxatdan o&apos;tish
                     </Button>

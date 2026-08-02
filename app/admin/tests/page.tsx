@@ -490,119 +490,110 @@ export default function AdminTestsPage() {
               ) : filteredSubmissions.length === 0 ? (
                 <div className="py-12 text-center text-[#7A2E2E]/70">Qidiruv bo&apos;yicha natija topilmadi.</div>
               ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left min-w-[960px]">
-                    <thead className="bg-[#FEFBEE]/80 text-[#7A2E2E] font-semibold border-b border-[#7A2E2E]/10">
-                      <tr>
-                        <th className="py-3.5 px-4">#</th>
-                        <th className="py-3.5 px-4">Foydalanuvchi</th>
-                        <th className="py-3.5 px-4">Tarif</th>
-                        <th className="py-3.5 px-4">Bo&apos;lim</th>
-                        <th className="py-3.5 px-4">Test</th>
-                        <th className="py-3.5 px-4">Ball</th>
-                        <th className="py-3.5 px-4">Foiz</th>
-                        <th className="py-3.5 px-4">Holat</th>
-                        <th className="py-3.5 px-4">Sana (Toshkent)</th>
-                        <th className="py-3.5 px-4 text-right">Amallar</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-[#7A2E2E]/5">
-                      {filteredSubmissions.map((sub, index) => {
-                        const pct = submissionPercent(sub);
-                        const wrong = Math.max(0, (sub.total_questions || 0) - (sub.score || 0));
-                        const passed = pct >= 70;
-                        return (
-                          <tr key={sub.id} className="hover:bg-[#FEFBEE]/40">
-                            <td className="py-3.5 px-4 text-[#7A2E2E]/50 font-medium">{index + 1}</td>
-                            <td className="py-3.5 px-4">
-                              <div className="font-semibold text-[#5D1111]">
-                                {sub.first_name} {sub.last_name}
+                <div>
+                  <div className="divide-y divide-[#7A2E2E]/10">
+                    {filteredSubmissions.map((sub, index) => {
+                      const pct = submissionPercent(sub);
+                      const wrong = Math.max(0, (sub.total_questions || 0) - (sub.score || 0));
+                      const passed = pct >= 70;
+                      return (
+                        <div
+                          key={sub.id}
+                          className="px-4 py-4 sm:px-5 hover:bg-[#FEFBEE]/35 transition-colors"
+                        >
+                          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
+                            <div className="min-w-0 flex-1 space-y-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-xs font-semibold text-[#7A2E2E]/45">#{index + 1}</span>
+                                <span className="font-semibold text-[#5D1111]">
+                                  {sub.first_name} {sub.last_name}
+                                </span>
+                                <span className="text-xs text-[#7A2E2E]/60 truncate max-w-full sm:max-w-[16rem]">
+                                  {sub.email}
+                                </span>
                               </div>
-                              <div className="text-xs text-[#7A2E2E]/60">{sub.email}</div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span className="inline-block px-2 py-1 rounded-lg text-xs font-semibold bg-[#FEFBEE] border border-[#7A2E2E]/10 text-[#5D1111]">
-                                {sub.tariff_name || '—'}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-[#5D1111]/80">{sub.section_name || '—'}</td>
-                            <td className="py-3.5 px-4">
-                              <div className="font-medium text-[#5D1111]">
-                                {sub.lesson_title || sub.section_name || '—'}
-                              </div>
-                              {sub.section_id && !sub.lesson_id && (
-                                <span className="text-[11px] text-[#7A2E2E]/60">Bo&apos;lim testi</span>
-                              )}
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-[#5D1111]">
-                                {sub.score} / {sub.total_questions}
-                              </div>
-                              <div className="text-[11px] text-[#7A2E2E]/55">
-                                To&apos;g&apos;ri {sub.score} · Noto&apos;g&apos;ri {wrong}
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <div className="font-bold text-[#5D1111]">{pct}%</div>
-                              <div className="mt-1 h-1.5 w-16 rounded-full bg-[#7A2E2E]/10 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${passed ? 'bg-emerald-500' : 'bg-amber-500'}`}
-                                  style={{ width: `${Math.min(100, pct)}%` }}
-                                />
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4">
-                              <span
-                                className={`inline-block px-2.5 py-1 rounded-full text-xs font-bold ${
-                                  passed
-                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                    : 'bg-amber-50 text-amber-700 border border-amber-200'
-                                }`}
-                              >
-                                {passed ? "O'tdi" : 'Yiqildi'}
-                              </span>
-                            </td>
-                            <td className="py-3.5 px-4 text-[#5D1111]/75 whitespace-nowrap">
-                              <div className="flex items-center gap-1.5">
-                                <Calendar className="h-3.5 w-3.5 shrink-0" />
-                                {formatTashkentDateTime(sub.created_at)}
-                              </div>
-                            </td>
-                            <td className="py-3.5 px-4 text-right">
-                              <div className="inline-flex items-center justify-end gap-1.5">
-                                {!sub.retake_allowed ? (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    className="rounded-xl border-[#7A2E2E]/25"
-                                    onClick={() => allowRetake(sub.id)}
-                                    title="Qayta ishlashga ruxsat"
-                                  >
-                                    <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                                    Qayta ruxsat
-                                  </Button>
-                                ) : (
-                                  <span className="text-xs text-emerald-600 font-medium px-1">
-                                    Ruxsat berilgan
-                                  </span>
+
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="inline-block px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-[#FEFBEE] border border-[#7A2E2E]/10 text-[#5D1111]">
+                                  {sub.tariff_name || '—'}
+                                </span>
+                                <span className="text-sm text-[#5D1111]/75">{sub.section_name || '—'}</span>
+                                <span className="text-[#7A2E2E]/30">·</span>
+                                <span className="text-sm font-medium text-[#5D1111]">
+                                  {sub.lesson_title || sub.section_name || '—'}
+                                </span>
+                                {sub.section_id && !sub.lesson_id && (
+                                  <span className="text-[11px] text-[#7A2E2E]/55">Bo&apos;lim testi</span>
                                 )}
-                                <Button
-                                  type="button"
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-9 w-9 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50"
-                                  title="Natijani o'chirish"
-                                  onClick={() => deleteSubmission(sub)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
                               </div>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                                <div>
+                                  <span className="font-bold text-[#5D1111]">
+                                    {sub.score}/{sub.total_questions}
+                                  </span>
+                                  <span className="ml-1.5 text-[11px] text-[#7A2E2E]/55">
+                                    To&apos;g&apos;ri {sub.score} · Noto&apos;g&apos;ri {wrong}
+                                  </span>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-bold text-[#5D1111]">{pct}%</span>
+                                  <div className="h-1.5 w-14 rounded-full bg-[#7A2E2E]/10 overflow-hidden">
+                                    <div
+                                      className={`h-full rounded-full ${passed ? 'bg-emerald-500' : 'bg-amber-500'}`}
+                                      style={{ width: `${Math.min(100, pct)}%` }}
+                                    />
+                                  </div>
+                                </div>
+                                <span
+                                  className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                                    passed
+                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                      : 'bg-amber-50 text-amber-700 border border-amber-200'
+                                  }`}
+                                >
+                                  {passed ? "O'tdi" : 'Yiqildi'}
+                                </span>
+                                <span className="inline-flex items-center gap-1 text-xs text-[#5D1111]/65">
+                                  <Calendar className="h-3.5 w-3.5 shrink-0" />
+                                  {formatTashkentDateTime(sub.created_at)}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0 lg:justify-end">
+                              {!sub.retake_allowed ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="rounded-xl border-[#7A2E2E]/25 h-9 px-3"
+                                  onClick={() => allowRetake(sub.id)}
+                                  title="Qayta ishlashga ruxsat"
+                                >
+                                  <RefreshCw className="h-3.5 w-3.5 mr-1.5" />
+                                  Qayta ruxsat
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-emerald-600 font-medium px-2 py-2">
+                                  Ruxsat berilgan
+                                </span>
+                              )}
+                              <Button
+                                type="button"
+                                size="icon"
+                                variant="ghost"
+                                className="h-9 w-9 rounded-xl text-gray-400 hover:text-red-600 hover:bg-red-50 shrink-0"
+                                title="Natijani o'chirish"
+                                onClick={() => deleteSubmission(sub)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                   <div className="px-4 py-3 border-t border-[#7A2E2E]/10 text-xs text-[#7A2E2E]/60 bg-[#FEFBEE]/40">
                     Ko&apos;rsatilmoqda: <b className="text-[#5D1111]">{filteredSubmissions.length}</b> / {submissions.length}
                   </div>
