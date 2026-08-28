@@ -1,0 +1,2028 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  Heart,
+  Shield,
+  Users,
+  Award,
+  CheckCircle,
+  ArrowRight,
+  ArrowLeft,
+  Plus,
+  Minus,
+  LogOut,
+  Home,
+  BookOpen,
+  UserCircle,
+  HelpCircle,
+  Tags,
+  MessageSquare,
+  LogIn,
+} from "lucide-react";
+import Link from "next/link";
+import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
+import { useUserStore } from "@/store/user.store";
+import { scriptFont } from "@/lib/fonts";
+import { cn } from "@/lib/utils";
+import { CourseStartTicket } from "@/components/course-start-ticket";
+import { PricingPlansGrid } from "@/components/pricing-plans-grid";
+import { ProgramPathsSection } from "@/components/program-paths-section";
+
+// Loading Screen Component
+const LoadingScreen = ({ onComplete }: { onComplete: () => void }) => {
+  const [showScrollHint, setShowScrollHint] = useState(false);
+
+  useEffect(() => {
+    // Darhol scroll belgisini ko'rsatish
+    setShowScrollHint(true);
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Har qanday scroll harakatida loading ni tugatish
+      onComplete();
+    };
+
+    const handleWheel = () => {
+      // Mouse wheel scroll
+      onComplete();
+    };
+
+    const handleTouchMove = () => {
+      // Touch scroll (mobile)
+      onComplete();
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Klaviatura scroll (arrow keys, space, page down)
+      if (['ArrowDown', 'ArrowUp', 'Space', 'PageDown', 'PageUp'].includes(e.key)) {
+        onComplete();
+      }
+    };
+
+    if (showScrollHint) {
+      window.addEventListener('scroll', handleScroll);
+      window.addEventListener('wheel', handleWheel);
+      window.addEventListener('touchmove', handleTouchMove);
+      window.addEventListener('keydown', handleKeyDown);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('wheel', handleWheel);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showScrollHint, onComplete]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.5 }}
+      className="fixed inset-0 bg-[#FEFBEE] flex items-center justify-center z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.5, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{
+          duration: 0.5,
+          ease: "easeOut"
+        }}
+        className="text-center"
+      >
+        <motion.img
+          src="/images/logo-main.png"
+          alt="Platform Logo"
+          className="h-40 md:h-56 lg:h-64 mx-auto mb-8"
+          initial={{ y: -20 }}
+          animate={{ y: 0 }}
+          transition={{
+            duration: 0.4,
+            delay: 0.1,
+            ease: "easeOut"
+          }}
+        />
+
+        {/* Scroll qilish belgisi */}
+        <AnimatePresence>
+          {showScrollHint && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.5 }}
+              className="mt-8 flex flex-col items-center text-[#5D1111]"
+            >
+              <motion.div
+                className="flex flex-col items-center gap-2"
+                animate={{ y: [0, 8, 0] }}
+                transition={{
+                  duration: 1.2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-[#5D1111]"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="32"
+                  height="32"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="text-[#5D1111] -mt-4"
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// FAQ Accordion Component
+const FAQAccordion = () => {
+  const [openItems, setOpenItems] = useState<number[]>([]);
+
+  const toggleItem = (index: number) => {
+    setOpenItems((prev) =>
+      prev.includes(index)
+        ? prev.filter((item) => item !== index)
+        : [...prev, index]
+    );
+  };
+
+  const faqData = [
+    {
+      question: "Metod qanchalik ishonchli? Homilador bo'lib qolmaymanmi?",
+      answer: `Simptotermal metod - ayol tabiatiga mos, ilmiy asoslangan va 99,6% aniqlikka ega usuldir. Agar er-xotin o‘z fertilligini (nasl qoldirish qobiliyatini) aniq va mas'uliyat bilan kuzatib borsa, homiladorlikni tabiiy ravishda rejalashtirish imkoniga ega bo‘ladi. Natija bevosita juftlikning qoidalarga bo‘lgan intizomiga bog‘liq.`,
+    },
+    {
+      question: "Spiralim bor, kursda qatnashish uchun oldirishim kerakmi?",
+      answer: `Spiral va boshqa sun'iy vositalar organizmning tabiiy ritmini buzadi. Metoddan to'liq foydalanish uchun tanani begona jism va gormonlardan xoli qilish tavsiya etiladi.`,
+    },
+    {
+      question: `Metodni tug'ruqdan keyin, hayz ko'rmay turib ham, emizikli davrda qo'llay olamanmi?`,
+      answer: `Albatta. Kuzatuvlarga asoslanib, barcha ayollar tug'ruqdan keyingi 3 haftada fertil (unumdor) bo'lmasliklari aniqlangan. Undan keyingi davrda, emizishning to'liq yoki aralash ekanligiga qarab, STM qoidalari bo'yicha kuzatuvni boshlashingiz mumkin.`,
+    },
+    {
+      question:
+        "Hali turmushga chiqmagan qiz bolaman. Kurs men uchun foydali bo'ladimi?",
+      answer: `Bu kursda har bir qiz va ayol bilishi shart bo'lgan hayz ilmi, o'ziga g'amxo'rlik qilish, hayz davrining har kunida - tana, hissiyotlar, va garmonlardagi tabiiy o'zgarishlarni kuzatish va tushunish kabi muhim bilimlar beriladi. Turmush qurishdan avval o'z tanangizni, ayollik tabiatingizni chuqurroq anglab, uning ritmiga mos yashashni o'rganish - bo'lajak sog'lom homiladorlikka tayyorgarlik bo'lishi bilan birga, kelajakda dunyoga keladigan qiz farzandingiz tarbiyasida ham bebaho poydevor bo'lib xizmat qiladi. Bu - nafaqat bugungi salomatligingizga, balki ertangi avlodingizga ham qaratilgan eng dono sarmoyalardan biridir.`,
+    },
+    {
+      question: "Homiladorman, kursda ishtirok etsam bo'ladimi?",
+      answer: `Homiladorlik har bir ayol uchun ajoyib davr. Bu vaqtni to'laligicha sog'lom tug'ruqqa tayyorlanish, bolaning ilk kunlaridagi parvarish va to'g'ri emizishga qaratganingiz afzal. Agar, 40 kun chilla davridan keyin, o'zingizni tayyor deb xisoblasangiz, kursda qatnashish uchun murojaat qilishingiz mumkin.`,
+    },
+    {
+      question: "Metodni qo'llashda maxsus termometr kerakmi? Termometrda doimiy o'lchash shartmi?",
+      answer: `Metod o'z nomi bilan "simpto" – belgi, "termal" – harorat, bo'lgani uchun, haroratingizni doimiy o'lchash juda muhim. Buning uchun maxsus termometrlar bor, lekin topolmasangiz, oddiy simob termometrdan ham foydalansangiz bo'ladi.`,
+    },
+  ];
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-4 px-4 sm:px-6">
+      {faqData.map((item, index) => (
+        <motion.div
+          key={index}
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: index * 0.1 }}
+          className="bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border border-red-100 overflow-hidden"
+        >
+          <button
+            onClick={() => toggleItem(index)}
+            className="w-full p-6 text-left flex items-center justify-between hover/50 transition-colors duration-300"
+          >
+            <h3 className="text-lg font-semibold text-red-900 pr-4">
+              {item.question}
+            </h3>
+            <div className="flex-shrink-0 text-red-600">
+              {openItems.includes(index) ? (
+                <Minus className="h-6 w-6" />
+              ) : (
+                <Plus className="h-6 w-6" />
+              )}
+            </div>
+          </button>
+          <AnimatePresence>
+            {openItems.includes(index) && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: "easeInOut" }}
+                className="overflow-hidden"
+              >
+                <div className="px-6 pb-6 pt-2">
+                  <p className="text-gray-700 leading-relaxed">{item.answer}</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      ))}
+    </div>
+  );
+};
+
+// Reviews Carousel komponenti
+const ReviewsCarousel = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [expandedReviews, setExpandedReviews] = useState<Set<number>>(new Set());
+
+  const reviews = [
+    {
+      name: "Asiya Ameen",
+      handle: "@Ameenasiyaa",
+      initial: "A",
+      text: "Bismillah! Kurs haqidagi taassurotlarim judayam ijobiy. Uzoq yozib o'tirmiyman, bitta qilib etganda manga bu kurs bergan eng ASOSIY narsa ANIQLIK bo'ldi. Ko'nglim shunaqangi hotirjamki endi nimani qachon qanaqa qilish kereligini bilaman. O'z sog'ligimga zarar qilib saqlanuvchi vositalardan davomiy foydalanishdan qutulganimga va tanamga avvalgidan ko'ra ko'proq yaqinlashganimga o'zimni judayam yaxshi his qivomman. Undan tashqari kursning asosiy mavzusidan tashqari berilgan qo'shimcha ma'lumotlarning sifatiga ham gap yo'q. Aslida ular bo'lmaganda ham, faqat metodning o'zi haqida o'rgatilganda ham yetib ortardi kurs foydali bo'lishiga, lekin muallif judayam shedriy bo'ganlari uchun o'quvchilarga ham o'zlaridan, ham boshqa mutaxassislardan ayol sog'ligi uchun eng dolzarb bo'lgan mavzularni qo'shgani nur ustiga a'lo nur bo'lgan. Bu kursda o'rganganlarim sababli endi man havotirli Asiyadan, hotirjam Asiyaga aylanvomman Allohning izni bilan. Tashkillashtirgan Nozima opamga Robbim ikki dunyo barakasini yog'dirsin amiyn! Farzandli bo'lishni reja qilayotganlar ham, va tanaffus olishni reja qilayotganlar ham BIRDEK foydalana oladigan mahsulot bo'lgan. Chin dilimdan har bir ayol/qiz uchun tavsiya qilaman!",
+    },
+    {
+      name: "Dildora Baxtiyorovna",
+      handle: "@hafiza_my",
+      initial: "D",
+      text: "Tabiiylikka avvaldan qiziqardim lekin sizni darslarizdan keyin organizmimiz naqadar mukammal ekanligini va biz sezmagan ahamiyat bermagan holatda ichimizda qancha o'zgarishlar, naslni davom ettrish uchun kurashlar bo'lib o'tar ekanligini bildim. Shunchaki hayratdaman.Biz esa faqat va faqat o'zimizni noqis aqlimiz bilan mukammal tizimga qanaqdir simlar (spiral) tiqib bu jarayonni toxtatmoqchi bolamiz. Aslida shunchaki tanamizni eshitish biroz etiborli bo'lish va qanday yaratilgan bolsak shunday yashab bersak boldi ekan❤️ Va avvaldan aytilganidek bu sehrli tayoqcha emas, natijaga erishish uchun mehnat, sabr va intizom kerak ekan. Meni tarbiyalagan jihatlari aynan shu har kuni ertaroq yotishga, sifatli uyquga, bir vaqtda turishga odatlantirdi. Fiqh darslari uchun alohida rahmat. Ozimcha bilaman deb yurardim 90% bu ilmlarni bilmas ekanman. Yana shu kunlarda eshitgan eng hayratlanarli gaplarimdan boshqa davlatlarda saqlanish uchun ayol va erkak teng harakat qilishi va bazan erkak borib urug' chiqmaydigan qilib operatsiya qilib kelishi Bizda esa💔💔💔 ahvol juda achinarli. 9 oy bola kotarib yurgan ham o'lim bn yuzlashib tug'gan ham, saqlanishi shart bolgan ham ayol…",
+    },
+    {
+      name: "Elnora Rustamova",
+      handle: "@russtamovae",
+      initial: "E",
+      text: "Assalamu Alaykum va rahmatullohi va barakatuh. Avvalosi Ummu Umayr darsida aytib o'tganidek Niyat To'gri qilib 2 dunyomizga manfaatli bo'lishni so'rab qolaman. darslar judayam tushinarli tilda har hil katta tushinarsiz jumlalarsiz yoritib berilgan. Ayniqsa manga yoqgani birinchi kirish darsini animatsiyalari xuddi miyyamga chizilganday yodimda qoldi. Bu darslarni har bir ayol bilishi kerak deb o'ylayman. Biz qanday tabiiy usulda saqlanishni emas balki qanday vahtda homilador bo'lishni hamda o'zimizni tushinishni o'zimizni o'rganishni boshladik. Spiral gormonal tabletkalar implantlar hammasi huddi bir tanamiz aytayotgan gaplarni og'zini bekib qo'yishga o'xshatdim. Tanamizni eshitmay og'zini yopish emas u bilan birga til topishishga qadam desam adashmagan bo'laman STMni. Yana Shuni tushindimki Alloh Ayol hilqati uchun uyni juda yaxshi maskan qilgan Ayol uchun stressdan yiroq bo'lish ko'cha kuyda og'ir ishlar qilish bularning hammasi u uchun emas u nozik. Masalan erkak oilasi ayoli uchun yedirish kiydirshga masul ayol esa farzandlari tarbiyasiga masulligi ham bejizga emas. Ayniqsa manga yoqgan insaytlardan biri bu pragesteron va estrogen garmonlarini homilador bo'lsak va ovulyatsiyada haroratning o'zgarib bola uchun issiqina joy tayyorlashi butun vujudimiz bunga tayyorlanishi bu faqat mo'jiza. Undan tashqari kurs uchun tayyorlanga logotiplar ham judayam chiroyli tanlagan dars mavzularni eshitib kursni logotiplarini bekorga unday tanlanmagani sezildi. Yana muxim jihati erkak va ayol bunga massuligi xozirgi kunga kelib ayolni vazifalari juda ko'pki xatto o'ziga vaqt ajratolmaydi. Shuning uchun nima qilib bo'lsa ham ikkqat bo'lib qolmasa bo'ldi xatto sogligdan kechib bo'lsa ham bu juda achinarli holat. Boshida bu kursda ko'p ayolllar bo'ladi deb man ham o'ylagandim lekin ko'p ayollarni xatosi kiyim kechak to'y hashamlarga 300 dollar hech narsa emas lekin o'zini eshitishga kelganda bu summa juda balan hisoblashadi. Nega unday axir o'zini eshitish bu distiplinga asoslandi har kuni oz bo'lsada mehnat talab qiladi. Xozirgilarga bo'lsa shu nimadir bo'lsa bittada ikkqat qimdigan spiralni taqib olsa bo'ldi. Aslida bilmaydiki spiraldan qon ketganda u qon emas kichikina vujud nobud bo'ladi😢 Afsuski shuni bilishmaydi. Bizga bu usulni osson o'rganishga yordam berganiz uchun alohida rahmat. O'zi sizni Pediatr Nodira opa orqali taniman ota onaylarga rahmat shunaqa ko'p ayollarni islohiga sababchi bo'layotgan farzandlarni yetishtirgani uchun. In shaa Alloh qiz farzandim bo'lsa albatta bu bilimlar bilan bo'lishaman. Toki u yoshligidan avvalo o'zini tanasni eshitishni tushinishni bilib ulg'aysin. Biz bekorga bu bilimlarni o'rganmadik jamiyatdagi ayollarning noto'g'ri streotiplarni o'zgartirishga o'z hissamizni qo'shsakkina albatta bunday noxush hollar kam bo'ladi.",
+    },
+    {
+      name: "Xadicha Jo'rayeva",
+      handle: "@zxadicha",
+      initial: "X",
+      text: "Hayz haqida ma'lumotlar, ayniqsa uni kasallik emas, ona bo'lish qobilyati ekanini eslatganiz yoqdi. Man birinchi hayzimni ko'rganimda qo'rqib ketganman, nimaligini bilmaganman. Buni yomon ish dib o'ylaganman. Hammadan yashirganman. Shu bilan 18-20 yoshimgacha siklim umuman buzilib ketgan. Endi tartibga keldi. Mana shu travmacham esimga tushdi. Hayz haqida shar'iy va tibbiy bilimga birinchi o'rinda ega bo'lishimiz kerak boshqa bilimladan oldin. Mana shu narsani tushundim. Karta yuritish esa qiyin emas qiziqarli tuyildi manga. Organizmimdagi ruhiy, jismoniy holatni chizma varianti desa bo'larkan. Bizani hissiy holatimiz, sog'ligimiz kartamizda aks etarkan. Karta faqat homiladorlikdan saqlanish uchun emas salomatlikni nazorat qilish uchun ham kerak ekan",
+    },
+    {
+      name: "Robiya Muhammedova",
+      handle: "@uxti_ra",
+      initial: "R",
+      text: "Ассаламу алейкум ва рахматуллоҳи ва барокатух✍ Нозимапа ман сизга шунчеки курсмас, балки ўз ҳаётимми, саломатлигимми ва аёллик ҳақида чуқурроқ тушунишимми таъминлаган, ҳақиқий билим манбаига айланган котта имконият учун миннатдорлик билдирмоқчиман. Бу курсга қатнашиш довомида аёлларни овуляция бўлиш ва бўлмаслиги вақти, естроген ва прогестерон даврлари ҳақида кенг ва асосли билимлани ўргандим. Бу билимла ман учун шунчеки маълумотмас, балки ўзимми ички органларимми янада яхши чуниш, ўз саломатлигимми назорат қилиш ва аёллик қадримми оширишга ёрдам берди. Бу курс асосан хомиладан сақланишчун мўлжалланган бўлса-да, хомиладор бўла олмаяпкан аёллар учун ҳам, жуда фойдали бўлади. Ман учун курсси энг қимматли томонларидан биттаси, Yoni Stim номи билан бонус дарсларини қўлга киритиш бўлди. Бу усул аёл организми учун нафақат рохатбахш, балки соғлиқ учун ҳам жуда муҳимдир. Чунки, бу стимуляция айолнинг ички органларини қувватлайди, қон айланишини яхшилайди, ва айниқса, аёл жинсий фаолиятини ошишда муҳим роль ўйнайди. Билиб олдим: Yoni Stim методининг асосий тамойиллари - бу табиий ва хавфсиз усул бўлиб, у шифобахш ва айниқса, аёлнинг нафақат жисмоний балки руҳий жиҳатдан холатини яхшилашга ёрдам беради, стрессни нормаллаштиради. Бу усул аёлнинг эҳтироси ва роҳат каби ҳис-туйғуларини оширади, уларнинг жинсий фаолиятидан кўнгли тўлади ва шахсий ҳаётига янги маънo ва қувват қўшади. Бундан ташқари, ман муслима аёллага жуда муҳим бўган, икки дунйосига манфаатли, фиқхий масалалага чуқур ва жиддий ёндашган илм сохибаси Сумаййа исмли Устоза билан олиб борилган дарслардан ҳам манфаат олдим. Бу ўзларидеги ажойиб билимлани бир жойга тўплаб, бошқа муслима аёллар билан бўлишган азиз Нозимапанинг бу курсини чин дилдан Аллоҳ улани илмларини бунданда зиёда қисин. Уларнинг меҳнати, дарсларни сокин ҳаммага бирдай тушунарли қилиб йозилгани, видео дарсликларни жуда сифатли ишлангани ва илмга бўлган муҳаббатлари учун самимий ташаккурлар айтаман. Ҳурматли аёллар, агар сиз ҳаётида янгича ёндашув, соғлом турмуш тарзини ва айоллик сирларини ўрганишни истасангиз, бу курс сиз учун ҳақиқий топилма. Бу курс, нархидан ҳам юқори қийматда, жуда бой ва қимматли маълумотларни ўз ичига олади. Мен ундан олган билимларим ҳаётимда катта ўзгаришлар келтирди ва шуни айтмоқчиманки бошқаларга ҳам ана шу курсни тавсия қиламан, чунки бу ажойиб имконини қўлдан бой бермаган яхши) Билим — энг катта бойликдир📚",
+    },
+    {
+      name: "Ummu Muhsin",
+      handle: "@toolibah_",
+      initial: "U",
+      text: "Har bitta darssi ko'rganimda ko'zimdan yulduzchala chiqadi, taassurotlarim judayam ko'p. Qisqa qib etadigan bo'sam, stm darsi har bitta ayol kishi bilishi kere bo'gan ilmligiga amin bo'ldim, bu faqatgina homiladorlidan saqlanishshi o'zimas, ayollaga tanasi bn aloqa o'rnatish, o'ziga ahamiyatli bo'lish, sog'lig'i haqida qayg'urishshi o'rgatarkan va homilador bo'moqchi bo'ganla uchunam ayni muddao. Darsla qiziqarli va oson qib chuntirilgan, ayniqsa animatsiyala mavzuni yanayam aniqro chunishga yordam berdi. Vaaa gap ayollik haqida ketvotkanakan, kursda faqatgina stm ni o'zimas, fiqh, seksologiya, yoni steam va qo'shimcha ayollar salomatligi mavzulariniyam qamragani bomba bo'ldi ❤️‍🔥 Fiqh darsidan bilganlarimmi takrorlab, bilmaganlarimmi o'rgandim, Sumayya Hanafi mavzulani misolla bilan aniq tiniq qib, hamma mayda detallarigacha sodda qib chuntirib berdila. Yoni steam darsiniyam mazza qib ko'zlarim quvnab ko'rdim, Sohibapani o'z ishini ustasi ekanlilari shundo bilinib turipti. Ummu Umayr alohida shedevr 💕 Sizziyam samimiyligiz, guruhda har bitta ayol-qiz bn individual ishlashiz, savollarimizaga erinmiy bittalab javob berishiz judayam judayam yoqdi, bu kotta vaqt va energiya oladi. Hamma hammaga tavsiya qigan bo'lardim bu kursda o'qishshi Alloh siladan rozi bo'sin, ikki dunyo ajrilani ko'paytirib bersin",
+    },
+    {
+      name: "Muhammad's wife",
+      handle: "@zavjatuM",
+      initial: "M",
+      text: "Assalamu alaykum Nozima opa darsliklar juda sifatli tayyorlangan ozimni anchagina angladim ozimni kuzatishni organdim tahlil qilishni ham. Avvalgi homiladorlik vaqtimda bolgan muammolarni sababini bilmasdim tabiiyki vrachlar ham tushuntirib bermagan edi har bir darslikda man homilador vaqtimda bolgan muammolarni ildizini ham topdim va keyingi homilada albatta buni oz nazoratimga olaman deb niyat qildim. Kurs faqat saqlanish emas balki ongli ravishda farzandli bolish va tugruqqa tayarlov desa ham boladi. Bu kursdan song avval ozimda va birga oqigan qizlarda ham kutilgan farzand boladi deya olaman. 💯 sodda chuntirgansiz guruhda ham activsiz Nozima opa ochiq samimiy ekansiz ozizni hecham katta tutib gapirmadiz bizaga oson bolishi chunarli va qollashimizga oson qilib berdiz hammasini astoydil harakat qildiz va qilib kevos rahmat kottakon tolagan pulimga hecham afsuslanmadim",
+    },
+    {
+      name: "Aisha Shoakmalova",
+      handle: "@shoakmalova_a",
+      initial: "A",
+      text: "Kursda qatnashishdan maqsad stm haqidagi bilimlarni qaytarish, yangilash va puxtalash edi... Lekin aslida bundan avvalgi kursim stmga progrev bo'lgandek tuyylib qoldi to'g'risi. Savollarimga aqlim qoniqadigan darajada javob ololyotganimdan judayam hursand bo'vomman, darslarga alohida mehr berib o'tilishi shundoq sezilib turibdi, mazza qilib ko'raman. Qo'shimcha materiallarni aytmasam xato qilgan bölaman. Faqatgina stmning özi bilan cheklanib qolinmaganligi bu kursni yanada sayqallagan. Ummu Umayrning darslari erimga qanday tushuntiraman, qanaqasiga ma'lum muddat j.a. bo'lmaydi deyman, va h.k. deydiganlar uchun to'liq javob bo'la oladi. Sohiba opaning yoni steam haqidagi videolari (webinar desa ham bo'ladi) sog'lig'iga befarq bo'lmasdan stm kursini sotib olganlar uchun tabiiy tiklanish haqidagi savollarini yopib ketdi. Man hozir qilolmiman, homiladorman lekin tug'ganimdan keyin tiklanish uchun inshaAlloh albatta qilaman, shoshib ketyapman. Shoshganimdan onamlarga qilib ko'rmoqchi edim hozir issiqda parlamoqchimisan mani didila ^^ Uyam otmen böldi hullas. Ruvayha opa как всегда в своём репертуаре: ko'p eslatmalar oldim, masalan toksik narsalardan organizmni himoyalash, bizning salomatligimizga bizning nabirayu evaralarimizni ham salomatligi bog'lik ekanligi... Ora orada shunaqa qayta qayta eslatma olib turish juda foydalide özi. Yangiliklar ham böldi, masalan kökrak salomatligiga oid ba'zi ma'lumotlar, hususan lyugol yodni ishlatish. Miyyam mazza qivvottide hullas informatsiyaladan. E'tirof etmasa bo'midigan silsilaviy darslar (alohida kurs): ayollarga oid fiqhiy masalalar-hanafiy fiqhi.... Вишенка на торте. Huddi kursni nomidek, stm darslari va fiqh darslari bir biri bilan shunaqangi uyg'unki, endi stmni ayollar fiqhi bilan ko'rish majburiydek tuyulib qoldi... Kursda ayol/qizlar (ha-ha, qizlar ham) o'qishini juddayam qattiq tavsiya qilgan bölar edim. Hattoki shu darajadaki, berilayotgan ma'lumotlar maktablarda örgatilinsa vashshe ideal bölardi. Ya'ni shu darajada kerakli, tushunyapsizmi, huddi masalan ПДД fanini muhim deb örgatishadiku, shu kabi, juda muhim ya'ni.",
+    },
+  ];
+
+  const goToPrevious = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? reviews.length - 1 : prevIndex - 1
+    );
+  };
+
+  const goToNext = () => {
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % reviews.length);
+  };
+
+  const toggleExpanded = (index: number) => {
+    setExpandedReviews(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(index)) {
+        newSet.delete(index);
+      } else {
+        newSet.add(index);
+      }
+      return newSet;
+    });
+  };
+
+  const getDisplayText = (text: string, index: number) => {
+    const isExpanded = expandedReviews.has(index);
+
+    if (isExpanded) {
+      // To'liq matn ko'rsatish
+      return text;
+    } else {
+      // Faqat 4 qator ko'rsatish
+      const words = text.split(' ');
+      const wordsPerLine = 8; // Har qatorda taxminan 8 so'z
+      const maxWords = wordsPerLine * 4; // 4 qator uchun 32 so'z
+
+      if (words.length > maxWords) {
+        return words.slice(0, maxWords).join(' ') + "...";
+      }
+      return text;
+    }
+  };
+
+  return (
+    <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="relative overflow-hidden">
+        {/* Navigation buttons */}
+        <button
+          onClick={goToPrevious}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg transition-all duration-300 hover:scale-110"
+          aria-label="Oldingi sharh"
+        >
+          <ArrowLeft className="h-6 w-6 text-red-600" />
+        </button>
+
+        <button
+          onClick={goToNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-10 bg-white/90 hover:bg-white rounded-full p-2 shadow-lg transition-all duration-300 hover:scale-110"
+          aria-label="Keyingi sharh"
+        >
+          <ArrowRight className="h-6 w-6 text-red-600" />
+        </button>
+
+        <motion.div
+          className="flex"
+          animate={{ x: -currentIndex * 100 + "%" }}
+          transition={{ duration: 0.5, ease: "easeInOut" }}
+        >
+          {reviews.map((review, index) => (
+            <div key={index} className="w-full flex-shrink-0 px-4">
+              <div className="bg-white p-6 rounded-lg shadow-md border border-red-100 text-center min-h-[350px] flex flex-col">
+                <div className="flex items-center justify-center mb-6">
+                  <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden mr-4 flex items-center justify-center">
+                    <img
+                      className="w-full h-full object-cover"
+                      src={`/images/sharh/${index + 1}.jpg`}
+                      alt=""
+                    />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-red-800 text-lg">
+                      {review.name}
+                    </h4>
+                    <p className="text-sm text-gray-600">{review.handle}</p>
+                  </div>
+                </div>
+                <div className="text-gray-700 leading-relaxed text-lg flex-1 flex flex-col">
+                  <div className="mb-2 flex-1 overflow-y-auto">
+                    <p>
+                      "{getDisplayText(review.text, index)}"
+                    </p>
+                  </div>
+                  {review.text.split(' ').length > 32 && (
+                    <div className="mt-4 flex-shrink-0">
+                      <button
+                        onClick={() => toggleExpanded(index)}
+                        className="text-red-600 hover:text-red-800 font-medium text-sm transition-colors duration-200 bg-red-50 hover:bg-red-100 px-4 py-2 rounded-full border border-red-200"
+                      >
+                        {expandedReviews.has(index) ? "Qisqartish" : "To'liq o'qish"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+      </div>
+
+      {/* Dots indicator */}
+      <div className="flex justify-center mt-8 space-x-2">
+        {reviews.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentIndex(index)}
+            className={`w-3 h-3 rounded-full transition-colors ${index === currentIndex ? "bg-red-600" : "bg-gray-300"
+              }`}
+          />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default function HomePage() {
+  const { user, clearUser } = useUserStore();
+  const { scrollYProgress } = useScroll();
+  const rotate = useTransform(scrollYProgress, [0, 1], [0, 1080]);
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [showMainContent, setShowMainContent] = useState(false);
+  const [navScrolled, setNavScrolled] = useState(false);
+  const [activeSection, setActiveSection] = useState("main");
+
+  const handleLogout = () => {
+    // Clear token
+    localStorage.removeItem('auth_token');
+    // Reload page
+    window.location.reload();
+  };
+
+  // Loading completion handler
+  const handleLoadingComplete = () => {
+    setIsLoading(false);
+    // Kichik kechikish bilan asosiy kontentni ko'rsatish
+    setTimeout(() => {
+      setShowMainContent(true);
+    }, 500);
+  };
+
+  // Scroll animation effect
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollY = window.scrollY;
+      const windowHeight = window.innerHeight;
+
+      // Agar scroll pastga qilingan bo'lsa, animatsiyalarni ishga tushirish
+      if (scrollY > windowHeight * 0.1) {
+        setShowMainContent(true);
+      }
+    };
+
+    if (!isLoading) {
+      window.addEventListener('scroll', handleScroll);
+      return () => window.removeEventListener('scroll', handleScroll);
+    }
+  }, [isLoading]);
+
+  useEffect(() => {
+    const handleNavScroll = () => {
+      setNavScrolled(window.scrollY > 24);
+    };
+    handleNavScroll();
+    window.addEventListener('scroll', handleNavScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleNavScroll);
+  }, []);
+
+  useEffect(() => {
+    const sectionIds = ["main", "courses", "author", "faq", "pricing", "reviews"];
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        if (visible[0]?.target.id) {
+          setActiveSection(visible[0].target.id);
+        }
+      },
+      { rootMargin: "-35% 0px -45% 0px", threshold: [0, 0.15, 0.35, 0.55] }
+    );
+
+    sectionIds.forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, [showMainContent]);
+
+  const navLinks = [
+    { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
+    { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
+    { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
+    { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
+    { href: "#pricing", label: "Tariflar", shortLabel: "Tarif", icon: Tags, id: "pricing" },
+    { href: "#reviews", label: "Sharhlar", shortLabel: "Sharh", icon: MessageSquare, id: "reviews" },
+  ];
+
+  const scrollToSection = (sectionId: string) => {
+    setActiveSection(sectionId);
+    if (sectionId === "main") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  const handleSectionNavClick = (
+    e: React.MouseEvent<HTMLAnchorElement>,
+    sectionId: string
+  ) => {
+    e.preventDefault();
+    scrollToSection(sectionId);
+  };
+
+  const mobileNavLinks = [
+    ...navLinks.filter((link) => link.id !== "faq"),
+    user
+      ? {
+          href: "/dashboard",
+          label: user.first_name,
+          shortLabel: "Kabinet",
+          icon: UserCircle,
+          id: "dashboard",
+        }
+      : {
+          href: "/auth",
+          label: "Kirish",
+          shortLabel: "Kirish",
+          icon: LogIn,
+          id: "auth",
+        },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#FEFBEE] text-gray-800 overflow-x-hidden pb-24 lg:pb-0">
+      {/* Loading Screen */}
+      <AnimatePresence>
+        {isLoading && (
+          <LoadingScreen onComplete={handleLoadingComplete} />
+        )}
+      </AnimatePresence>
+      {/* --- Mobile pastki navbar --- */}
+      <nav
+        className="fixed bottom-3 left-3 right-3 z-[70] lg:hidden"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
+        aria-label="Mobil navigatsiya"
+      >
+        <div className="mx-auto max-w-lg rounded-[2rem] border border-[#FEFBEE]/15 bg-[#3d0c0c]/95 px-1 py-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+          <div className="flex items-stretch justify-between gap-0.5">
+            {mobileNavLinks.map((link) => {
+              const Icon = link.icon;
+              const isActive = ["auth", "dashboard"].includes(link.id)
+                ? false
+                : activeSection === link.id;
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => {
+                    if (["auth", "dashboard"].includes(link.id) || (link.href.startsWith("/") && !link.href.startsWith("/#") && !link.href.startsWith("#"))) return;
+                    handleSectionNavClick(e, link.id);
+                  }}
+                  className={cn(
+                    "flex min-w-0 flex-1 flex-col items-center justify-center rounded-2xl px-0.5 py-1.5 transition-all duration-200",
+                    isActive
+                      ? "bg-[#FEFBEE]/15 text-[#FEFBEE] shadow-[0_0_18px_rgba(254,251,238,0.22)] ring-1 ring-[#FEFBEE]/35"
+                      : "text-[#FEFBEE]/55 hover:text-[#FEFBEE]/85"
+                  )}
+                >
+                  <Icon className="h-4 w-4 shrink-0" strokeWidth={isActive ? 2.5 : 2} />
+                  <span className="mt-0.5 max-w-full truncate text-[7px] font-bold uppercase tracking-[0.08em] sm:text-[8px]">
+                    {link.shortLabel}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      </nav>
+
+      {/* --- Desktop Sticky Navbar (markazda) --- */}
+      <header className="hidden lg:flex fixed top-0 left-0 right-0 z-50 justify-center px-3 xl:px-4 pointer-events-none">
+        <div
+          className={`pointer-events-auto w-full max-w-[72rem] transition-all duration-500 ${
+            navScrolled ? 'mt-3' : 'mt-5'
+          }`}
+        >
+          <div
+            className={`flex items-center justify-center gap-0.5 xl:gap-1 rounded-full border transition-all duration-500 whitespace-nowrap ${
+              navScrolled
+                ? 'bg-[#FEFBEE]/95 backdrop-blur-2xl border-[#5D1111]/15 shadow-[0_12px_40px_rgba(93,17,17,0.12)] py-1.5 px-2.5'
+                : 'bg-[#FEFBEE]/70 backdrop-blur-xl border-[#5D1111]/10 shadow-[0_8px_32px_rgba(93,17,17,0.06)] py-2 px-3'
+            }`}
+          >
+            <nav className="flex items-center flex-nowrap justify-center gap-0 min-w-0">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={(e) => handleSectionNavClick(e, link.id)}
+                  className="group relative shrink-0 px-1.5 xl:px-2.5 2xl:px-3 py-2 text-[9px] xl:text-[10px] 2xl:text-[11px] font-semibold uppercase tracking-[0.08em] xl:tracking-[0.12em] text-[#5D1111]/70 hover:text-[#5D1111] transition-colors duration-200"
+                >
+                  {link.label}
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-0 h-[1.5px] bg-[#5D1111] rounded-full transition-all duration-300 group-hover:w-4/5" />
+                </Link>
+              ))}
+            </nav>
+
+            <span className="mx-1 h-5 w-px bg-gradient-to-b from-transparent via-[#5D1111]/25 to-transparent shrink-0" />
+
+            <div className="flex items-center gap-1.5 xl:gap-2 shrink-0">
+              {user ? (
+                <>
+                  <Link href="/dashboard">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3 xl:px-4"
+                    >
+                      {user.first_name}
+                    </Button>
+                  </Link>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleLogout}
+                    className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/20 text-[#5D1111] hover:bg-[#5D1111]/8 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3 xl:px-4"
+                  >
+                    <LogOut className="h-3.5 w-3.5 mr-1.5" />
+                    Chiqish
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 xl:h-9 rounded-full bg-transparent border-[#5D1111]/25 text-[#5D1111] hover:bg-white/60 hover:border-[#5D1111]/40 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3.5 xl:px-5"
+                    >
+                      Kirish
+                    </Button>
+                  </Link>
+                  <Link href="/register">
+                    <Button
+                      size="sm"
+                      className="h-8 xl:h-9 rounded-full bg-[#5D1111] text-[#FEFBEE] hover:bg-[#7A2E2E] border-0 font-semibold uppercase tracking-[0.1em] text-[9px] xl:text-[10px] px-3.5 xl:px-5 shadow-md shadow-[#5D1111]/20"
+                    >
+                      Ro&apos;yxatdan o&apos;tish
+                    </Button>
+                  </Link>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Desktop navbar uchun joy */}
+      <div className="hidden lg:block h-20" aria-hidden="true" />
+      <main>
+        {/* --- Hero Section --- */}
+        <motion.section
+          id="main"
+          className="relative w-full"
+          initial={{ opacity: 0 }}
+          animate={{
+            opacity: showMainContent ? 1 : 0,
+            y: showMainContent ? 0 : 50
+          }}
+          transition={{
+            duration: 1,
+            ease: "easeOut"
+          }}
+        >
+          {/* Top Content (Logos & Text) */}
+          <div className="relative z-20 w-full bg-[#FEFBEE] pt-2 pb-0 sm:pt-3 md:pt-4">
+            <div className="flex flex-col items-center justify-center text-center max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: showMainContent ? 1 : 0,
+                  y: showMainContent ? 0 : 20
+                }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="relative z-50"
+              >
+                <img
+                  src="/images/logo-decorated.png"
+                  alt="Platform Logo"
+                  className="h-24 sm:h-28 md:h-48 lg:h-52 w-auto object-contain [filter:drop-shadow(0_0_8px_rgba(255,255,255,0.7))]"
+                />
+              </motion.div>
+              <motion.h1
+                className={`text-xl sm:text-3xl md:text-5xl relative z-50 text-[#5D1111] mt-1 sm:mt-2 not-italic ${scriptFont.className}`}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: showMainContent ? 1 : 0,
+                  y: showMainContent ? 0 : 20
+                }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
+                Ayollik tabiatingiz bilan hamohanglikda yashang
+              </motion.h1>
+              <motion.p
+                className="mx-auto max-w-2xl text-lg sm:text-2xl md:text-3xl font-semibold sm:font-bold not-italic leading-snug tracking-[0.02em] text-[#7A2E2E]/90 mt-1 sm:mt-2 relative z-40 font-serif"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{
+                  opacity: showMainContent ? 1 : 0,
+                  y: showMainContent ? 0 : 20
+                }}
+                transition={{ duration: 0.5, delay: 0.6 }}
+              >
+                Tabiiy usul bilan homiladorlikni<br />
+                rejalashtiring yoki ortga suring
+              </motion.p>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: showMainContent ? 1 : 0,
+                  scale: showMainContent ? 1 : 0.8
+                }}
+                transition={{ duration: 0.5, delay: 0.8 }}
+                className="relative z-50 mt-2 sm:mt-3 w-full flex justify-center"
+              >
+                <CourseStartTicket showMeta={false} />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Bottom Video Section — to'liq ko'rinish */}
+          <div className="relative w-full h-[72vh] sm:h-[78vh] md:h-[80vh] -mt-2 sm:-mt-3 overflow-hidden">
+            <motion.video
+              src="/women.mp4"
+              poster="/images/header.jpg"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover object-top"
+              initial={{ opacity: 0, scale: 1.1 }}
+              animate={{
+                opacity: showMainContent ? 1 : 0,
+                scale: showMainContent ? 1 : 1.1
+              }}
+              transition={{ duration: 1.2, delay: 1 }}
+            />
+            {/* CTA Button Overlay */}
+            <div className="absolute top-[54%] sm:top-[48%] lg:top-[65%] inset-x-0 flex justify-center -translate-y-1/2 z-40 lg:z-50 pointer-events-none">
+              <motion.div
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{
+                  opacity: showMainContent ? 1 : 0,
+                  scale: showMainContent ? 1 : 0.8
+                }}
+                transition={{ duration: 0.8, delay: 1.5 }}
+                className="pointer-events-auto focus:outline-none"
+              >
+                <Link
+                  href="#pricing"
+                  onClick={(e) => handleSectionNavClick(e, "pricing")}
+                  className="h-24 w-24 sm:h-28 sm:w-28 lg:h-32 lg:w-32 border-2 border-white/55 sm:border-white/80 rounded-full flex items-center justify-center text-white/65 sm:text-white/90 hover:scale-105 transition-transform duration-300 relative"
+                >
+                  <p className="text-sm sm:text-base lg:text-lg text-center font-medium leading-tight">
+                    ISHTIROK <br /> ETAMAN
+                  </p>
+                  {/* Rotating Dot */}
+                  <motion.div
+                    style={{ rotate }}
+                    className="absolute inset-0 w-full h-full pointer-events-none"
+                  >
+                    <span className="h-4 w-4 bg-white/55 sm:bg-white/85 rounded-full absolute -right-2 top-1/2 -translate-y-1/2 shadow-md"></span>
+                  </motion.div>
+                </Link>
+              </motion.div>
+            </div>
+            <div className="absolute z-10 bottom-0 h-[220px] w-full left-0 bg-gradient-to-t from-[#801d1d] via-[#801d1d]/70 to-transparent pointer-events-none" />
+          </div>
+        </motion.section>
+
+        {/* STM BU bo'limi */}
+        <section
+          className="h-[100dvh] min-h-[100dvh] md:h-auto md:min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 sm:py-10 md:py-20 overflow-hidden -mt-1"
+          style={{ backgroundColor: '#801d1d', zIndex: 1, position: 'relative' }}
+        >
+          <div className="container mx-auto w-full">
+            <div className="w-full text-white flex flex-col items-center justify-center p-1 sm:p-5 relative z-10">
+              <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
+
+                <div className="w-full grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 md:gap-8 items-center justify-center">
+
+                  {/* Left Texts */}
+                  <div className="flex flex-col justify-between h-[250px] sm:h-[300px] md:h-[360px] text-center md:text-right z-30 w-[105px] sm:w-[130px] md:w-auto max-w-[7.5rem] sm:max-w-[9rem] md:max-w-none justify-self-end">
+                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
+                      Harorat va ajralmalarni tahlil qilish
+                    </p>
+                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
+                      Hayz ritmingizga mos, ongli va muvozanatli hayot
+                    </p>
+                  </div>
+
+                  {/* Doira + rasm + halqalar + nuqtalar */}
+                  <div className="relative z-10 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
+                    {/* Tashqi halqa (Dashed) */}
+                    <div className="absolute inset-0 rounded-full border-[1px] md:border-[2px] border-dashed border-white/60" />
+
+                    {/* Ichki halqa va Rasm */}
+                    <div className="absolute inset-4 sm:inset-5 md:inset-7 rounded-full overflow-hidden border-[4px] sm:border-[6px] md:border-[10px] border-[#9e2727] shadow-lg">
+                      <img
+                        src="/images/hero-woman.png"
+                        alt="STM BU"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+
+                    {/* Anor logolari (qarama-qarshi tomonga aylanadigan) */}
+                    <div className="absolute inset-0 z-20 pointer-events-none">
+                      {/* Katta anor */}
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ rotate: 360 }}
+                        transition={{ duration: 25, ease: "linear", repeat: Infinity }}
+                      >
+                        <img
+                          src="/images/anor.png"
+                          alt="Anor logo katta"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain -rotate-12"
+                          style={{ top: '14.6%', left: '14.6%' }}
+                        />
+                      </motion.div>
+
+                      {/* Kichik anor */}
+                      <motion.div
+                        className="absolute inset-0"
+                        animate={{ rotate: -360 }}
+                        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
+                      >
+                        <img
+                          src="/images/anor.png"
+                          alt="Anor logo kichik"
+                          className="absolute -translate-x-1/2 -translate-y-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain -rotate-45"
+                          style={{ top: '28%', left: '7%' }}
+                        />
+                      </motion.div>
+                    </div>
+
+                    {/* Markaziy sarlavha */}
+                    <div className="absolute inset-0 flex items-center justify-center z-30">
+                      <span className="font-serif font-extrabold tracking-widest text-[24px] sm:text-[36px] md:text-[52px] lg:text-[60px] whitespace-nowrap drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] text-[#FEFBEE]">
+                        STM BU
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Right Texts */}
+                  <div className="flex flex-col justify-between h-[250px] sm:h-[300px] md:h-[360px] text-center md:text-left z-30 w-[105px] sm:w-[130px] md:w-auto max-w-[7.5rem] sm:max-w-[9rem] md:max-w-none justify-self-start">
+                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
+                      Spiral va gormonal tabletkalarsiz qo'rquvsiz yaqinlik
+                    </p>
+                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
+                      99,6% aniqlik bilan tabiiy rejalashtirish
+                    </p>
+                  </div>
+
+                </div>
+
+                {/* Slogan — 2 qator (eskisidaka) */}
+                <p
+                  className={`mt-6 sm:mt-10 md:mt-16 text-center text-lg sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-none mx-auto not-italic ${scriptFont.className}`}
+                >
+                  Bu – tanangiz bilan hamohanglikda
+                  <br />
+                  yashash san&apos;ati.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <ProgramPathsSection
+          showHeader={false}
+          onPricingClick={(e) => handleSectionNavClick(e, "pricing")}
+        />
+
+        {/* --- Features Section --- */}
+        {/* <section id="about" className="py-20 sm:py-28">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-red-900 mb-4">
+                Nima uchun bizni tanlaysiz?
+              </h2>
+              <p className="max-w-3xl mx-auto text-lg text-gray-600">
+                Bizning platformamiz ayollarga o'z salomatligini tabiiy va ilmiy
+                asoslangan usullar bilan boshqarishga yordam beradi.
+              </p>
+            </motion.div>
+            <div className="grid md:grid-cols-3 gap-8">
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 30 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: i * 0.15 }}
+                >
+                  <Card className="text-center border-red-100/70 h-full hover:shadow-xl hover:-translate-y-2 transition-all duration-300 bg-white/50">
+                    <CardHeader>
+                      <div className="mx-auto w-20 h-20 mb-4 bg-red-100/70 rounded-full flex items-center justify-center">
+                        <Shield className="h-8 w-8 text-red-700" />
+                      </div>
+                      <CardTitle className="text-xl font-semibold text-red-900">
+                        Xavfsiz va tabiiy
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-gray-600">
+                        Hech qanday kimyoviy preparatlar va yon ta'sirlarsiz,
+                        faqat tabiiy usullar orqali o'z tanangizni nazorat
+                        qiling.
+                      </p>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </section> */}
+
+        {/* --- Course Content Section --- */}
+        <section id="courses" className="py-0 px-4 relative overflow-hidden">
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto relative z-10 pt-10 pb-12 sm:pt-12 sm:pb-16">
+            <motion.h2
+              className="text-3xl font-bold text-center mb-10 sm:mb-12 text-red-900"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              KURS TARKIBI
+            </motion.h2>
+
+            <div className="grid md:grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12">
+              {/* I MODUL */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.1 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/muallif.jpg"
+                          alt="Nozima Khamraeva"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Nozima Khamraeva
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>
+                          &quot;Natural Family Planning Teachers&apos; Association&quot; uyushmasining sertifikatli treneri (Buyuk Britaniya)
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>
+                          Irina Manso Akademiyasi — STM konsultantlarini kasbiy tayyorlash va rivojlantirish markazi (Rossiya) — 1 pag&apos;ona konsultanti
+                        </span>
+                      </li>
+                      <li className="flex items-start">
+                        <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-0.5 flex-shrink-0" />
+                        <span>
+                          «Открытые Сердца» hayot va oilani muhofaza qilish xayriya jamg&apos;armasi (Belarus), Yevropa Oilaviy Ta&apos;lim Instituti (EIFLE) bilan hamkorlikda — 2 pag&apos;ona konsultanti
+                        </span>
+                      </li>
+                    </ul>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslar (20-30 daq.):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Ayol va erkak reproduktiv tizimining anatomiya va
+                            fiziologiyasi
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Simptotermal metod darslari
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Gormonlar, hayot tarzi va hayz ritmida yashash
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* II MODUL */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/module-2.jpg"
+                          alt="Sumayya Hanafi"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Sumayya Hanafi
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">
+                      Islom fiqhi bo'yicha mutaxassis, Iordaniya qirolligida
+                      Usul va Fiqh yo'nalishida bakalavr darajasiga ega.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslar (10-15 daq.):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Ayollik fiqhini o'rganish ahamiyati
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Hayz, istihoza, nifos tushunchalari
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Tahorat, g'usl, oq ajralmalar haqida
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Er bilan yaqinlik masalalari
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* III MODUL */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.3 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/module-3.jpg"
+                          alt="Ummu Umayr"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Ummu Umayr
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">
+                      Diplomli psixolog-seksolog, integrativ nutritsiolog. 15+
+                      kurs va loyihalar asoschisi; 2000+ ayol-qizlarni ijobiy
+                      natijaga olib chiqqan mutaxassis.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslik (35 daq.):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Ruhiy va jismoniy omillarning ahamiyati
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            To'shak masalasidagi kelishmovchiliklar
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Oilani tabiiy rejalashtirishning jinsiy hayotga
+                            ijobiy ta’siri
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Tiyilish kunlari uchun tavsiyalar
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* IV MODUL */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/module-4.jpg"
+                          alt="Sohiba Abdalniyozova"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Sohiba Abdalniyozova
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">
+                      Doula, prenatal nutritsiolog. Ayollarga homiladorlik, oson
+                      tug'ruq va tug'ruqdan keyingi tiklanishga yordam beradigan
+                      mutaxassis.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslik (25 daqiqa):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Yoni-steam foydalari va uni uy sharoitida qilish
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Oyoq parlash ahamiyati
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Ruvayha */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.5 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/module-5.jpg"
+                          alt="Ruvayha"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Ruvayha
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">
+                      Diplom va sertifikatli Tabiiy Tibbiyot yo'lovchisi, doula,
+                      tug'ruqqa tayyorlovchi murabbiy, gomeopat.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslik (40 daqiqa):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Sog'lom ayol bo'lish sirlari
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Nodira Adxamovna */}
+              <motion.div
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.6 }}
+              >
+                <Card className="border-red-200 h-full">
+                  <CardHeader>
+                    <div className="flex items-center space-x-4 mb-4">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-200 flex-shrink-0">
+                        <img
+                          src="/images/module-6.jpg"
+                          alt="Nodira Adxamovna"
+                          className="w-full h-full object-cover object-top"
+                        />
+                      </div>
+                      <div>
+                        <CardDescription className="font-semibold text-red-900 text-lg">
+                          Nodira Adxamovna
+                        </CardDescription>
+                      </div>
+                    </div>
+                    <CardDescription className="text-sm text-gray-600">
+                      2010–2020 yillar — Toshkent Pediatriya Tibbiyot Institutida
+                      &quot;Pediatriya ishi&quot; yo&apos;nalishi bo&apos;yicha bakalavriat va
+                      magistratura. 1000+ bolalarni isbotlangan tibbiyot prinsiplari
+                      bo&apos;yicha sog&apos;lomlashtirishga xissa qo&apos;shgan pediatr shifokor.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="mb-4">
+                      <h4 className="font-semibold text-red-800 mb-2">
+                        Videodarslik (1 soat):
+                      </h4>
+                      <ul className="space-y-1">
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            To&apos;g&apos;ri emizish qoidalari
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Sut yetarli bo&apos;lishi haqida
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Bola yoshiga qarab emizish
+                          </span>
+                        </li>
+                        <li className="flex items-start">
+                          <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-1 flex-shrink-0" />
+                          <span className="text-sm">
+                            Emizishni muvaffaqiyatli yakunlash
+                          </span>
+                        </li>
+                      </ul>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Ilmiy Asoslangan Samaradorlik */}
+        <section className="py-0 px-4 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto relative z-10 py-16">
+            <motion.h2
+              className="text-3xl font-bold text-center mb-12 text-red-900"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              ILMIY ASOSLANGAN SAMARADORLIK
+            </motion.h2>
+
+            <div className="grid md:grid-cols-2 gap-8 max-w-7xl mx-auto px-4 sm:px-6">
+              {/* Chap qism: Ideal va Oddiy qo'llashda */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+              >
+                <div className="space-y-6">
+                  {/* Ideal qo'llashda */}
+                  <Card className="border-red-200 bg-white">
+                    <CardHeader className="text-center">
+                      <CardTitle className="text-red-900 text-xl mb-2">
+                        Ideal qo'llashda
+                      </CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        Har bir tavsiyaga qat'iy amal qilinganda
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <div className="text-6xl font-bold text-red-800 mb-2">
+                        99,6%
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        (Pearl ko'rsatkichi: 0,4)
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Manba: Human Reproduction, 2007
+                      </p>
+                    </CardContent>
+                  </Card>
+
+                  {/* Oddiy qo'llashda */}
+                  <Card className="border-red-200 bg-white">
+                    <CardHeader className="text-center">
+                      <CardTitle className="text-red-900 text-xl mb-2">
+                        Oddiy qo'llashda
+                      </CardTitle>
+                      <CardDescription className="text-sm text-gray-600">
+                        Qo'llashda kamchiliklarga yo'l qo'yilganda
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="text-center">
+                      <div className="text-6xl font-bold text-red-800 mb-2">
+                        98,2%
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        (Pearl ko'rsatkichi: 1,8)
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Manba: Osteopath Fam Physician, 2013
+                      </p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </motion.div>
+
+              {/* O'ng qism: Taqqoslash */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+              >
+                <Card className="border-red-200 bg-white h-full">
+                  <CardHeader className="text-center">
+                    <CardTitle className="text-red-900 text-xl mb-2">
+                      Taqqoslash
+                    </CardTitle>
+                    <CardDescription className="text-sm text-gray-600">
+                      (oddiy foydalanish)
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {/* Grafik */}
+                    <div className="mb-6">
+                      <div className="flex items-end justify-between h-32 bg-gray-50 p-4 rounded-lg">
+                        <div className="flex flex-col items-center">
+                          <div className="w-4 h-20 bg-red-300 rounded-t"></div>
+                          <span className="text-xs mt-2">15</span>
+                          <span className="text-xs text-gray-600">
+                            Prezervativ
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-4 h-12 bg-red-400 rounded-t"></div>
+                          <span className="text-xs mt-2">9</span>
+                          <span className="text-xs text-gray-600">
+                            Gormonal
+                          </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                          <div className="w-4 h-4 bg-red-600 rounded-t"></div>
+                          <span className="text-xs mt-2">1.8</span>
+                          <span className="text-xs text-gray-600">STM</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Jadval */}
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div className="font-semibold text-gray-700">Usul</div>
+                        <div className="font-semibold text-gray-700">
+                          Pearl ko'rsatkichi
+                        </div>
+                        <div className="font-semibold text-gray-700">
+                          Samaradorlik
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-center py-2 border-t">
+                        <div className="text-sm">Prezervativ</div>
+                        <div className="text-sm font-semibold text-red-600">
+                          15
+                        </div>
+                        <div className="text-sm font-semibold text-red-600">
+                          85%
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-center py-2 border-t">
+                        <div className="text-sm">Gormonal tabletkalar</div>
+                        <div className="text-sm font-semibold text-red-600">
+                          9
+                        </div>
+                        <div className="text-sm font-semibold text-red-600">
+                          91%
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-3 gap-4 text-center py-2 border-t rounded">
+                        <div className="text-sm font-semibold">
+                          Simptotermal usul
+                        </div>
+                        <div className="text-sm font-bold text-red-800">
+                          1.8
+                        </div>
+                        <div className="text-sm font-bold text-red-800">
+                          98.2%
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        {/* Kurs Muallifi */}
+        <section id="author" className="py-0 px-4 relative overflow-hidden -mt-8">
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto relative z-10 py-16 lg:py-24">
+            <motion.h2
+              className="text-3xl md:text-4xl lg:text-5xl font-bold text-center mb-10 lg:mb-16 text-red-900"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              Kurs muallifi
+            </motion.h2>
+
+            <div className="grid md:grid-cols-2 gap-10 lg:gap-20 max-w-6xl lg:max-w-7xl mx-auto items-start px-4 sm:px-6 lg:px-8">
+              {/* Chap qism: Portret va ma'lumotlar */}
+              <motion.div
+                initial={{ opacity: 0, x: -30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8 }}
+                className="text-center md:text-left"
+              >
+                <div className="mb-8 lg:mb-10">
+                  <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-72 lg:h-72 mx-auto md:mx-0 rounded-full overflow-hidden bg-gray-200 mb-6 lg:mb-8 ring-4 ring-red-900/10 shadow-lg">
+                    <img
+                      src="/images/muallif.jpg"
+                      alt="Nozima Khamraeva"
+                      width={640}
+                      height={640}
+                      decoding="async"
+                      className="absolute left-1/2 top-1/2 max-w-none w-[125%] h-[125%] -translate-x-1/2 -translate-y-1/2 object-cover object-[center_28%]"
+                    />
+                  </div>
+                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-red-900 mb-2 lg:mb-3">
+                    Kurs muallifi
+                  </h3>
+                  <h4 className="text-2xl sm:text-3xl lg:text-5xl font-serif font-bold text-red-800 mb-4 lg:mb-8">
+                    Nozima Khamraeva
+                  </h4>
+                </div>
+
+                <div className="space-y-4 lg:space-y-6 text-gray-800">
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    Buyuk Britaniya "Natural Family Planning Teachers'
+                    Association" uyushmasining sertifikatli treneri.
+                  </p>
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    O'zbekistonda ilk marotaba ayollar uchun ko'p martalik
+                    matoli tagliklarni tanishtirgan ayol.
+                  </p>
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    2 ta farzandini tibbiy xodimlar va aralashuvlarsiz, ongli yondashib, oʻz uyida dunyoga keltirgan ona.
+                  </p>
+                </div>
+              </motion.div>
+
+              {/* O'ng qism: Sertifikatlar haqida matn */}
+              <motion.div
+                initial={{ opacity: 0, x: 30 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-center md:text-left"
+              >
+                <h3 className="text-xl sm:text-2xl font-bold text-red-900 mb-4 lg:mb-6">
+                  Professional sertifikatlar
+                </h3>
+                <div className="space-y-4 text-gray-800">
+                  <p className="text-base sm:text-lg leading-relaxed">
+                    <span className="font-semibold text-red-900">NFP (Buyuk Britaniya).</span>{" "}
+                    Natural Family Planning Teachers&apos; Association tomonidan tabiiy oila rejalashtirish bo&apos;yicha nazariy bilim va tushuncha imtihonidan muvaffaqiyatli o&apos;tgan.
+                  </p>
+                  <p className="text-base sm:text-lg leading-relaxed">
+                    <span className="font-semibold text-red-900">STM konsultant, 1-daraja.</span>{" "}
+                    Irina Manso Akademiyasi va &quot;Ochiq Qalblar&quot; xayriya fondi hamkorligida simptotermal metod (ingliz modifikatsiyasi) bo&apos;yicha 1-darajali konsultant sertifikati.
+                  </p>
+                  <p className="text-base sm:text-lg leading-relaxed">
+                    <span className="font-semibold text-red-900">STM konsultant, 2-daraja.</span>{" "}
+                    &quot;Ochiq Qalblar&quot; xayriya fondi va IEEF (Yevropa oilaviy ta&apos;lim instituti) hamkorligida simptotermal metod bo&apos;yicha 2-darajali konsultant sertifikati.
+                  </p>
+                </div>
+              </motion.div>
+            </div>
+
+            {/* Sertifikat rasmlari */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.15 }}
+              className="mt-12 lg:mt-16 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"
+            >
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+                {[
+                  {
+                    src: "/images/certificates/nfp.jpg",
+                    alt: "NFP sertifikati — Natural Family Planning Teachers' Association",
+                    title: "NFP sertifikati",
+                  },
+                  {
+                    src: "/images/certificates/stm-konsultant-1.jpg",
+                    alt: "STM konsultant 1-daraja sertifikati",
+                    title: "STM konsultant, 1-daraja",
+                  },
+                  {
+                    src: "/images/certificates/stm-konsultant-2.jpg",
+                    alt: "STM konsultant 2-daraja sertifikati",
+                    title: "STM konsultant, 2-daraja",
+                  },
+                ].map((cert) => (
+                  <div
+                    key={cert.src}
+                    className="border border-red-200 bg-white shadow-xl rounded-sm overflow-hidden"
+                  >
+                    <img
+                      src={cert.src}
+                      alt={cert.alt}
+                      className="w-full h-auto object-contain"
+                      loading="lazy"
+                    />
+                    <p className="px-3 py-2 text-center text-sm font-semibold text-red-900 bg-red-50/80">
+                      {cert.title}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </section>
+
+        {/* --- FAQ Section --- */}
+        <section id="faq" className="py-0 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-red-900 mb-4">
+                Ko'p beriladigan savollar
+              </h2>
+              <p className="max-w-3xl mx-auto text-lg text-gray-600">
+                Kurs haqida sizni qiziqtirgan savollarga javoblar.
+              </p>
+            </motion.div>
+            <FAQAccordion />
+          </div>
+        </section>
+
+        {/* Sharhlar */}
+        <section id="reviews" className="py-0 px-4 relative overflow-hidden -mt-8">
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto relative z-10 py-16">
+            <motion.h2
+              className="text-3xl font-bold text-center mb-12 text-red-900"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              SHARHLAR
+            </motion.h2>
+
+            <ReviewsCarousel />
+          </div>
+        </section>
+
+        {/* --- Pricing Section --- */}
+        <section id="pricing" className="py-0 relative overflow-hidden -mt-8">
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 py-20">
+            <motion.div
+              className="text-center mb-16"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              <h2 className="text-3xl md:text-4xl font-serif font-bold text-red-900 mb-4">
+                Tariflar
+              </h2>
+              <p className="max-w-3xl mx-auto text-lg text-gray-600">
+                O&apos;zingizga mos tarifni tanlang va sog&apos;lom hayot sari ilk qadamni
+                tashlang.
+              </p>
+            </motion.div>
+            <PricingPlansGrid />
+          </div>
+        </section>
+
+        {/* --- CTA Section --- */}
+        <section className="py-0 bg-[#FEFBEE] text-red-900 relative overflow-hidden -mt-8" style={{ marginTop: '-2rem' }}>
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center"
+            >
+              <h2 className="text-3xl md:text-4xl font-serif font-bold mb-8 text-red-900">
+                SIZGA MO'JIZA TAKLIF QILMAYMAN
+              </h2>
+
+              <div className="max-w-4xl mx-auto mb-8">
+                <div className="text-center text-lg text-red-900 leading-relaxed">
+                  <p className="mb-8">
+                    O'zingizni anglash yo'lida yo'lboshchilik, Sizni tushunuvchi, qo'llab-quvvatlovchi yo'ldoshlikni, <br />Tinglash, <br />O'z yo'lingizni hurmat qilishni taklif qilaman.
+                  </p>
+                </div>
+
+                <div className="text-center">
+                  <p className="text-red-1000 italic font-serif text-xl font-bold">
+                    (C) Nozima Khamraeva
+                  </p>
+                </div>
+              </div>
+
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.90 }}
+                className="mt-8 mb-20"
+              >
+                <Link href="/auth">
+                  <Button
+                    size="lg"
+                    className="bg-red-800 hover:bg-red-900 text-white text-lg px-8 py-6 rounded-full font-bold shadow-lg"
+                  >
+                    Hoziroq boshlash
+                  </Button>
+                </Link>
+              </motion.div>
+            </motion.div>
+          </div>
+        </section>
+      </main>
+
+      {/* --- Footer --- */}
+      <footer className="bg-gray-900 text-white">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <div className="grid md:grid-cols-4 gap-8">
+            <div>
+              <div className="flex items-center space-x-2 mb-4">
+
+                <h3 className="text-xl font-bold"></h3>
+              </div>
+              <p className="text-gray-400 text-sm">
+
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-gray-200">
+                Tezkor havolalar
+              </h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <Link
+                    href="#courses"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Kurslar
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#pricing"
+                    onClick={(e) => handleSectionNavClick(e, "pricing")}
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Tariflar
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="#faq"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    FAQ
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-gray-200">Yordam</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <Link
+                    href="https://t.me/stm_kurs"
+                    target="_blank"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Qo'llab-quvvatlash
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/terms"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Foydalanish shartlari
+                  </Link>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-gray-200">Aloqa</h4>
+              <ul className="space-y-2 text-gray-400">
+                <li>
+                  <Link
+                    href="mailto:info@uygunlik.uz"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    info@uygunlik.uz
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="https://t.me/stm_kurs"
+                    target="_blank"
+                    className="hover:text-white transition-colors text-sm"
+                  >
+                    Telegram: @stm_kurs
+                  </Link>
+                </li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 Platform. Barcha huquqlar himoyalangan.</p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
