@@ -435,6 +435,97 @@ const ReviewsCarousel = () => {
   );
 };
 
+const STM_FEATURES = {
+  left: [
+    "Harorat va ajralmalarni tahlil qilish",
+    "Hayz ritmingizga mos, ongli va muvozanatli hayot",
+  ],
+  right: [
+    "Spiral va gormonal tabletkalarsiz qo'rquvsiz yaqinlik",
+    "99,6% aniqlik bilan tabiiy rejalashtirish",
+  ],
+} as const;
+
+function StmHeroCircle({ className }: { className?: string }) {
+  return (
+    <div className={cn("relative shrink-0 mx-auto", className)}>
+      <div className="absolute inset-0 rounded-full border border-dashed border-white/60 md:border-2" />
+
+      <div className="absolute inset-3 sm:inset-4 md:inset-7 rounded-full overflow-hidden border-[4px] sm:border-[6px] md:border-[10px] border-[#9e2727] shadow-lg">
+        <img
+          src="/images/hero-woman.png"
+          alt="STM BU"
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.currentTarget.style.display = "none";
+          }}
+        />
+      </div>
+
+      <div className="absolute inset-0 z-20 pointer-events-none max-lg:hidden">
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: 360 }}
+          transition={{ duration: 25, ease: "linear", repeat: Infinity }}
+        >
+          <img
+            src="/images/anor.png"
+            alt="Anor logo katta"
+            className="absolute -translate-x-1/2 -translate-y-1/2 w-7 h-7 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain -rotate-12"
+            style={{ top: "14.6%", left: "14.6%" }}
+          />
+        </motion.div>
+
+        <motion.div
+          className="absolute inset-0"
+          animate={{ rotate: -360 }}
+          transition={{ duration: 20, ease: "linear", repeat: Infinity }}
+        >
+          <img
+            src="/images/anor.png"
+            alt="Anor logo kichik"
+            className="absolute -translate-x-1/2 -translate-y-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain -rotate-45"
+            style={{ top: "28%", left: "7%" }}
+          />
+        </motion.div>
+      </div>
+
+      <div className="absolute inset-0 flex items-center justify-center z-30">
+        <span className="font-serif font-extrabold tracking-widest text-[clamp(18px,5.8vw,60px)] whitespace-nowrap drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] text-[#FEFBEE]">
+          STM BU
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function StmQuadrantLayout({ className }: { className?: string }) {
+  const textClass =
+    "font-medium leading-[1.35] sm:leading-relaxed text-center text-white [text-wrap:balance] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] md:drop-shadow-none";
+  const sizeClass = "text-[11px] sm:text-sm md:text-base lg:text-lg";
+
+  return (
+    <div className={cn("relative mx-auto aspect-square", className)}>
+      <div className="absolute left-1/2 top-1/2 z-10 w-[68%] -translate-x-1/2 -translate-y-1/2 aspect-square md:w-[64%]">
+        <StmHeroCircle className="h-full w-full" />
+      </div>
+
+      <p className={cn("absolute left-[5%] top-[14%] z-30 w-[38%]", textClass, sizeClass)}>
+        {STM_FEATURES.left[0]}
+      </p>
+      <p className={cn("absolute right-[5%] top-[14%] z-30 w-[38%]", textClass, sizeClass)}>
+        {STM_FEATURES.right[0]}
+      </p>
+      <p className={cn("absolute bottom-[14%] left-[5%] z-30 w-[38%]", textClass, sizeClass)}>
+        {STM_FEATURES.left[1]}
+      </p>
+      <p className={cn("absolute bottom-[14%] right-[5%] z-30 w-[38%]", textClass, sizeClass)}>
+        {STM_FEATURES.right[1]}
+      </p>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const { user, clearUser } = useUserStore();
   const { scrollYProgress } = useScroll();
@@ -804,102 +895,20 @@ export default function HomePage() {
 
         {/* STM BU bo'limi */}
         <section
-          className="h-[100dvh] min-h-[100dvh] md:h-auto md:min-h-screen flex items-center justify-center px-3 sm:px-4 py-8 sm:py-10 md:py-20 overflow-hidden -mt-1"
-          style={{ backgroundColor: '#801d1d', zIndex: 1, position: 'relative' }}
+          className="min-h-[100dvh] flex items-center justify-center px-3 sm:px-6 py-8 sm:py-10 md:py-20 overflow-hidden -mt-1"
+          style={{ backgroundColor: "#801d1d", zIndex: 1, position: "relative" }}
         >
-          <div className="container mx-auto w-full">
-            <div className="w-full text-white flex flex-col items-center justify-center p-1 sm:p-5 relative z-10">
-              <div className="w-full max-w-5xl mx-auto flex flex-col items-center justify-center">
+          <div className="container mx-auto w-full max-w-5xl">
+            <div className="flex flex-col items-center justify-center text-white">
+              <StmQuadrantLayout className="w-[min(98vw,23rem)] sm:w-[26rem] md:w-[32rem] lg:w-[36rem]" />
 
-                <div className="w-full grid grid-cols-[1fr_auto_1fr] gap-2 sm:gap-4 md:gap-8 items-center justify-center">
-
-                  {/* Left Texts */}
-                  <div className="flex flex-col justify-between h-[250px] sm:h-[300px] md:h-[360px] text-center md:text-right z-30 w-[105px] sm:w-[130px] md:w-auto max-w-[7.5rem] sm:max-w-[9rem] md:max-w-none justify-self-end">
-                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
-                      Harorat va ajralmalarni tahlil qilish
-                    </p>
-                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
-                      Hayz ritmingizga mos, ongli va muvozanatli hayot
-                    </p>
-                  </div>
-
-                  {/* Doira + rasm + halqalar + nuqtalar */}
-                  <div className="relative z-10 w-[250px] h-[250px] sm:w-[300px] sm:h-[300px] md:w-[28rem] md:h-[28rem] shrink-0 mx-auto">
-                    {/* Tashqi halqa (Dashed) */}
-                    <div className="absolute inset-0 rounded-full border-[1px] md:border-[2px] border-dashed border-white/60" />
-
-                    {/* Ichki halqa va Rasm */}
-                    <div className="absolute inset-4 sm:inset-5 md:inset-7 rounded-full overflow-hidden border-[4px] sm:border-[6px] md:border-[10px] border-[#9e2727] shadow-lg">
-                      <img
-                        src="/images/hero-woman.png"
-                        alt="STM BU"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    </div>
-
-                    {/* Anor logolari (qarama-qarshi tomonga aylanadigan) */}
-                    <div className="absolute inset-0 z-20 pointer-events-none">
-                      {/* Katta anor */}
-                      <motion.div
-                        className="absolute inset-0"
-                        animate={{ rotate: 360 }}
-                        transition={{ duration: 25, ease: "linear", repeat: Infinity }}
-                      >
-                        <img
-                          src="/images/anor.png"
-                          alt="Anor logo katta"
-                          className="absolute -translate-x-1/2 -translate-y-1/2 w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16 object-contain -rotate-12"
-                          style={{ top: '14.6%', left: '14.6%' }}
-                        />
-                      </motion.div>
-
-                      {/* Kichik anor */}
-                      <motion.div
-                        className="absolute inset-0"
-                        animate={{ rotate: -360 }}
-                        transition={{ duration: 20, ease: "linear", repeat: Infinity }}
-                      >
-                        <img
-                          src="/images/anor.png"
-                          alt="Anor logo kichik"
-                          className="absolute -translate-x-1/2 -translate-y-1/2 w-5 h-5 sm:w-8 sm:h-8 md:w-10 md:h-10 object-contain -rotate-45"
-                          style={{ top: '28%', left: '7%' }}
-                        />
-                      </motion.div>
-                    </div>
-
-                    {/* Markaziy sarlavha */}
-                    <div className="absolute inset-0 flex items-center justify-center z-30">
-                      <span className="font-serif font-extrabold tracking-widest text-[24px] sm:text-[36px] md:text-[52px] lg:text-[60px] whitespace-nowrap drop-shadow-[0_4px_4px_rgba(0,0,0,0.9)] text-[#FEFBEE]">
-                        STM BU
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Right Texts */}
-                  <div className="flex flex-col justify-between h-[250px] sm:h-[300px] md:h-[360px] text-center md:text-left z-30 w-[105px] sm:w-[130px] md:w-auto max-w-[7.5rem] sm:max-w-[9rem] md:max-w-none justify-self-start">
-                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
-                      Spiral va gormonal tabletkalarsiz qo'rquvsiz yaqinlik
-                    </p>
-                    <p className="text-[11px] sm:text-sm md:text-base lg:text-lg drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] md:drop-shadow-none font-medium leading-snug">
-                      99,6% aniqlik bilan tabiiy rejalashtirish
-                    </p>
-                  </div>
-
-                </div>
-
-                {/* Slogan — 2 qator (eskisidaka) */}
-                <p
-                  className={`mt-6 sm:mt-10 md:mt-16 text-center text-lg sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-none mx-auto not-italic ${scriptFont.className}`}
-                >
-                  Bu – tanangiz bilan hamohanglikda
-                  <br />
-                  yashash san&apos;ati.
-                </p>
-              </div>
+              <p
+                className={`mt-4 sm:mt-6 md:mt-10 shrink-0 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-md md:max-w-none mx-auto not-italic ${scriptFont.className}`}
+              >
+                Bu – tanangiz bilan hamohanglikda
+                <br />
+                yashash san&apos;ati.
+              </p>
             </div>
           </div>
         </section>
