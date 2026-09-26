@@ -627,6 +627,16 @@ export default function HomePage() {
     return () => observer.disconnect();
   }, [showMainContent]);
 
+  // URL hash (#pricing va h.k.) ochilganda to'g'ri bo'limga scroll
+  useEffect(() => {
+    if (!showMainContent || isLoading) return;
+    const hash = window.location.hash.replace("#", "");
+    if (!hash || hash === "main") return;
+    const t = window.setTimeout(() => scrollToSection(hash), 120);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showMainContent, isLoading]);
+
   const navLinks = [
     { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
     { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
@@ -642,7 +652,16 @@ export default function HomePage() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
-    document.getElementById(sectionId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const el = document.getElementById(sectionId);
+    if (!el) return;
+
+    // overflow-x-hidden ostida scrollIntoView ishonchsiz — window.scrollTo + offset
+    const headerOffset = window.matchMedia("(min-width: 1024px)").matches ? 96 : 12;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - headerOffset;
+    window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", `#${sectionId}`);
+    }
   };
 
   const handleSectionNavClick = (
@@ -650,6 +669,7 @@ export default function HomePage() {
     sectionId: string
   ) => {
     e.preventDefault();
+    e.stopPropagation();
     scrollToSection(sectionId);
   };
 
@@ -1797,51 +1817,8 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* Sharhlar */}
-        <section id="reviews" className="py-0 px-4 relative overflow-hidden -mt-8">
-          {/* Orqa fon rasmi */}
-          <div className="absolute inset-0 z-0">
-            <div
-              className="w-full h-full opacity-70 hidden md:block"
-              style={{
-                minHeight: '100vh',
-                backgroundImage: 'url(/images/fon.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                backgroundAttachment: 'fixed'
-              }}
-            />
-            {/* Mobil qurilmalar uchun alohida fon */}
-            <div
-              className="w-full h-full opacity-60 md:hidden"
-              style={{
-                minHeight: '100vh',
-                backgroundImage: 'url(/images/fon.png)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center center',
-                backgroundRepeat: 'no-repeat',
-                backgroundAttachment: 'scroll'
-              }}
-            />
-          </div>
-          <div className="container mx-auto relative z-10 py-16">
-            <motion.h2
-              className="text-3xl font-bold text-center mb-12 text-red-900"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              SHARHLAR
-            </motion.h2>
-
-            <ReviewsCarousel />
-          </div>
-        </section>
-
         {/* --- Pricing Section --- */}
-        <section id="pricing" className="py-0 relative overflow-hidden -mt-8">
+        <section id="pricing" className="py-0 relative overflow-hidden -mt-8 scroll-mt-4 lg:scroll-mt-28">
           {/* Orqa fon rasmi */}
           <div className="absolute inset-0 z-0">
             <div
@@ -1885,6 +1862,49 @@ export default function HomePage() {
               </p>
             </motion.div>
             <PricingPlansGrid />
+          </div>
+        </section>
+
+        {/* Sharhlar */}
+        <section id="reviews" className="py-0 px-4 relative overflow-hidden -mt-8 scroll-mt-4 lg:scroll-mt-28">
+          {/* Orqa fon rasmi */}
+          <div className="absolute inset-0 z-0">
+            <div
+              className="w-full h-full opacity-70 hidden md:block"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'fixed'
+              }}
+            />
+            {/* Mobil qurilmalar uchun alohida fon */}
+            <div
+              className="w-full h-full opacity-60 md:hidden"
+              style={{
+                minHeight: '100vh',
+                backgroundImage: 'url(/images/fon.png)',
+                backgroundSize: 'cover',
+                backgroundPosition: 'center center',
+                backgroundRepeat: 'no-repeat',
+                backgroundAttachment: 'scroll'
+              }}
+            />
+          </div>
+          <div className="container mx-auto relative z-10 py-16">
+            <motion.h2
+              className="text-3xl font-bold text-center mb-12 text-red-900"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+            >
+              SHARHLAR
+            </motion.h2>
+
+            <ReviewsCarousel />
           </div>
         </section>
 
