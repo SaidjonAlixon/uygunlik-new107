@@ -17,10 +17,11 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="en"
+      lang="uz"
+      className={scriptFont.variable}
       suppressHydrationWarning
     >
-      <body className={scriptFont.variable}>
+      <body>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

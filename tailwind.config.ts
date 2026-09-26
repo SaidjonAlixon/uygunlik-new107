@@ -71,7 +71,7 @@ const config: Config = {
   		},
       fontFamily: {
         dancing: ["var(--font-dancing)"],
-        script: ["Snell Roundhand", "cursive"],
+        script: ["var(--font-script)", "Snell Roundhand", "cursive"],
       },
   		keyframes: {
   			'accordion-down': {

@@ -11,11 +11,8 @@
 
 @font-face {
   font-family: 'Snell Roundhand';
-  src:
-    local('Snell Roundhand'),
-    local('SnellRoundhand'),
-    url('/fonts/SnellRoundhand.woff') format('woff');
-  font-weight: 400 700;
+  src: url('/fonts/SnellRoundhand.woff') format('woff');
+  font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
@@ -26,8 +23,10 @@
   }
 
   .font-script {
-    font-family: 'Snell Roundhand', cursive;
+    font-family: var(--font-script), 'Snell Roundhand', cursive;
     font-style: normal;
+    font-weight: 400;
+    letter-spacing: 0.01em;
   }
   
   .animate-reverse-spin {

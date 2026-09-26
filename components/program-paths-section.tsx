@@ -12,7 +12,10 @@ type ProgramPathsSectionProps = {
   showHeader?: boolean;
 };
 
-export function ProgramPathsSection({ onPricingClick, showHeader = true }: ProgramPathsSectionProps) {
+export function ProgramPathsSection({
+  onPricingClick,
+  showHeader = true,
+}: ProgramPathsSectionProps) {
   return (
     <section
       id="paths"
@@ -41,36 +44,26 @@ export function ProgramPathsSection({ onPricingClick, showHeader = true }: Progr
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 max-w-6xl">
         {showHeader && (
-        <motion.div
-          className="text-center mb-12 sm:mb-14"
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.7 }}
-        >
-          <p
-            className={cn(
-              "text-sm sm:text-base tracking-[0.2em] uppercase text-[#7A2E2E]/70",
-              scriptFont.className
-            )}
+          <motion.div
+            className="text-center mb-12 sm:mb-14"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.7 }}
           >
-            Uch yo‘nalish · bir maqsad
-          </p>
-          <h2
-            className="mt-3 text-3xl sm:text-4xl md:text-5xl text-[#5D1111]"
-            style={{ fontFamily: "Bergstena Decorated, serif" }}
-          >
-            Yo‘nalishlar
-          </h2>
-          <p
-            className={cn(
-              "mt-3 mx-auto max-w-2xl text-lg sm:text-xl not-italic text-[#7A2E2E]/85",
-              scriptFont.className
-            )}
-          >
-            Hayot bosqichingizga mos yo‘nalishni tanlang
-          </p>
-        </motion.div>
+            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold tracking-[0.08em] uppercase text-[#5D1111]">
+              Kurs kimlar uchun
+            </h2>
+            <p
+              className={cn(
+                "mt-3 mx-auto max-w-2xl text-lg sm:text-xl md:text-2xl not-italic text-[#7A2E2E] leading-snug tracking-[0.01em] font-script",
+                scriptFont.className
+              )}
+              style={{ fontFamily: "var(--font-script), 'Snell Roundhand', cursive" }}
+            >
+              Hayot bosqichingizga mos yo‘nalishni tanlang
+            </p>
+          </motion.div>
         )}
 
         <div className="space-y-8 sm:space-y-10">
@@ -97,38 +90,44 @@ export function ProgramPathsSection({ onPricingClick, showHeader = true }: Progr
 
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-10">
                 <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-3 mb-3">
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#5D1111]/[0.08] text-xs font-bold tracking-wider text-[#5D1111]">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                    <span
-                      className={cn(
-                        "text-sm sm:text-base not-italic text-[#7A2E2E]/80",
-                        scriptFont.className
-                      )}
-                    >
+                  <div className="mb-4 flex items-center gap-3 sm:gap-4">
+                    <div className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#5D1111]/25 via-[#C4A484]/40 to-[#5D1111]/15 p-[2.5px] shadow-[0_8px_20px_-10px_rgba(93,17,17,0.55)]">
+                        <div className="h-full w-full overflow-hidden rounded-full border-[2.5px] border-[#FEFBEE] bg-[#FEFBEE]">
+                          <img
+                            src={path.image}
+                            alt=""
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    <span className="min-w-0 flex-1 text-center font-serif text-base sm:text-lg md:text-xl font-medium not-italic leading-snug tracking-[0.01em] text-gray-600">
                       {path.audience}
                     </span>
                   </div>
 
                   <h3
-                    className="text-2xl sm:text-3xl md:text-4xl text-[#5D1111] leading-tight"
-                    style={{ fontFamily: "Bergstena Decorated, serif" }}
+                    className={cn(
+                      "text-2xl sm:text-3xl md:text-4xl text-red-900 leading-tight not-italic",
+                      scriptFont.className
+                    )}
                   >
                     {path.name}
                   </h3>
 
-                  <p className="mt-4 max-w-3xl text-[15px] sm:text-base leading-relaxed text-[#5D1111]/80">
+                  <p className="mt-4 max-w-3xl text-[15px] sm:text-base leading-relaxed text-gray-600">
                     {path.intro}
                   </p>
 
                   <ul className="mt-5 space-y-3">
                     {path.benefits.map((benefit) => (
                       <li key={benefit} className="flex items-start gap-3">
-                        <span className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-[#5D1111]/[0.08]">
-                          <Sparkles className="h-3 w-3 text-[#8B2E2E]" />
+                        <span className="mt-1.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-900/10">
+                          <Sparkles className="h-3 w-3 text-red-800" />
                         </span>
-                        <span className="text-[15px] sm:text-base leading-relaxed text-[#5D1111]/85">
+                        <span className="text-[15px] sm:text-base leading-relaxed text-gray-600">
                           {benefit}
                         </span>
                       </li>

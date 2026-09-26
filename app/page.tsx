@@ -501,25 +501,51 @@ function StmHeroCircle({ className }: { className?: string }) {
 
 function StmQuadrantLayout({ className }: { className?: string }) {
   const textClass =
-    "font-medium leading-[1.35] sm:leading-relaxed text-center text-white [text-wrap:balance] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] md:drop-shadow-none";
-  const sizeClass = "text-[11px] sm:text-sm md:text-base lg:text-lg";
+    "font-medium leading-[1.3] sm:leading-relaxed text-center text-white [text-wrap:balance] drop-shadow-[0_2px_4px_rgba(0,0,0,0.7)] md:drop-shadow-none";
+  const sizeClass = "text-[12px] sm:text-sm md:text-base lg:text-lg";
 
   return (
     <div className={cn("relative mx-auto aspect-square", className)}>
-      <div className="absolute left-1/2 top-1/2 z-10 w-[68%] -translate-x-1/2 -translate-y-1/2 aspect-square md:w-[64%]">
+      {/* Markaziy dumaloq — mobilda kichikroq, matnlar uchun joy */}
+      <div className="absolute left-1/2 top-1/2 z-10 w-[50%] -translate-x-1/2 -translate-y-1/2 aspect-square sm:w-[58%] md:w-[64%]">
         <StmHeroCircle className="h-full w-full" />
       </div>
 
-      <p className={cn("absolute left-[5%] top-[14%] z-30 w-[38%]", textClass, sizeClass)}>
+      {/* 4 ta matn — burchaklarga, dumaloq chiziqdan tashqarida */}
+      <p
+        className={cn(
+          "absolute left-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:left-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:left-[5%] md:top-[14%]",
+          textClass,
+          sizeClass
+        )}
+      >
         {STM_FEATURES.left[0]}
       </p>
-      <p className={cn("absolute right-[5%] top-[14%] z-30 w-[38%]", textClass, sizeClass)}>
+      <p
+        className={cn(
+          "absolute right-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:right-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:right-[5%] md:top-[14%]",
+          textClass,
+          sizeClass
+        )}
+      >
         {STM_FEATURES.right[0]}
       </p>
-      <p className={cn("absolute bottom-[14%] left-[5%] z-30 w-[38%]", textClass, sizeClass)}>
+      <p
+        className={cn(
+          "absolute bottom-[2%] left-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:left-[4%] sm:w-[38%] sm:max-w-none md:bottom-[14%] md:left-[5%]",
+          textClass,
+          sizeClass
+        )}
+      >
         {STM_FEATURES.left[1]}
       </p>
-      <p className={cn("absolute bottom-[14%] right-[5%] z-30 w-[38%]", textClass, sizeClass)}>
+      <p
+        className={cn(
+          "absolute bottom-[2%] right-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:right-[4%] sm:w-[38%] sm:max-w-none md:bottom-[14%] md:right-[5%]",
+          textClass,
+          sizeClass
+        )}
+      >
         {STM_FEATURES.right[1]}
       </p>
     </div>
@@ -807,7 +833,7 @@ export default function HomePage() {
                 />
               </motion.div>
               <motion.h1
-                className={`text-xl sm:text-3xl md:text-5xl relative z-50 text-[#5D1111] mt-1 sm:mt-2 not-italic ${scriptFont.className}`}
+                className={`relative z-50 mt-1 sm:mt-2 text-center not-italic text-[#5D1111] text-[clamp(1.15rem,3.6vw,2.75rem)] leading-[1.2] tracking-[0.01em] ${scriptFont.className}`}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{
                   opacity: showMainContent ? 1 : 0,
@@ -815,10 +841,12 @@ export default function HomePage() {
                 }}
                 transition={{ duration: 0.8, delay: 0.4 }}
               >
-                Ayollik tabiatingiz bilan hamohanglikda yashang
+                Ayollik tabiatingiz bilan hamohanglikda
+                <br />
+                yashang
               </motion.h1>
               <motion.p
-                className="mx-auto max-w-2xl text-lg sm:text-2xl md:text-3xl font-semibold sm:font-bold not-italic leading-snug tracking-[0.02em] text-[#7A2E2E]/90 mt-1 sm:mt-2 relative z-40 font-serif"
+                className="mx-auto max-w-3xl relative z-40 mt-3 sm:mt-4 text-center font-serif font-normal not-italic text-[#7A2E2E] text-[clamp(1.05rem,3.2vw,2.35rem)] leading-[1.3] tracking-[0.03em]"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{
                   opacity: showMainContent ? 1 : 0,
@@ -826,8 +854,31 @@ export default function HomePage() {
                 }}
                 transition={{ duration: 0.5, delay: 0.6 }}
               >
-                Tabiiy usul bilan homiladorlikni<br />
+                <span
+                  className="mb-2 sm:mb-2.5 flex items-center justify-center gap-2 sm:gap-3"
+                  aria-hidden="true"
+                >
+                  <span className="h-px w-8 sm:w-14 bg-gradient-to-r from-transparent to-[#7A2E2E]/55" />
+                  <svg
+                    viewBox="0 0 24 12"
+                    className="h-2.5 w-5 sm:h-3 sm:w-6 text-[#7A2E2E]/70"
+                    fill="currentColor"
+                  >
+                    <path d="M0 6c4-1.5 6.5-4.5 8.5-4.5S12 6 12 6s1.5-4.5 3.5-4.5S20 4.5 24 6c-4 1.5-6.5 4.5-8.5 4.5S12 6 12 6s-1.5 4.5-3.5 4.5S4 7.5 0 6z" />
+                  </svg>
+                  <span className="h-px w-8 sm:w-14 bg-gradient-to-l from-transparent to-[#7A2E2E]/55" />
+                </span>
+                Tabiiy usul bilan homiladorlikni
+                <br />
                 rejalashtiring yoki ortga suring
+                <span
+                  className="mt-2 sm:mt-2.5 flex items-center justify-center gap-2 sm:gap-3"
+                  aria-hidden="true"
+                >
+                  <span className="h-px w-8 sm:w-14 bg-gradient-to-r from-transparent to-[#7A2E2E]/45" />
+                  <span className="h-1 w-1 rotate-45 rounded-[1px] bg-[#7A2E2E]/55" />
+                  <span className="h-px w-8 sm:w-14 bg-gradient-to-l from-transparent to-[#7A2E2E]/45" />
+                </span>
               </motion.p>
               <motion.div
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -895,15 +946,15 @@ export default function HomePage() {
 
         {/* STM BU bo'limi */}
         <section
-          className="min-h-[100dvh] flex items-center justify-center px-3 sm:px-6 py-8 sm:py-10 md:py-20 overflow-hidden -mt-1"
+          className="min-h-[100dvh] flex items-center justify-center px-2 sm:px-6 py-6 sm:py-10 md:py-20 overflow-hidden -mt-1"
           style={{ backgroundColor: "#801d1d", zIndex: 1, position: "relative" }}
         >
           <div className="container mx-auto w-full max-w-5xl">
             <div className="flex flex-col items-center justify-center text-white">
-              <StmQuadrantLayout className="w-[min(98vw,23rem)] sm:w-[26rem] md:w-[32rem] lg:w-[36rem]" />
+              <StmQuadrantLayout className="w-[min(100vw-0.75rem,24rem)] sm:w-[26rem] md:w-[32rem] lg:w-[36rem]" />
 
               <p
-                className={`mt-4 sm:mt-6 md:mt-10 shrink-0 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-md md:max-w-none mx-auto not-italic ${scriptFont.className}`}
+                className={`mt-5 sm:mt-6 md:mt-10 shrink-0 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-md md:max-w-none mx-auto not-italic ${scriptFont.className}`}
               >
                 Bu – tanangiz bilan hamohanglikda
                 <br />
@@ -914,7 +965,7 @@ export default function HomePage() {
         </section>
 
         <ProgramPathsSection
-          showHeader={false}
+          showHeader={true}
           onPricingClick={(e) => handleSectionNavClick(e, "pricing")}
         />
 
@@ -1041,13 +1092,13 @@ export default function HomePage() {
                       <li className="flex items-start">
                         <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-0.5 flex-shrink-0" />
                         <span>
-                          Irina Manso Akademiyasi — STM konsultantlarini kasbiy tayyorlash va rivojlantirish markazi (Rossiya) — 1 pag&apos;ona konsultanti
+                          Irina Manso Akademiyasi — STM konsultantlarini kasbiy tayyorlash va rivojlantirish markazi (Rossiya) — 1-daraja konsultanti
                         </span>
                       </li>
                       <li className="flex items-start">
                         <CheckCircle className="h-4 w-4 text-red-800 mr-2 mt-0.5 flex-shrink-0" />
                         <span>
-                          «Открытые Сердца» hayot va oilani muhofaza qilish xayriya jamg&apos;armasi (Belarus), Yevropa Oilaviy Ta&apos;lim Instituti (EIFLE) bilan hamkorlikda — 2 pag&apos;ona konsultanti
+                          «Открытые Сердца» hayot va oilani muhofaza qilish xayriya jamg&apos;armasi (Belarus), Yevropa Oilaviy Ta&apos;lim Instituti (EIFLE) bilan hamkorlikda — 2-daraja konsultanti
                         </span>
                       </li>
                     </ul>
@@ -1609,17 +1660,17 @@ export default function HomePage() {
               Kurs muallifi
             </motion.h2>
 
-            <div className="grid md:grid-cols-2 gap-10 lg:gap-20 max-w-6xl lg:max-w-7xl mx-auto items-start px-4 sm:px-6 lg:px-8">
-              {/* Chap qism: Portret va ma'lumotlar */}
+            <div className="max-w-3xl mx-auto items-start px-4 sm:px-6 lg:px-8">
+              {/* Portret va ma'lumotlar */}
               <motion.div
                 initial={{ opacity: 0, x: -30 }}
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.8 }}
-                className="text-center md:text-left"
+                className="text-center"
               >
                 <div className="mb-8 lg:mb-10">
-                  <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-72 lg:h-72 mx-auto md:mx-0 rounded-full overflow-hidden bg-gray-200 mb-6 lg:mb-8 ring-4 ring-red-900/10 shadow-lg">
+                  <div className="relative w-44 h-44 sm:w-48 sm:h-48 md:w-56 md:h-56 lg:w-72 lg:h-72 mx-auto rounded-full overflow-hidden bg-gray-200 mb-6 lg:mb-8 ring-4 ring-red-900/10 shadow-lg">
                     <img
                       src="/images/muallif.jpg"
                       alt="Nozima Khamraeva"
@@ -1648,33 +1699,6 @@ export default function HomePage() {
                   </p>
                   <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     2 ta farzandini tibbiy xodimlar va aralashuvlarsiz, ongli yondashib, oʻz uyida dunyoga keltirgan ona.
-                  </p>
-                </div>
-              </motion.div>
-
-              {/* O'ng qism: Sertifikatlar haqida matn */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                whileInView={{ opacity: 1, x: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.8, delay: 0.2 }}
-                className="text-center md:text-left"
-              >
-                <h3 className="text-xl sm:text-2xl font-bold text-red-900 mb-4 lg:mb-6">
-                  Professional sertifikatlar
-                </h3>
-                <div className="space-y-4 text-gray-800">
-                  <p className="text-base sm:text-lg leading-relaxed">
-                    <span className="font-semibold text-red-900">NFP (Buyuk Britaniya).</span>{" "}
-                    Natural Family Planning Teachers&apos; Association tomonidan tabiiy oila rejalashtirish bo&apos;yicha nazariy bilim va tushuncha imtihonidan muvaffaqiyatli o&apos;tgan.
-                  </p>
-                  <p className="text-base sm:text-lg leading-relaxed">
-                    <span className="font-semibold text-red-900">STM konsultant, 1-daraja.</span>{" "}
-                    Irina Manso Akademiyasi va &quot;Ochiq Qalblar&quot; xayriya fondi hamkorligida simptotermal metod (ingliz modifikatsiyasi) bo&apos;yicha 1-darajali konsultant sertifikati.
-                  </p>
-                  <p className="text-base sm:text-lg leading-relaxed">
-                    <span className="font-semibold text-red-900">STM konsultant, 2-daraja.</span>{" "}
-                    &quot;Ochiq Qalblar&quot; xayriya fondi va IEEF (Yevropa oilaviy ta&apos;lim instituti) hamkorligida simptotermal metod bo&apos;yicha 2-darajali konsultant sertifikati.
                   </p>
                 </div>
               </motion.div>
