@@ -223,7 +223,7 @@ export default function AdminCardsPage() {
               className="h-11 rounded-xl border-[#e6dfd6] bg-white"
             />
             <p className="text-sm text-[#6d625c]">
-              12 ta oy alohida varaqda bo‘ladi. Shu sana tanlangan oyning 1-kuni, keyingi oylar pastga o‘zi hisoblanadi. Oldingi oylar bo‘sh qoladi.
+              12 ta oy alohida varaqda bo‘ladi. Tanlangan sana faqat shu oyning varag‘iga yoziladi, boshqa oylar o‘zgarmaydi. Shu varaqda 1-kun sanasini o‘zgartirsangiz, pastdagi kunlar va jadvallar faqat shu varaqda yangilanadi.
             </p>
           </div>
           <DialogFooter>

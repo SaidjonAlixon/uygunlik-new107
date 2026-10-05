@@ -91,7 +91,7 @@ export function ProgramPathsSection({
               <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-10">
                 <div className="min-w-0 flex-1">
                   <div className="mb-4 flex items-center gap-3 sm:gap-4">
-                    <div className="relative h-14 w-14 sm:h-16 sm:w-16 shrink-0">
+                    <div className="relative h-20 w-20 sm:h-24 sm:w-24 shrink-0">
                       <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#5D1111]/25 via-[#C4A484]/40 to-[#5D1111]/15 p-[2.5px] shadow-[0_8px_20px_-10px_rgba(93,17,17,0.55)]">
                         <div className="h-full w-full overflow-hidden rounded-full border-[2.5px] border-[#FEFBEE] bg-[#FEFBEE]">
                           <img

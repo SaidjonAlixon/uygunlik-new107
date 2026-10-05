@@ -198,7 +198,7 @@ export function KalkulyatorApp() {
     saveState === "saving" ? "Saqlanmoqda..." : saveState === "saved" ? "Saqlandi" : saveState === "local" ? "Qurilmada saqlandi" : "";
 
   return (
-    <main className="min-h-screen bg-[#F6F3EE] text-[#1c1412]">
+    <main className="min-h-screen bg-[#F6F3EE] text-[#1c1412] [color-scheme:light]">
       <div className="mx-auto max-w-5xl px-4 pb-28 pt-4 sm:px-6 sm:pt-6">
         <header className="sticky top-0 z-40 -mx-4 mb-4 border-b border-[#e6dfd6]/80 bg-[#F6F3EE]/90 px-4 py-3 backdrop-blur sm:-mx-6 sm:px-6">
           <div className="flex items-center justify-between gap-3">
@@ -222,8 +222,8 @@ export function KalkulyatorApp() {
             <span className="font-semibold tracking-[0.12em] text-[#1c1412]">{card.cardNumber || "yaratilmoqda"}</span>
           </p>
           <div className="mt-4">
-            <p className="mb-2 text-sm font-medium">Oy</p>
-            <div className="flex gap-2 overflow-x-auto pb-1">
+            <p className="mb-2 text-sm font-medium text-[#5c514c]">Oy</p>
+            <div className="flex gap-2 overflow-x-auto rounded-2xl bg-[#FBF7F2] p-2">
               {MONTHS.map((month) => {
                 const active = card.activeMonth === month.key;
                 const filled = monthIsFilled(card, month.key);
@@ -232,12 +232,12 @@ export function KalkulyatorApp() {
                     key={month.key}
                     type="button"
                     onClick={() => setCardState((current) => (current ? openMonth(current, month.key) : current))}
-                    className={`h-10 shrink-0 rounded-full border px-3 text-sm font-semibold ${
+                    className={`h-10 shrink-0 rounded-full border px-3.5 text-sm font-semibold ${
                       active
-                        ? "border-[#5D1111] bg-[#5D1111] text-[#FEFBEE]"
+                        ? "border-[#5D1111] bg-[#5D1111] text-[#FEFBEE] shadow-sm"
                         : filled
-                          ? "border-emerald-600 bg-emerald-600 text-white"
-                          : "border-[#e6dfd6] bg-white text-[#1c1412]"
+                          ? "border-emerald-700 bg-emerald-700 text-white"
+                          : "border-[#eadfd4] bg-white text-[#1c1412]"
                     }`}
                   >
                     {month.name}
@@ -259,7 +259,7 @@ export function KalkulyatorApp() {
                 type="date"
                 value={card.startDate}
                 onChange={(event) => setCard((current) => (current ? applyStartDate(current, event.target.value) : current))}
-                className="h-11 w-full rounded-2xl border border-[#e6dfd6] px-3"
+                className={controlClass}
               />
             </label>
           </div>
@@ -325,69 +325,60 @@ export function KalkulyatorApp() {
               </button>
             </section>
 
-          <section className="mb-4 space-y-4 rounded-3xl border border-[#e6dfd6] bg-white p-4">
+          <section className="mb-4 rounded-3xl border border-[#e6dfd6] bg-white p-4 sm:p-5">
             <h2 className="text-lg font-semibold">Yakuniy ma’lumotlar</h2>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Field label="Yosh" value={card.age} onChange={(age) => setCard({ ...card, age })} />
-              <Field label="Sikl raqami" value={card.cycleNumber} onChange={(cycleNumber) => setCard({ ...card, cycleNumber })} />
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">Oldingi kartada harorat ko‘tarilishi</span>
-                <select
-                  value={card.previousRise}
-                  onChange={(event) =>
-                    setCard({ ...card, previousRise: event.target.value as ObservationCard["previousRise"] })
-                  }
-                  className="h-11 w-full rounded-2xl border border-[#e6dfd6] px-3"
-                >
-                  <option value="">Tanlash</option>
-                  <option value="ha">Ha</option>
-                  <option value="yoq">Yo‘q</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">O‘lchash joyi</span>
-                <select
-                  value={card.measureMethod}
-                  onChange={(event) =>
-                    setCard({ ...card, measureMethod: event.target.value as ObservationCard["measureMethod"] })
-                  }
-                  className="h-11 w-full rounded-2xl border border-[#e6dfd6] px-3"
-                >
-                  <option value="">Tanlash</option>
-                  <option value="oral">Og‘iz</option>
-                  <option value="rectal">Orqa teshik</option>
-                  <option value="vaginal">Vaginal</option>
-                </select>
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-sm font-medium">O‘lchash vaqti</span>
-                <select
-                  value={shownMeasureTime(card.measureTime)}
-                  onChange={(event) => setCard({ ...card, measureTime: event.target.value })}
-                  className="h-11 w-full rounded-2xl border border-[#e6dfd6] px-3"
-                >
-                  <option value="">Tanlash</option>
-                  {MEASURE_TIMES.map((time) => (
-                    <option key={time} value={time}>
-                      {time}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <Stat label="Shilliq cho‘qqi kuni" value={displayDayNumber(card.peakMucusDay, derived.peakMucusDay)} hint="avtomatik" onChange={(peakMucusDay) => setCard({ ...card, peakMucusDay })} />
-              <Stat label="Cho‘qqidan keyingi 3-kun" value={displayDayNumber(card.peakMucusPlus3, derived.peakMucusPlus3)} onChange={(peakMucusPlus3) => setCard({ ...card, peakMucusPlus3 })} />
-              <Stat label="Birinchi shilliq kuni" value={displayDayNumber(card.firstMucusDay, derived.firstMucusDay)} onChange={(firstMucusDay) => setCard({ ...card, firstMucusDay })} />
-              <Stat label="Bachadon bo‘yni o‘zgarishi" value={displayDayNumber(card.firstCervixDay, derived.firstCervixDay)} onChange={(firstCervixDay) => setCard({ ...card, firstCervixDay })} />
-              <Stat label="Harorat ko‘tarilishining 3-kuni" value={displayDayNumber(card.thirdRiseDay, derived.thirdRiseDay)} onChange={(thirdRiseDay) => setCard({ ...card, thirdRiseDay })} />
-              <Stat label="Sikl davomiyligi" value={displayDayNumber(card.cycleLength, derived.cycleLength)} onChange={(cycleLength) => setCard({ ...card, cycleLength })} />
-              <Field label="Eng uzun sikl" value={card.longestCycle} onChange={(longestCycle) => setCard({ ...card, longestCycle })} />
-              <Field label="Eng qisqa sikl" value={card.shortestCycle} onChange={(shortestCycle) => setCard({ ...card, shortestCycle })} />
-              <Field label="Birinchi fazadagi oxirgi noserhosil kun" value={card.lastInfertileDay} onChange={(lastInfertileDay) => setCard({ ...card, lastInfertileDay })} />
-              <Field label="Bachadon bo‘yni cho‘qqisi + 3 kun" value={card.peakCervixPlus3} onChange={(peakCervixPlus3) => setCard({ ...card, peakCervixPlus3 })} />
-            </div>
-            <p className="text-sm text-[#6d625c]">
-              Bo‘sh qoldirilgan kunlar avtomatik hisobdan olinadi. Qo‘lda yozsangiz, shu qiymat saqlanadi.
+            <p className="mt-1 text-sm leading-relaxed text-[#6d625c]">
+              Bo‘sh qoldirilgan kunlar avtomatik hisoblanadi. Qo‘lda yozsangiz, shu qiymat saqlanadi.
             </p>
+            <div className="mt-4 rounded-2xl bg-[#FBF7F2] p-3 sm:p-4">
+              <h3 className="text-sm font-semibold text-[#5D1111]">O‘lchash</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Field label="Yosh" value={card.age} onChange={(age) => setCard({ ...card, age })} />
+                <Field label="Sikl raqami" value={card.cycleNumber} onChange={(cycleNumber) => setCard({ ...card, cycleNumber })} />
+                <SelectField
+                  label="Oldingi kartada harorat ko‘tarilishi"
+                  value={card.previousRise}
+                  onChange={(previousRise) => setCard({ ...card, previousRise: previousRise as ObservationCard["previousRise"] })}
+                  options={[
+                    ["", "Tanlash"],
+                    ["ha", "Ha"],
+                    ["yoq", "Yo‘q"],
+                  ]}
+                />
+                <SelectField
+                  label="O‘lchash joyi"
+                  value={card.measureMethod}
+                  onChange={(measureMethod) => setCard({ ...card, measureMethod: measureMethod as ObservationCard["measureMethod"] })}
+                  options={[
+                    ["", "Tanlash"],
+                    ["oral", "Og‘iz"],
+                    ["rectal", "Orqa teshik"],
+                    ["vaginal", "Vaginal"],
+                  ]}
+                />
+                <SelectField
+                  label="O‘lchash vaqti"
+                  value={shownMeasureTime(card.measureTime)}
+                  onChange={(measureTime) => setCard({ ...card, measureTime })}
+                  options={[["", "Tanlash"], ...MEASURE_TIMES.map((time) => [time, time] as [string, string])]}
+                />
+                <Field label="Eng uzun sikl" value={card.longestCycle} onChange={(longestCycle) => setCard({ ...card, longestCycle })} />
+                <Field label="Eng qisqa sikl" value={card.shortestCycle} onChange={(shortestCycle) => setCard({ ...card, shortestCycle })} />
+              </div>
+            </div>
+            <div className="mt-3 rounded-2xl bg-[#FBF7F2] p-3 sm:p-4">
+              <h3 className="text-sm font-semibold text-[#5D1111]">Hisoblangan kunlar</h3>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <Stat label="Shilliq cho‘qqi kuni" value={displayDayNumber(card.peakMucusDay, derived.peakMucusDay)} onChange={(peakMucusDay) => setCard({ ...card, peakMucusDay })} />
+                <Stat label="Cho‘qqidan keyingi 3-kun" value={displayDayNumber(card.peakMucusPlus3, derived.peakMucusPlus3)} onChange={(peakMucusPlus3) => setCard({ ...card, peakMucusPlus3 })} />
+                <Stat label="Birinchi shilliq kuni" value={displayDayNumber(card.firstMucusDay, derived.firstMucusDay)} onChange={(firstMucusDay) => setCard({ ...card, firstMucusDay })} />
+                <Stat label="Bachadon bo‘yni o‘zgarishi" value={displayDayNumber(card.firstCervixDay, derived.firstCervixDay)} onChange={(firstCervixDay) => setCard({ ...card, firstCervixDay })} />
+                <Stat label="Harorat ko‘tarilishining 3-kuni" value={displayDayNumber(card.thirdRiseDay, derived.thirdRiseDay)} onChange={(thirdRiseDay) => setCard({ ...card, thirdRiseDay })} />
+                <Stat label="Sikl davomiyligi" value={displayDayNumber(card.cycleLength, derived.cycleLength)} onChange={(cycleLength) => setCard({ ...card, cycleLength })} />
+                <Field label="Birinchi fazadagi oxirgi noserhosil kun" value={card.lastInfertileDay} onChange={(lastInfertileDay) => setCard({ ...card, lastInfertileDay })} />
+                <Field label="Bachadon bo‘yni cho‘qqisi + 3 kun" value={card.peakCervixPlus3} onChange={(peakCervixPlus3) => setCard({ ...card, peakCervixPlus3 })} />
+              </div>
+            </div>
           </section>
 
         <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#e6dfd6] bg-[#F6F3EE]/95 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur">
@@ -437,6 +428,9 @@ function shownMeasureTime(value: string): string {
   return MEASURE_TIMES.includes(shown) ? shown : value;
 }
 
+const controlClass =
+  "h-12 w-full rounded-2xl border border-[#e4d9cc] bg-white px-3.5 text-[15px] text-[#1c1412] shadow-[0_1px_0_rgba(255,255,255,0.9)] outline-none transition placeholder:text-[#b3a59c] focus:border-[#5D1111] focus:ring-2 focus:ring-[#5D1111]/15 [color-scheme:light]";
+
 function Field({
   label,
   value,
@@ -448,12 +442,33 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="mb-1.5 block text-sm font-medium">{label}</span>
-      <input
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-11 w-full rounded-2xl border border-[#e6dfd6] px-3"
-      />
+      <span className="mb-1.5 block text-[13px] font-medium text-[#5c514c]">{label}</span>
+      <input value={value} onChange={(event) => onChange(event.target.value)} className={controlClass} />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  onChange,
+  options,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  options: Array<[string, string]>;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium text-[#5c514c]">{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)} className={controlClass}>
+        {options.map(([optionValue, optionLabel]) => (
+          <option key={optionValue || "empty"} value={optionValue}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }

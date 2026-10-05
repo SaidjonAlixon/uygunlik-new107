@@ -515,7 +515,7 @@ function StmQuadrantLayout({ className }: { className?: string }) {
       {/* 4 ta matn — burchaklarga, dumaloq chiziqdan tashqarida */}
       <p
         className={cn(
-          "absolute left-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:left-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:left-[5%] md:top-[14%]",
+          "absolute left-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:left-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:left-[2%] md:top-[5%] md:w-[36%] lg:left-[3%] lg:top-[4%] lg:w-[34%]",
           textClass,
           sizeClass
         )}
@@ -524,7 +524,7 @@ function StmQuadrantLayout({ className }: { className?: string }) {
       </p>
       <p
         className={cn(
-          "absolute right-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:right-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:right-[5%] md:top-[14%]",
+          "absolute right-[1.5%] top-[2%] z-30 w-[40%] max-w-[9.5rem] sm:right-[4%] sm:top-[8%] sm:w-[38%] sm:max-w-none md:right-[2%] md:top-[5%] md:w-[36%] lg:right-[3%] lg:top-[4%] lg:w-[34%]",
           textClass,
           sizeClass
         )}
@@ -533,7 +533,7 @@ function StmQuadrantLayout({ className }: { className?: string }) {
       </p>
       <p
         className={cn(
-          "absolute bottom-[2%] left-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:left-[4%] sm:w-[38%] sm:max-w-none md:bottom-[14%] md:left-[5%]",
+          "absolute bottom-[2%] left-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:left-[4%] sm:w-[38%] sm:max-w-none md:bottom-[5%] md:left-[2%] md:w-[36%] lg:bottom-[4%] lg:left-[3%] lg:w-[34%]",
           textClass,
           sizeClass
         )}
@@ -542,7 +542,7 @@ function StmQuadrantLayout({ className }: { className?: string }) {
       </p>
       <p
         className={cn(
-          "absolute bottom-[2%] right-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:right-[4%] sm:w-[38%] sm:max-w-none md:bottom-[14%] md:right-[5%]",
+          "absolute bottom-[2%] right-[1.5%] z-30 w-[40%] max-w-[9.5rem] sm:bottom-[8%] sm:right-[4%] sm:w-[38%] sm:max-w-none md:bottom-[5%] md:right-[2%] md:w-[36%] lg:bottom-[4%] lg:right-[3%] lg:w-[34%]",
           textClass,
           sizeClass
         )}

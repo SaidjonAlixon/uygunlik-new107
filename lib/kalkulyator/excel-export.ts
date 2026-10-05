@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import { inflateRawSync } from "zlib";
 import {
-  addDays,
   applyStartDate,
   createEmptyCard,
   DAY_COUNT,
@@ -67,6 +66,18 @@ type CellValue = { kind: "blank" } | { kind: "num"; value: number } | { kind: "t
 
 function cellPattern(ref: string): RegExp {
   return new RegExp(`<c r="${ref}"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`);
+}
+
+function setFormula(xml: string, ref: string, formula: string): string {
+  const match = xml.match(new RegExp(`<c r="${ref}"(?![0-9])([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`));
+  const style = match?.[1]?.match(/\ss="(\d+)"/);
+  const styleAttr = style ? ` s="${style[1]}"` : "";
+  const next = `<c r="${ref}"${styleAttr}><f>${formula}</f></c>`;
+  if (match) return xml.replace(match[0], next);
+  return setCell(xml, ref, { kind: "text", value: "" }).replace(
+    new RegExp(`<c r="${ref}"(?![0-9])([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`),
+    next
+  );
 }
 
 function setCell(xml: string, ref: string, value: CellValue): string {
@@ -193,7 +204,10 @@ function loadTemplateParts(): TemplateParts {
     chart: extractStoredXml(template, "xl/charts/chart1.xml"),
     drawing: raiseCoverLine(translateDrawingNames(extractStoredXml(template, "xl/drawings/drawing1.xml"))),
     shared: translateSharedStrings(extractStoredXml(template, "xl/sharedStrings.xml")),
-    workbook: extractStoredXml(template, "xl/workbook.xml"),
+    workbook: extractStoredXml(template, "xl/workbook.xml").replace(
+      '<calcPr calcId="191029"/>',
+      '<calcPr calcId="191029" fullCalcOnLoad="1"/>'
+    ),
     props: extractStoredXml(template, "docProps/app.xml").replace(
       "<vt:lpstr>Листы</vt:lpstr>",
       "<vt:lpstr>Varaqlar</vt:lpstr>"
@@ -263,7 +277,16 @@ function renderObservation(parts: TemplateParts, card: ObservationCard, sheetNam
     };
     const inputRow = day + 1;
     const shownDate = excelDateText(entry.date);
-    sheet = setCell(sheet, `AR${inputRow}`, shownDate ? { kind: "text", value: shownDate } : { kind: "num", value: 0 });
+    if (day === 1) {
+      sheet = setCell(sheet, `AR${inputRow}`, shownDate ? { kind: "text", value: shownDate } : { kind: "num", value: 0 });
+    } else {
+      const prev = `AR${inputRow - 1}`;
+      sheet = setFormula(
+        sheet,
+        `AR${inputRow}`,
+        `IF(OR(${prev}="",${prev}=0),"",TEXT(DATE(VALUE(RIGHT(${prev},4)),VALUE(MID(${prev},4,2)),VALUE(LEFT(${prev},2)))+1,"dd.mm.yyyy"))`
+      );
+    }
     sheet = setCell(
       sheet,
       `AS${inputRow}`,
@@ -362,6 +385,14 @@ function renderObservation(parts: TemplateParts, card: ObservationCard, sheetNam
     '<c r="AW9" s="12" t="s"><v>206</v></c>'
   );
 
+  sheet = sheet.replace(
+    /<f>IF\(AT(\d+)=0," ",AT\d+\)<\/f>/g,
+    '<f>IF(LEN(AT$1&amp;"")=0," ",AT$1)</f>'
+  );
+  sheet = sheet.replace(
+    "IF(OR(AT2&gt;0),AS2,NA())",
+    'IF(LEN(AT2&amp;"")=0,NA(),AS2)'
+  );
   sheet = applyDateDisplay(sheet);
   sheet = applyTemperatureScale(sheet);
 
@@ -425,15 +456,12 @@ export function buildPersonYearWorkbook(card: ObservationCard): Buffer {
 }
 
 export function buildAdminTemplate(startDate: string): Buffer {
-  const startMonth = Math.max(0, Number(startDate.slice(5, 7)) - 1);
+  const startMonth = startDate.slice(5, 7);
   return buildYearWorkbook(
-    MONTHS.map((month, index) => {
+    MONTHS.map((month) => {
       const card = createEmptyCard("shablon");
-      if (index < startMonth) return { name: month.name, card };
-      return {
-        name: month.name,
-        card: applyStartDate(card, addDays(startDate, (index - startMonth) * DAY_COUNT)),
-      };
+      if (month.key !== startMonth) return { name: month.name, card };
+      return { name: month.name, card: applyStartDate(card, startDate) };
     })
   );
 }
