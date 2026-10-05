@@ -46,6 +46,7 @@ function Chip({
 export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEditorProps) {
   const [tempText, setTempText] = useState(formatTemperature(day.temperature));
   const [tempError, setTempError] = useState("");
+  const [choiceError, setChoiceError] = useState("");
 
   useEffect(() => {
     setTempText(formatTemperature(day.temperature));
@@ -91,14 +92,19 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
     onChange({ ...day, factors });
   };
 
-  const save = (target: "next" | "prev" | "first") => {
+  const save = (target: "next" | "prev" | "first", requireChoice = false) => {
     const typed = tempText.trim();
     const temperature = typed ? parseTemperature(typed) : null;
     if (typed && temperature == null) {
       setTempError("Noto‘g‘ri qiymat. 35.50–37.40 oralig‘ida, 0.05 qadam bilan kiriting.");
       return;
     }
+    if (requireChoice && day.mucus.length === 0) {
+      setChoiceError("Keyingi kunga o‘tish uchun shilliq holatidan kamida bittasini tanlang.");
+      return;
+    }
     setTempError("");
+    setChoiceError("");
     if (temperature != null) setTempText(temperature.toFixed(2));
     const next = { ...day, temperature };
     onCommit({ ...next, saved: dayHasData(next) }, target);
@@ -153,8 +159,7 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           {tempError && <p className="mt-1.5 text-sm text-[#9b2332]">{tempError}</p>}
         </div>
 
-        <div>
-          <span className="mb-1.5 block text-sm font-medium">Haroratga ta’sir qiluvchi omillar</span>
+        <Section title="Buzilish sabablari" hint="Haroratga ta’sir qilgan bo‘lsa belgilang.">
           <div className="flex flex-wrap gap-2">
             {FACTORS.map((factor) => (
               <Chip key={factor.code} active={day.factors.includes(factor.code)} onClick={() => toggleFactor(factor.code)}>
@@ -162,40 +167,47 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
               </Chip>
             ))}
           </div>
-        </div>
+        </Section>
 
-        <div className="space-y-3">
-          <span className="block text-sm font-medium">Shilliq holati</span>
+        <Section title="Shilliq holati" hint="Kamida bittasini tanlang. Exceldagi shu qatorga belgi tushadi." required>
           {(
             [
-              ["hayz", "Hayz"],
-              ["quruq", "Quruqlik"],
-              ["nam", "Namlik"],
-              ["hol", "Ho‘llik"],
+              ["hayz", "Hayz", "#f7d5e2"],
+              ["quruq", "Quruq", "#f8d7b0"],
+              ["nam", "Nam", "#f8efb8"],
+              ["hol", "Ho‘l", "#cfeedd"],
             ] as const
-          ).map(([group, title]) => (
-            <div key={group}>
-              <p className="mb-1.5 text-xs text-[#8a7b74]">{title}</p>
-              <div className="flex flex-wrap gap-2">
+          ).map(([group, title, color]) => (
+            <div key={group} className="overflow-hidden rounded-2xl border border-[#efe8df]">
+              <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#5c4038]" style={{ backgroundColor: color }}>
+                {title}
+              </div>
+              <div className="divide-y divide-[#f3ece4] bg-white">
                 {MUCUS_OPTIONS.filter((option) => option.group === group).map((option) => (
-                  <Chip key={option.key} active={day.mucus.includes(option.key)} onClick={() => toggleMucus(option.key)}>
-                    {option.label}
-                  </Chip>
+                  <RowChoice
+                    key={option.key}
+                    label={option.label}
+                    active={day.mucus.includes(option.key)}
+                    onClick={() => toggleMucus(option.key)}
+                  />
                 ))}
               </div>
             </div>
           ))}
-        </div>
+        </Section>
 
-        <div>
-          <span className="mb-1.5 block text-sm font-medium">Ajralma miqdori</span>
-          <div className="flex gap-2">
+        <Section title="Shilliq cho‘qqi kuni">
+          <Toggle label="Shu kun cho‘qqi kuni" checked={day.peakMucus} onChange={(peakMucus) => onChange({ ...day, peakMucus })} />
+        </Section>
+
+        <Section title="Ajralma miqdori (1–5)">
+          <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((amount) => (
               <button
                 key={amount}
                 type="button"
                 onClick={() => onChange({ ...day, amount: day.amount === amount ? null : amount })}
-                className={`h-11 w-11 rounded-2xl border text-sm font-semibold ${
+                className={`h-11 rounded-2xl border text-sm font-semibold ${
                   day.amount === amount ? "border-[#5D1111] bg-[#5D1111] text-[#FEFBEE]" : "border-[#e6dfd6] bg-white"
                 }`}
               >
@@ -203,58 +215,71 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
               </button>
             ))}
           </div>
-        </div>
+        </Section>
 
-        <Choice
-          label="Bachadon bo‘ynining qattiqligi"
-          value={day.firmness}
-          options={[
-            ["", "Tanlanmagan"],
-            ["hard", "Qattiq"],
-            ["soft", "Yumshoq"],
-          ]}
-          onChange={(firmness) => onChange({ ...day, firmness: firmness as DayEntry["firmness"] })}
-        />
-        <Choice
-          label="Bachadon bo‘ynining joylashuvi"
-          value={day.position}
-          options={[
-            ["", "Tanlanmagan"],
-            ["low", "Past"],
-            ["high", "Yuqori"],
-          ]}
-          onChange={(position) => onChange({ ...day, position: position as DayEntry["position"] })}
-        />
-        <Choice
-          label="Bachadon bo‘ynining ochilish holati"
-          value={day.opening}
-          options={[
-            ["", "Tanlanmagan"],
-            ["closed", "Yopiq"],
-            ["open", "Ochiq"],
-          ]}
-          onChange={(opening) => onChange({ ...day, opening: opening as DayEntry["opening"] })}
-        />
+        <Section title="Bachadon bo‘yni">
+          <Choice
+            label="Qattiq yoki yumshoq"
+            value={day.firmness}
+            options={[
+              ["hard", "Qattiq"],
+              ["soft", "Yumshoq"],
+            ]}
+            onChange={(firmness) =>
+              onChange({ ...day, firmness: (day.firmness === firmness ? "" : firmness) as DayEntry["firmness"] })
+            }
+          />
+          <Choice
+            label="Past yoki yuqori"
+            value={day.position}
+            options={[
+              ["low", "Past"],
+              ["high", "Yuqori"],
+            ]}
+            onChange={(position) =>
+              onChange({ ...day, position: (day.position === position ? "" : position) as DayEntry["position"] })
+            }
+          />
+          <Choice
+            label="Yopiq yoki ochiq"
+            value={day.opening}
+            options={[
+              ["closed", "Yopiq"],
+              ["open", "Ochiq"],
+            ]}
+            onChange={(opening) =>
+              onChange({ ...day, opening: (day.opening === opening ? "" : opening) as DayEntry["opening"] })
+            }
+          />
+        </Section>
 
-        <div>
-          <span className="mb-1.5 block text-sm font-medium">Kayfiyat</span>
-          <div className="flex gap-2">
-            {(["", "+", "-"] as const).map((mood) => (
-              <Chip key={mood || "empty"} active={day.mood === mood} onClick={() => onChange({ ...day, mood })}>
-                {mood === "" ? "Yo‘q" : mood}
-              </Chip>
-            ))}
+        <Section title="Tana belgilaridagi o‘zgarishlar">
+          <div>
+            <span className="mb-1.5 block text-sm font-medium">Kayfiyat +/-</span>
+            <div className="grid grid-cols-2 gap-2">
+              {(["+", "-"] as const).map((mood) => (
+                <button
+                  key={mood}
+                  type="button"
+                  onClick={() => onChange({ ...day, mood: day.mood === mood ? "" : mood })}
+                  className={`h-11 rounded-2xl border text-base font-semibold ${
+                    day.mood === mood ? "border-[#5D1111] bg-[#5D1111] text-[#FEFBEE]" : "border-[#e6dfd6] bg-white"
+                  }`}
+                >
+                  {mood}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-          <Toggle label="Og‘riq" checked={day.pain} onChange={(pain) => onChange({ ...day, pain })} />
-          <Toggle label="Qorin dam bo‘lishi" checked={day.bloating} onChange={(bloating) => onChange({ ...day, bloating })} />
+          <Toggle
+            label="Og‘riq, qorin dam bo‘lishi"
+            checked={day.pain || day.bloating}
+            onChange={(checked) => onChange({ ...day, pain: checked, bloating: checked })}
+          />
           <Toggle label="Ko‘krakdagi taranglik" checked={day.breast} onChange={(breast) => onChange({ ...day, breast })} />
-          <Toggle label="Serhosil kun" checked={day.fertile} onChange={(fertile) => onChange({ ...day, fertile })} />
+          <Toggle label="Serhosil kunlar" checked={day.fertile} onChange={(fertile) => onChange({ ...day, fertile })} />
           <Toggle label="Er-xotin yaqinligi" checked={day.intercourse} onChange={(intercourse) => onChange({ ...day, intercourse })} />
-          <Toggle label="Shilliq cho‘qqi kuni" checked={day.peakMucus} onChange={(peakMucus) => onChange({ ...day, peakMucus })} />
-        </div>
+        </Section>
 
         <label className="block">
           <span className="mb-1.5 block text-sm font-medium">Boshqa tana belgilar</span>
@@ -276,9 +301,10 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
       </div>
 
       <div className="space-y-2 border-t border-[#efe8df] p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        {choiceError && <p className="text-sm text-[#9b2332]">{choiceError}</p>}
         <button
           type="button"
-          onClick={() => save(dayNumber < 40 ? "next" : "first")}
+          onClick={() => save(dayNumber < 40 ? "next" : "first", true)}
           className="h-12 w-full rounded-2xl bg-[#5D1111] text-base font-semibold text-[#FEFBEE]"
         >
           {dayNumber < 40 ? "Saqlash va keyingi kun" : "Saqlash va 1-kunga qaytish"}
@@ -305,6 +331,50 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
   );
 }
 
+function Section({
+  title,
+  hint,
+  required = false,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  required?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-3 rounded-3xl border border-[#efe8df] bg-[#FBF7F2] p-3">
+      <div>
+        <div className="flex items-center gap-2">
+          <h3 className="text-sm font-semibold text-[#1c1412]">{title}</h3>
+          {required && (
+            <span className="rounded-full bg-[#5D1111] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#FEFBEE]">
+              Majburiy
+            </span>
+          )}
+        </div>
+        {hint && <p className="mt-1 text-xs leading-5 text-[#8a7b74]">{hint}</p>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function RowChoice({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="flex min-h-11 w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm">
+      <span className={active ? "font-medium text-[#5D1111]" : "text-[#1c1412]"}>{label}</span>
+      <span
+        className={`grid h-5 w-5 shrink-0 place-items-center rounded-full border text-[11px] ${
+          active ? "border-[#5D1111] bg-[#5D1111] text-[#FEFBEE]" : "border-[#d9cfc6] bg-white"
+        }`}
+      >
+        {active ? "✓" : ""}
+      </span>
+    </button>
+  );
+}
+
 function Choice({
   label,
   value,
@@ -319,7 +389,7 @@ function Choice({
   return (
     <div>
       <span className="mb-1.5 block text-sm font-medium">{label}</span>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {options.map(([optionValue, optionLabel]) => (
           <button
             key={optionValue || "empty"}

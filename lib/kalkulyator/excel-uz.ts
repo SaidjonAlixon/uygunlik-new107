@@ -56,6 +56,7 @@ export const SHARED_UZ: Record<number, string> = {
   61: "Yopishqoq",
   62: o("Bo'lakchali yoki quyuq"),
   63: "Yarim tiniq",
+  64: o("Cho'ziluvchan"),
   65: "Ajralma miqdori (1-5)",
   66: o("Hayz ko'rish"),
   67: "harorat",

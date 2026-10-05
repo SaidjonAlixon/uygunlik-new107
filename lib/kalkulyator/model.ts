@@ -78,7 +78,7 @@ export const MUCUS_OPTIONS = [
   { key: "colorUnclear", label: "Rang aniqlanmadi", group: "quruq" },
   { key: "moist", label: "Namlik hissi", group: "nam" },
   { key: "white", label: "Oq rangli ajralma", group: "nam" },
-  { key: "cloudy", label: "Loyqa ajralma", group: "nam" },
+  { key: "cloudy", label: "Loyqa", group: "nam" },
   { key: "creamy", label: "Quyuq, qaymoqsimon", group: "nam" },
   { key: "sticky", label: "Yopishqoq", group: "nam" },
   { key: "lumpy", label: "Bo‘lakchali yoki quyuq", group: "nam" },

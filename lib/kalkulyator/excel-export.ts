@@ -401,6 +401,7 @@ function renderObservation(parts: TemplateParts, card: ObservationCard, sheetNam
     .replace("<c:v>БТТ</c:v>", "<c:v>Harorat</c:v>")
     .replace("<c:v>Корректірованная</c:v>", "<c:v>Tuzatilgan</c:v>")
     .replaceAll("#Н/Д", "#N/A")
+    .replace('<c:max val="37.35"/>', '<c:max val="36.95"/>')
     .replace('<c:min val="35.9"/>', '<c:min val="35.5"/>');
 
   return { sheet, chart: nextChart, drawing };
@@ -542,9 +543,7 @@ function applyDateDisplay(sheet: string): string {
     ""
   );
   const counted = withoutList.replace(/<dataValidations count="16"/, '<dataValidations count="15"');
-  const dated = counted.replace(/IF\((AR\d+)=0," ",AR\d+\)/g, (_full, ref: string) => {
-    return `IF(${ref}=0," ",IF(ISNUMBER(${ref}),${ref},LEFT(${ref},2)))`;
-  });
+  const dated = counted.replace(/IF\((AR\d+)=0," ",AR\d+\)/g, '" "');
   return dated.replace(
     '<col min="43" max="46" width="10.85546875" style="1" customWidth="1"/>',
     '<col min="43" max="43" width="10.85546875" style="1" customWidth="1"/><col min="44" max="44" width="14" style="1" customWidth="1"/><col min="45" max="46" width="10.85546875" style="1" customWidth="1"/>'
@@ -552,13 +551,10 @@ function applyDateDisplay(sheet: string): string {
 }
 
 function applyTemperatureScale(sheet: string): string {
-  const top = 37.35;
-  const bottom = 35.5;
-  const steps = 29;
   let next = sheet;
-  for (let index = 0; index < steps + 1; index++) {
-    const value = Math.round((top - (index * (top - bottom)) / steps) * 100) / 100;
-    next = setCell(next, `A${4 + index}`, { kind: "num", value });
+  for (let index = 0; index < 30; index++) {
+    const value = (36.95 - index * 0.05).toFixed(2);
+    next = setCell(next, `A${4 + index}`, { kind: "text", value });
   }
   let temperature = 35.5;
   for (let row = 2; row <= 40; row++) {
