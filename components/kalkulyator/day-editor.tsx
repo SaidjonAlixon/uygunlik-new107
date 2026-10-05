@@ -100,7 +100,7 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
       return;
     }
     if (requireChoice && day.mucus.length === 0) {
-      setChoiceError("Keyingi kunga o‘tish uchun shilliq holatidan kamida bittasini tanlang.");
+      setChoiceError("Keyingi kunga o‘tish uchun «Shilliq (ajralmalar) holatini qayd etish jadvali»dan kamida bittasini tanlang.");
       return;
     }
     setTempError("");
@@ -159,7 +159,7 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           {tempError && <p className="mt-1.5 text-sm text-[#9b2332]">{tempError}</p>}
         </div>
 
-        <Section title="Buzilish sabablari" hint="Haroratga ta’sir qilgan bo‘lsa belgilang.">
+        <Section title="Buzilish sabablari">
           <div className="flex flex-wrap gap-2">
             {FACTORS.map((factor) => (
               <Chip key={factor.code} active={day.factors.includes(factor.code)} onClick={() => toggleFactor(factor.code)}>
@@ -169,19 +169,20 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           </div>
         </Section>
 
-        <Section title="Shilliq holati" hint="Kamida bittasini tanlang. Exceldagi shu qatorga belgi tushadi." required>
+        <Section title="Shilliq (ajralmalar) holatini qayd etish jadvali" required>
           {(
             [
-              ["hayz", "Hayz", "#f7d5e2"],
-              ["quruq", "Quruq", "#f8d7b0"],
-              ["nam", "Nam", "#f8efb8"],
-              ["hol", "Ho‘l", "#cfeedd"],
+              ["hayz", "#e53935"],
+              ["quruq", "#f59e0b"],
+              ["nam", "#facc15"],
+              ["hol", "#22c55e"],
             ] as const
-          ).map(([group, title, color]) => (
-            <div key={group} className="overflow-hidden rounded-2xl border border-[#efe8df]">
-              <div className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#5c4038]" style={{ backgroundColor: color }}>
-                {title}
-              </div>
+          ).map(([group, color]) => (
+            <div
+              key={group}
+              className="overflow-hidden rounded-2xl border border-[#efe8df] border-l-[6px]"
+              style={{ borderLeftColor: color }}
+            >
               <div className="divide-y divide-[#f3ece4] bg-white">
                 {MUCUS_OPTIONS.filter((option) => option.group === group).map((option) => (
                   <RowChoice
@@ -196,11 +197,11 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           ))}
         </Section>
 
-        <Section title="Shilliq cho‘qqi kuni">
-          <Toggle label="Shu kun cho‘qqi kuni" checked={day.peakMucus} onChange={(peakMucus) => onChange({ ...day, peakMucus })} />
+        <Section title="Ajralma piki kuni">
+          <Toggle label="Ajralma piki kuni" checked={day.peakMucus} onChange={(peakMucus) => onChange({ ...day, peakMucus })} />
         </Section>
 
-        <Section title="Ajralma miqdori (1–5)">
+        <Section title="Ajralmalar miqdori (1-5)">
           <div className="grid grid-cols-5 gap-2">
             {[1, 2, 3, 4, 5].map((amount) => (
               <button
@@ -217,35 +218,35 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           </div>
         </Section>
 
-        <Section title="Bachadon bo‘yni">
+        <Section title="Bachadon bo‘yni holatini qayd etish">
           <Choice
-            label="Qattiq yoki yumshoq"
+            label="Yumshoq yoki Qattiq"
             value={day.firmness}
             options={[
-              ["hard", "Qattiq"],
               ["soft", "Yumshoq"],
+              ["hard", "Qattiq"],
             ]}
             onChange={(firmness) =>
               onChange({ ...day, firmness: (day.firmness === firmness ? "" : firmness) as DayEntry["firmness"] })
             }
           />
           <Choice
-            label="Past yoki yuqori"
+            label="Past yoki baland"
             value={day.position}
             options={[
               ["low", "Past"],
-              ["high", "Yuqori"],
+              ["high", "Baland"],
             ]}
             onChange={(position) =>
               onChange({ ...day, position: (day.position === position ? "" : position) as DayEntry["position"] })
             }
           />
           <Choice
-            label="Yopiq yoki ochiq"
+            label="Ochiq yoki yopiq"
             value={day.opening}
             options={[
-              ["closed", "Yopiq"],
               ["open", "Ochiq"],
+              ["closed", "Yopiq"],
             ]}
             onChange={(opening) =>
               onChange({ ...day, opening: (day.opening === opening ? "" : opening) as DayEntry["opening"] })
@@ -253,9 +254,9 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
           />
         </Section>
 
-        <Section title="Tana belgilaridagi o‘zgarishlar">
+        <Section title="Tanadagi o‘zgarishlar (qo‘shimcha belgilar)">
           <div>
-            <span className="mb-1.5 block text-sm font-medium">Kayfiyat +/-</span>
+            <span className="mb-1.5 block text-sm font-medium">Kayfiyat o‘zgarishi +/-</span>
             <div className="grid grid-cols-2 gap-2">
               {(["+", "-"] as const).map((mood) => (
                 <button
@@ -272,13 +273,13 @@ export function DayEditor({ dayNumber, day, onChange, onCommit, onClose }: DayEd
             </div>
           </div>
           <Toggle
-            label="Og‘riq, qorin dam bo‘lishi"
+            label="Og‘riq/qorin shishgan"
             checked={day.pain || day.bloating}
             onChange={(checked) => onChange({ ...day, pain: checked, bloating: checked })}
           />
-          <Toggle label="Ko‘krakdagi taranglik" checked={day.breast} onChange={(breast) => onChange({ ...day, breast })} />
-          <Toggle label="Serhosil kunlar" checked={day.fertile} onChange={(fertile) => onChange({ ...day, fertile })} />
-          <Toggle label="Er-xotin yaqinligi" checked={day.intercourse} onChange={(intercourse) => onChange({ ...day, intercourse })} />
+          <Toggle label="Ko‘kraklarda o‘zgarish" checked={day.breast} onChange={(breast) => onChange({ ...day, breast })} />
+          <Toggle label="Unumdor kunlar" checked={day.fertile} onChange={(fertile) => onChange({ ...day, fertile })} />
+          <Toggle label="Yaqinlik ♥" checked={day.intercourse} onChange={(intercourse) => onChange({ ...day, intercourse })} />
         </Section>
 
         <label className="block">

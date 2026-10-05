@@ -6,6 +6,9 @@ export type ProgramPath = {
   benefits: string[];
   pricingHref: string;
   image: string;
+  imagePosition?: string;
+  imageZoom?: number;
+  imageZoomOrigin?: string;
 };
 
 /** Uch hayot bosqichi — asosiy saytdagi Yo‘nalishlar bo‘limi */
@@ -14,7 +17,8 @@ export const PROGRAM_PATHS: ProgramPath[] = [
     id: "boshlanish",
     name: "Uyg‘un Boshlanish",
     audience: "Turmush qurish yoshidagi qizlar uchun",
-    image: "/images/icons/uygun-boshlanish.jpg",
+    image: "/images/icons/uygun-boshlanish-ayol.jpg",
+    imagePosition: "42% 30%",
     intro:
       "Ayollikni tushunish — turmush qurgandan keyin emas, undan oldin boshlanadi. Turmush qurmasdan oldin Simptotermal metodni o‘rgansangiz:",
     benefits: [
@@ -30,7 +34,10 @@ export const PROGRAM_PATHS: ProgramPath[] = [
     id: "oila",
     name: "Uyg‘un Oila",
     audience: "Turmush qurgan ayollar uchun",
-    image: "/images/icons/uygun-oila.jpg",
+    image: "/images/icons/uygun-oila-juftlik.jpg",
+    imagePosition: "0% 50%",
+    imageZoom: 1.45,
+    imageZoomOrigin: "44% 38%",
     intro:
       "Farzandni qachon kutib olish yoki homiladorlikni tabiiy yo‘l bilan ortga surish — bu er-xotinning eng muhim qarorlaridan biridir. Simptotermal metod bilan siz:",
     benefits: [
@@ -46,7 +53,9 @@ export const PROGRAM_PATHS: ProgramPath[] = [
     id: "onalik",
     name: "Uyg‘un Onalik",
     audience: "Tug‘ruqdan keyin hayzi hali tiklanmagan onalar uchun",
-    image: "/images/icons/uygun-onalik.jpg",
+    image: "/images/icons/uygun-onalik-ona.jpg",
+    imagePosition: "40% 58%",
+    imageZoom: 1.7,
     intro:
       "Tug‘ruqdan keyingi davr ayol organizmidagi eng o‘zgaruvchan bosqichlardan biridir. Ayniqsa emizish davrida fertil belgilarni tushunish ko‘plab savollarni tug‘diradi. Simptotermal metod qoidalarini o‘rganib:",
     benefits: [

@@ -333,10 +333,10 @@ export function KalkulyatorApp() {
             <div className="mt-4 rounded-2xl bg-[#FBF7F2] p-3 sm:p-4">
               <h3 className="text-sm font-semibold text-[#5D1111]">O‘lchash</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field label="Yosh" value={card.age} onChange={(age) => setCard({ ...card, age })} />
-                <Field label="Sikl raqami" value={card.cycleNumber} onChange={(cycleNumber) => setCard({ ...card, cycleNumber })} />
+                <Field label="Yoshingiz:" value={card.age} onChange={(age) => setCard({ ...card, age })} />
+                <Field label="Sikl №" value={card.cycleNumber} onChange={(cycleNumber) => setCard({ ...card, cycleNumber })} />
                 <SelectField
-                  label="Oldingi kartada harorat ko‘tarilishi"
+                  label="Oldingi xaritada BTT ko‘tarildi"
                   value={card.previousRise}
                   onChange={(previousRise) => setCard({ ...card, previousRise: previousRise as ObservationCard["previousRise"] })}
                   options={[
@@ -362,21 +362,21 @@ export function KalkulyatorApp() {
                   onChange={(measureTime) => setCard({ ...card, measureTime })}
                   options={[["", "Tanlash"], ...MEASURE_TIMES.map((time) => [time, time] as [string, string])]}
                 />
-                <Field label="Eng uzun sikl" value={card.longestCycle} onChange={(longestCycle) => setCard({ ...card, longestCycle })} />
-                <Field label="Eng qisqa sikl" value={card.shortestCycle} onChange={(shortestCycle) => setCard({ ...card, shortestCycle })} />
+                <Field label="So‘nggi 12 siklda eng uzun sikl (EU)" value={card.longestCycle} onChange={(longestCycle) => setCard({ ...card, longestCycle })} />
+                <Field label="So‘nggi 12 siklda eng qisqa sikl (EQ)" value={card.shortestCycle} onChange={(shortestCycle) => setCard({ ...card, shortestCycle })} />
               </div>
             </div>
             <div className="mt-3 rounded-2xl bg-[#FBF7F2] p-3 sm:p-4">
               <h3 className="text-sm font-semibold text-[#5D1111]">Hisoblangan kunlar</h3>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Stat label="Shilliq cho‘qqi kuni" value={displayDayNumber(card.peakMucusDay, derived.peakMucusDay)} onChange={(peakMucusDay) => setCard({ ...card, peakMucusDay })} />
-                <Stat label="Cho‘qqidan keyingi 3-kun" value={displayDayNumber(card.peakMucusPlus3, derived.peakMucusPlus3)} onChange={(peakMucusPlus3) => setCard({ ...card, peakMucusPlus3 })} />
-                <Stat label="Birinchi shilliq kuni" value={displayDayNumber(card.firstMucusDay, derived.firstMucusDay)} onChange={(firstMucusDay) => setCard({ ...card, firstMucusDay })} />
-                <Stat label="Bachadon bo‘yni o‘zgarishi" value={displayDayNumber(card.firstCervixDay, derived.firstCervixDay)} onChange={(firstCervixDay) => setCard({ ...card, firstCervixDay })} />
-                <Stat label="Harorat ko‘tarilishining 3-kuni" value={displayDayNumber(card.thirdRiseDay, derived.thirdRiseDay)} onChange={(thirdRiseDay) => setCard({ ...card, thirdRiseDay })} />
+                <Stat label="Ajralma piki kuni" value={displayDayNumber(card.peakMucusDay, derived.peakMucusDay)} onChange={(peakMucusDay) => setCard({ ...card, peakMucusDay })} />
+                <Stat label="Ajralma piki kuni + 3 kun" value={displayDayNumber(card.peakMucusPlus3, derived.peakMucusPlus3)} onChange={(peakMucusPlus3) => setCard({ ...card, peakMucusPlus3 })} />
+                <Stat label="Ajralma paydo bo‘lgan 1-kun" value={displayDayNumber(card.firstMucusDay, derived.firstMucusDay)} onChange={(firstMucusDay) => setCard({ ...card, firstMucusDay })} />
+                <Stat label="Bachadon bo‘yni holatida 1-o‘zgarish" value={displayDayNumber(card.firstCervixDay, derived.firstCervixDay)} onChange={(firstCervixDay) => setCard({ ...card, firstCervixDay })} />
+                <Stat label="BTT ko‘tarilishi 3-kuni (4-kuni)" value={displayDayNumber(card.thirdRiseDay, derived.thirdRiseDay)} onChange={(thirdRiseDay) => setCard({ ...card, thirdRiseDay })} />
                 <Stat label="Sikl davomiyligi" value={displayDayNumber(card.cycleLength, derived.cycleLength)} onChange={(cycleLength) => setCard({ ...card, cycleLength })} />
-                <Field label="Birinchi fazadagi oxirgi noserhosil kun" value={card.lastInfertileDay} onChange={(lastInfertileDay) => setCard({ ...card, lastInfertileDay })} />
-                <Field label="Bachadon bo‘yni cho‘qqisi + 3 kun" value={card.peakCervixPlus3} onChange={(peakCervixPlus3) => setCard({ ...card, peakCervixPlus3 })} />
+                <Field label="Birinchi fazada kuzatiladigan ehtimoliy infertil kun" value={card.lastInfertileDay} onChange={(lastInfertileDay) => setCard({ ...card, lastInfertileDay })} />
+                <Field label="Bachadon bo‘yni piki + 3 kun" value={card.peakCervixPlus3} onChange={(peakCervixPlus3) => setCard({ ...card, peakCervixPlus3 })} />
               </div>
             </div>
           </section>

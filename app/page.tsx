@@ -640,12 +640,12 @@ export default function HomePage() {
 
   const navLinks = [
     { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
-    { href: "/kalkulyator", label: "Kalkulyator", shortLabel: "Kalk.", icon: Calculator, id: "kalkulyator" },
     { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
     { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
     { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
     { href: "#pricing", label: "Tariflar", shortLabel: "Tarif", icon: Tags, id: "pricing" },
     { href: "#reviews", label: "Sharhlar", shortLabel: "Sharh", icon: MessageSquare, id: "reviews" },
+    { href: "/kalkulyator", label: "Kalkulyator", shortLabel: "Kalk.", icon: Calculator, id: "kalkulyator" },
   ];
 
   const scrollToSection = (sectionId: string) => {

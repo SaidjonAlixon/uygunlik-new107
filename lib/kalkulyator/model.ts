@@ -72,22 +72,22 @@ export function factorExcelCode(code: string): string {
 }
 
 export const MUCUS_OPTIONS = [
-  { key: "menstruation", label: "Hayz ko‘rish", group: "hayz" },
-  { key: "spotting", label: "Qonli ajralma", group: "hayz" },
-  { key: "dry", label: "Quruqlik hissi", group: "quruq" },
-  { key: "colorUnclear", label: "Rang aniqlanmadi", group: "quruq" },
-  { key: "moist", label: "Namlik hissi", group: "nam" },
-  { key: "white", label: "Oq rangli ajralma", group: "nam" },
-  { key: "cloudy", label: "Loyqa", group: "nam" },
-  { key: "creamy", label: "Quyuq, qaymoqsimon", group: "nam" },
-  { key: "sticky", label: "Yopishqoq", group: "nam" },
-  { key: "lumpy", label: "Bo‘lakchali yoki quyuq", group: "nam" },
-  { key: "wet", label: "Ho‘llik hissi", group: "hol" },
-  { key: "slippery", label: "Sirpanchiq / moysimon", group: "hol" },
-  { key: "semiClear", label: "Yarim tiniq", group: "hol" },
-  { key: "clear", label: "Tiniq", group: "hol" },
-  { key: "stretchy", label: "Cho‘ziluvchan", group: "hol" },
-  { key: "eggwhite", label: "Xom tuxum oqiga o‘xshash", group: "hol" },
+  { key: "menstruation", label: "Menstruatsiya (Hayz)", group: "hayz" },
+  { key: "spotting", label: "Qonli ajralma/Qoldiqlar", group: "hayz" },
+  { key: "dry", label: "His: quruq", group: "quruq" },
+  { key: "colorUnclear", label: "Rangi: ajralma yo‘q", group: "quruq" },
+  { key: "moist", label: "His: nam", group: "nam" },
+  { key: "white", label: "Rangi: oq", group: "nam" },
+  { key: "cloudy", label: "xira/shaffof emas", group: "nam" },
+  { key: "creamy", label: "Turi: quyuq, kremsimon", group: "nam" },
+  { key: "sticky", label: "yopishqoq/yirtiluvchan", group: "nam" },
+  { key: "lumpy", label: "Bo‘lak-bo‘lak/quyuq", group: "nam" },
+  { key: "wet", label: "His: ho‘l", group: "hol" },
+  { key: "slippery", label: "Sirpanchiq, yog‘ surgandek", group: "hol" },
+  { key: "semiClear", label: "Rangi: yarim tiniq", group: "hol" },
+  { key: "clear", label: "tiniq", group: "hol" },
+  { key: "stretchy", label: "Turi: cho‘ziluvchan", group: "hol" },
+  { key: "eggwhite", label: "xom tuxum oqi kabi", group: "hol" },
 ] as const;
 
 export type MucusKey = (typeof MUCUS_OPTIONS)[number]["key"];

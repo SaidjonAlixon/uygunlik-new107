@@ -343,6 +343,7 @@ function renderObservation(parts: TemplateParts, card: ObservationCard, sheetNam
     disturbances.push(entry.factors.length && entry.temperature != null ? entry.temperature : null);
   }
 
+  sheet = setCell(sheet, "A40", { kind: "text", value: "Hayz kuni" });
   sheet = setCell(sheet, "B70", numberOrBlank(card.age));
   sheet = setCell(sheet, "N71", textOrBlank(card.cardNumber));
   sheet = setCell(sheet, "L71", textOrBlank(card.cycleNumber));
