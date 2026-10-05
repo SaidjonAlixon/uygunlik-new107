@@ -15,6 +15,10 @@
 
 # misc
 .DS_Store
+/data/observation-cards.json
+/tmp-xlsx/
+/tmp-xlsx.zip
+/tmp-export-test.xlsx
 *.pem
 
 # debug

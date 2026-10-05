@@ -28,6 +28,7 @@ import {
   Tags,
   MessageSquare,
   LogIn,
+  Calculator,
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence, useScroll, useTransform } from "framer-motion";
@@ -639,6 +640,7 @@ export default function HomePage() {
 
   const navLinks = [
     { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
+    { href: "/kalkulyator", label: "Kalkulyator", shortLabel: "Kalk.", icon: Calculator, id: "kalkulyator" },
     { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
     { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
     { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
@@ -668,6 +670,8 @@ export default function HomePage() {
     e: React.MouseEvent<HTMLAnchorElement>,
     sectionId: string
   ) => {
+    const link = navLinks.find((item) => item.id === sectionId);
+    if (link && link.href.startsWith("/") && !link.href.startsWith("#")) return;
     e.preventDefault();
     e.stopPropagation();
     scrollToSection(sectionId);
@@ -966,7 +970,7 @@ export default function HomePage() {
 
         {/* STM BU bo'limi */}
         <section
-          className="min-h-[100dvh] flex items-center justify-center px-2 sm:px-6 py-6 sm:py-10 md:py-20 overflow-hidden -mt-1"
+          className="flex items-center justify-center px-2 sm:px-6 pt-3 pb-8 sm:pt-4 sm:pb-10 md:pt-6 md:pb-14 overflow-hidden -mt-1"
           style={{ backgroundColor: "#801d1d", zIndex: 1, position: "relative" }}
         >
           <div className="container mx-auto w-full max-w-5xl">
@@ -974,7 +978,7 @@ export default function HomePage() {
               <StmQuadrantLayout className="w-[min(100vw-0.75rem,24rem)] sm:w-[26rem] md:w-[32rem] lg:w-[36rem]" />
 
               <p
-                className={`mt-5 sm:mt-6 md:mt-10 shrink-0 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-md md:max-w-none mx-auto not-italic ${scriptFont.className}`}
+                className={`mt-[3.75rem] sm:mt-16 md:mt-20 shrink-0 text-center text-base sm:text-xl md:text-2xl font-bold text-white/95 drop-shadow-md leading-snug max-w-[18rem] sm:max-w-md md:max-w-none mx-auto not-italic ${scriptFont.className}`}
               >
                 Bu – tanangiz bilan hamohanglikda
                 <br />

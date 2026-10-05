@@ -4,13 +4,14 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock, FolderOpen } from 'lucide-react';
+import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock, FolderOpen, FileSpreadsheet } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatTashkentNow } from '@/lib/datetime';
 
 const nav = [
   { href: '/admin/dashboard', label: 'Bosh sahifa', icon: LayoutDashboard },
   { href: '/admin/users', label: 'Foydalanuvchilar', icon: Users },
+  { href: '/admin/kartalar', label: 'Kuzatuv kartalari', icon: FileSpreadsheet },
   { href: '/admin/tariffs', label: "Ta'riflar", icon: Gift },
   { href: '/admin/sections', label: "Bo'limlar", icon: FolderOpen },
   { href: '/admin/lessons', label: 'Darslar', icon: BookOpen },

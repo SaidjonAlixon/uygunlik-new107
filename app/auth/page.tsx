@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -30,6 +30,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+function nextPath() {
+  if (typeof window === "undefined") return "/dashboard";
+  const next = new URLSearchParams(window.location.search).get("next") || "";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+}
+
+function registerHref() {
+  if (typeof window === "undefined") return "/register";
+  const next = new URLSearchParams(window.location.search).get("next") || "";
+  return next.startsWith("/") && !next.startsWith("//") ? `/register?next=${encodeURIComponent(next)}` : "/register";
+}
+
 const loginSchema = z.object({
   email: z.string().email({ message: "Noto'g'ri email format." }),
   password: z.string().min(1, { message: 'Parol kiritilishi shart.' }),
@@ -40,6 +52,11 @@ export default function AuthPage() {
   const { setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [joinHref, setJoinHref] = useState("/register");
+
+  useEffect(() => {
+    setJoinHref(registerHref());
+  }, []);
 
   const loginForm = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -60,7 +77,7 @@ export default function AuthPage() {
       localStorage.setItem('auth_token', token);
       
       toast.success('Xush kelibsiz!');
-      router.push('/dashboard');
+      router.push(nextPath());
     } catch (error) {
       toast.error("Kirishda xatolik: Email yoki parol noto'g'ri.");
       console.error('Login failed', error);
@@ -157,7 +174,7 @@ export default function AuthPage() {
             <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
                 Hisobingiz yo'qmi?{' '}
-                <Link href="/register" className="text-red-600 hover:text-red-700 font-medium">
+                <Link href={joinHref} className="text-red-600 hover:text-red-700 font-medium">
                   Ro'yxatdan o'tish
                 </Link>
               </p>

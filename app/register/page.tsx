@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -29,6 +29,18 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 
+function nextPath() {
+  if (typeof window === "undefined") return "/dashboard";
+  const next = new URLSearchParams(window.location.search).get("next") || "";
+  return next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+}
+
+function authHref() {
+  if (typeof window === "undefined") return "/auth";
+  const next = new URLSearchParams(window.location.search).get("next") || "";
+  return next.startsWith("/") && !next.startsWith("//") ? `/auth?next=${encodeURIComponent(next)}` : "/auth";
+}
+
 const registerSchema = z
   .object({
     first_name: z
@@ -50,6 +62,11 @@ export default function RegisterPage() {
   const router = useRouter();
   const { setUser } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
+  const [loginHref, setLoginHref] = useState("/auth");
+
+  useEffect(() => {
+    setLoginHref(authHref());
+  }, []);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -76,7 +93,7 @@ export default function RegisterPage() {
       localStorage.setItem('auth_token', token);
       
       toast.success("Muvaffaqiyatli ro'yxatdan o'tdingiz!");
-      router.push('/dashboard');
+      router.push(nextPath());
     } catch (error: any) {
       if (error.response?.status === 409) {
         toast.error('Bu email allaqachon ro\'yxatdan o\'tgan.');
@@ -234,7 +251,7 @@ export default function RegisterPage() {
             <div className="text-center mt-4">
               <p className="text-sm text-gray-600">
                 Allaqachon hisobingiz bormi?{' '}
-                <Link href="/auth" className="text-red-600 hover:text-red-700 font-medium">
+                <Link href={loginHref} className="text-red-600 hover:text-red-700 font-medium">
                   Kirish
                 </Link>
               </p>

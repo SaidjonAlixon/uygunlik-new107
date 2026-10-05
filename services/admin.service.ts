@@ -25,6 +25,25 @@ export const adminApi = {
   exportUsersExcel: () =>
     api.get<Blob>('/admin/users/export', { responseType: 'blob' }),
 
+  getObservationCards: () =>
+    api.get<{ data: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      cardNumber: string;
+      filledDays: number;
+      dayCount: number;
+      hasCard: boolean;
+      updatedAt: string;
+    }> }>('/admin/kartalar'),
+
+  exportObservationExcel: (id: string) =>
+    api.get<Blob>(`/admin/kartalar/${id}/excel`, { responseType: 'blob' }),
+
+  exportObservationTemplate: (startDate: string) =>
+    api.post<Blob>('/admin/kartalar/shablon', { startDate }, { responseType: 'blob' }),
+
   grantTariff: (userId: string, tariffId: number | null) =>
     api.post<{ user: any }>(`/admin/users/${userId}/grant-tariff`, { tariffId }),
 
