@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Sparkles } from "lucide-react";
-import { scriptFont } from "@/lib/fonts";
 import { PROGRAM_PATHS } from "@/lib/program-paths";
 import { cn } from "@/lib/utils";
 
@@ -51,18 +50,9 @@ export function ProgramPathsSection({
             viewport={{ once: true }}
             transition={{ duration: 0.7 }}
           >
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-serif font-semibold tracking-[0.08em] uppercase text-[#5D1111]">
-              Kurs kimlar uchun
+            <h2 className="text-3xl md:text-4xl font-bold text-center text-red-900">
+              KURS KIMLAR UCHUN?
             </h2>
-            <p
-              className={cn(
-                "mt-3 mx-auto max-w-2xl text-lg sm:text-xl md:text-2xl not-italic text-[#7A2E2E] leading-snug tracking-[0.01em] font-script",
-                scriptFont.className
-              )}
-              style={{ fontFamily: "var(--font-script), 'Snell Roundhand', cursive" }}
-            >
-              Hayot bosqichingizga mos yo‘nalishni tanlang
-            </p>
           </motion.div>
         )}
 
@@ -88,12 +78,16 @@ export function ProgramPathsSection({
                 className="absolute left-0 top-7 bottom-7 w-1 rounded-full bg-gradient-to-b from-[#5D1111] via-[#8B2E2E] to-[#5D1111]/30"
               />
 
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6 lg:gap-10">
-                <div className="min-w-0 flex-1">
-                  <div className="mb-4 flex items-center gap-3 sm:gap-4">
-                    <div className="relative h-28 w-28 sm:h-32 sm:w-32 shrink-0">
-                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#5D1111]/25 via-[#C4A484]/40 to-[#5D1111]/15 p-[2.5px] shadow-[0_8px_20px_-10px_rgba(93,17,17,0.55)]">
-                        <div className="h-full w-full overflow-hidden rounded-full border-[2.5px] border-[#FEFBEE] bg-[#FEFBEE]">
+              <div className="mx-auto flex max-w-3xl flex-col gap-6">
+                <div className="min-w-0">
+                  <div className="mb-6 flex flex-col items-center text-center">
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-bold leading-tight text-red-900">
+                      {path.name}
+                    </h3>
+
+                    <div className="relative mt-5 h-36 w-36 sm:h-40 sm:w-40 md:h-44 md:w-44 shrink-0">
+                      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#5D1111]/25 via-[#C4A484]/40 to-[#5D1111]/15 p-[3px] shadow-[0_12px_28px_-12px_rgba(93,17,17,0.55)]">
+                        <div className="h-full w-full overflow-hidden rounded-full border-[3px] border-[#FEFBEE] bg-[#FEFBEE]">
                           <img
                             src={path.image}
                             alt=""
@@ -108,21 +102,12 @@ export function ProgramPathsSection({
                       </div>
                     </div>
 
-                    <span className="min-w-0 flex-1 text-center font-serif text-base sm:text-lg md:text-xl font-medium not-italic leading-snug tracking-[0.01em] text-gray-600">
+                    <p className="mt-5 text-lg sm:text-xl font-bold leading-snug text-gray-700">
                       {path.audience}
-                    </span>
+                    </p>
                   </div>
 
-                  <h3
-                    className={cn(
-                      "text-2xl sm:text-3xl md:text-4xl text-red-900 leading-tight not-italic",
-                      scriptFont.className
-                    )}
-                  >
-                    {path.name}
-                  </h3>
-
-                  <p className="mt-4 max-w-3xl text-[15px] sm:text-base leading-relaxed text-gray-600">
+                  <p className="mt-4 text-[15px] sm:text-base leading-relaxed text-gray-600">
                     {path.intro}
                   </p>
 
@@ -140,7 +125,7 @@ export function ProgramPathsSection({
                   </ul>
                 </div>
 
-                <div className="lg:pt-8 lg:w-52 shrink-0 flex lg:justify-end">
+                <div className="flex justify-center">
                   <Link
                     href="#pricing"
                     onClick={onPricingClick}

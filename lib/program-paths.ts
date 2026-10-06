@@ -36,8 +36,8 @@ export const PROGRAM_PATHS: ProgramPath[] = [
     audience: "Turmush qurgan ayollar uchun",
     image: "/images/icons/uygun-oila-juftlik.jpg",
     imagePosition: "0% 50%",
-    imageZoom: 1.45,
-    imageZoomOrigin: "44% 38%",
+    imageZoom: 1.6,
+    imageZoomOrigin: "45% 12%",
     intro:
       "Farzandni qachon kutib olish yoki homiladorlikni tabiiy yo‘l bilan ortga surish — bu er-xotinning eng muhim qarorlaridan biridir. Simptotermal metod bilan siz:",
     benefits: [

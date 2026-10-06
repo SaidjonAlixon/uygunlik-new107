@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUserStore } from '@/store/user.store';
-import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock, FolderOpen, FileSpreadsheet } from 'lucide-react';
+import { LayoutDashboard, Users, Gift, BookOpen, MessageSquare, LogOut, Menu, X, ClipboardList, Clock, FolderOpen, FileSpreadsheet, KeyRound } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatTashkentNow } from '@/lib/datetime';
 
@@ -17,6 +17,7 @@ const nav = [
   { href: '/admin/lessons', label: 'Darslar', icon: BookOpen },
   { href: '/admin/tests', label: 'Testlar', icon: ClipboardList },
   { href: '/admin/reviews', label: 'Sharhlar', icon: MessageSquare },
+  { href: '/admin/sozlamalar', label: 'Hisob sozlamalari', icon: KeyRound },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

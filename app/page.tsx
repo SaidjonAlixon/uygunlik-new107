@@ -265,50 +265,51 @@ const ReviewsCarousel = () => {
 
   const reviews = [
     {
-      name: "Asiya Ameen",
-      handle: "@Ameenasiyaa",
-      initial: "A",
-      text: "Bismillah! Kurs haqidagi taassurotlarim judayam ijobiy. Uzoq yozib o'tirmiyman, bitta qilib etganda manga bu kurs bergan eng ASOSIY narsa ANIQLIK bo'ldi. Ko'nglim shunaqangi hotirjamki endi nimani qachon qanaqa qilish kereligini bilaman. O'z sog'ligimga zarar qilib saqlanuvchi vositalardan davomiy foydalanishdan qutulganimga va tanamga avvalgidan ko'ra ko'proq yaqinlashganimga o'zimni judayam yaxshi his qivomman. Undan tashqari kursning asosiy mavzusidan tashqari berilgan qo'shimcha ma'lumotlarning sifatiga ham gap yo'q. Aslida ular bo'lmaganda ham, faqat metodning o'zi haqida o'rgatilganda ham yetib ortardi kurs foydali bo'lishiga, lekin muallif judayam shedriy bo'ganlari uchun o'quvchilarga ham o'zlaridan, ham boshqa mutaxassislardan ayol sog'ligi uchun eng dolzarb bo'lgan mavzularni qo'shgani nur ustiga a'lo nur bo'lgan. Bu kursda o'rganganlarim sababli endi man havotirli Asiyadan, hotirjam Asiyaga aylanvomman Allohning izni bilan. Tashkillashtirgan Nozima opamga Robbim ikki dunyo barakasini yog'dirsin amiyn! Farzandli bo'lishni reja qilayotganlar ham, va tanaffus olishni reja qilayotganlar ham BIRDEK foydalana oladigan mahsulot bo'lgan. Chin dilimdan har bir ayol/qiz uchun tavsiya qilaman!",
-    },
-    {
       name: "Dildora Baxtiyorovna",
       handle: "@hafiza_my",
+      photo: 2,
       initial: "D",
       text: "Tabiiylikka avvaldan qiziqardim lekin sizni darslarizdan keyin organizmimiz naqadar mukammal ekanligini va biz sezmagan ahamiyat bermagan holatda ichimizda qancha o'zgarishlar, naslni davom ettrish uchun kurashlar bo'lib o'tar ekanligini bildim. Shunchaki hayratdaman.Biz esa faqat va faqat o'zimizni noqis aqlimiz bilan mukammal tizimga qanaqdir simlar (spiral) tiqib bu jarayonni toxtatmoqchi bolamiz. Aslida shunchaki tanamizni eshitish biroz etiborli bo'lish va qanday yaratilgan bolsak shunday yashab bersak boldi ekan❤️ Va avvaldan aytilganidek bu sehrli tayoqcha emas, natijaga erishish uchun mehnat, sabr va intizom kerak ekan. Meni tarbiyalagan jihatlari aynan shu har kuni ertaroq yotishga, sifatli uyquga, bir vaqtda turishga odatlantirdi. Fiqh darslari uchun alohida rahmat. Ozimcha bilaman deb yurardim 90% bu ilmlarni bilmas ekanman. Yana shu kunlarda eshitgan eng hayratlanarli gaplarimdan boshqa davlatlarda saqlanish uchun ayol va erkak teng harakat qilishi va bazan erkak borib urug' chiqmaydigan qilib operatsiya qilib kelishi Bizda esa💔💔💔 ahvol juda achinarli. 9 oy bola kotarib yurgan ham o'lim bn yuzlashib tug'gan ham, saqlanishi shart bolgan ham ayol…",
     },
     {
       name: "Elnora Rustamova",
       handle: "@russtamovae",
+      photo: 3,
       initial: "E",
       text: "Assalamu Alaykum va rahmatullohi va barakatuh. Avvalosi Ummu Umayr darsida aytib o'tganidek Niyat To'gri qilib 2 dunyomizga manfaatli bo'lishni so'rab qolaman. darslar judayam tushinarli tilda har hil katta tushinarsiz jumlalarsiz yoritib berilgan. Ayniqsa manga yoqgani birinchi kirish darsini animatsiyalari xuddi miyyamga chizilganday yodimda qoldi. Bu darslarni har bir ayol bilishi kerak deb o'ylayman. Biz qanday tabiiy usulda saqlanishni emas balki qanday vahtda homilador bo'lishni hamda o'zimizni tushinishni o'zimizni o'rganishni boshladik. Spiral gormonal tabletkalar implantlar hammasi huddi bir tanamiz aytayotgan gaplarni og'zini bekib qo'yishga o'xshatdim. Tanamizni eshitmay og'zini yopish emas u bilan birga til topishishga qadam desam adashmagan bo'laman STMni. Yana Shuni tushindimki Alloh Ayol hilqati uchun uyni juda yaxshi maskan qilgan Ayol uchun stressdan yiroq bo'lish ko'cha kuyda og'ir ishlar qilish bularning hammasi u uchun emas u nozik. Masalan erkak oilasi ayoli uchun yedirish kiydirshga masul ayol esa farzandlari tarbiyasiga masulligi ham bejizga emas. Ayniqsa manga yoqgan insaytlardan biri bu pragesteron va estrogen garmonlarini homilador bo'lsak va ovulyatsiyada haroratning o'zgarib bola uchun issiqina joy tayyorlashi butun vujudimiz bunga tayyorlanishi bu faqat mo'jiza. Undan tashqari kurs uchun tayyorlanga logotiplar ham judayam chiroyli tanlagan dars mavzularni eshitib kursni logotiplarini bekorga unday tanlanmagani sezildi. Yana muxim jihati erkak va ayol bunga massuligi xozirgi kunga kelib ayolni vazifalari juda ko'pki xatto o'ziga vaqt ajratolmaydi. Shuning uchun nima qilib bo'lsa ham ikkqat bo'lib qolmasa bo'ldi xatto sogligdan kechib bo'lsa ham bu juda achinarli holat. Boshida bu kursda ko'p ayolllar bo'ladi deb man ham o'ylagandim lekin ko'p ayollarni xatosi kiyim kechak to'y hashamlarga 300 dollar hech narsa emas lekin o'zini eshitishga kelganda bu summa juda balan hisoblashadi. Nega unday axir o'zini eshitish bu distiplinga asoslandi har kuni oz bo'lsada mehnat talab qiladi. Xozirgilarga bo'lsa shu nimadir bo'lsa bittada ikkqat qimdigan spiralni taqib olsa bo'ldi. Aslida bilmaydiki spiraldan qon ketganda u qon emas kichikina vujud nobud bo'ladi😢 Afsuski shuni bilishmaydi. Bizga bu usulni osson o'rganishga yordam berganiz uchun alohida rahmat. O'zi sizni Pediatr Nodira opa orqali taniman ota onaylarga rahmat shunaqa ko'p ayollarni islohiga sababchi bo'layotgan farzandlarni yetishtirgani uchun. In shaa Alloh qiz farzandim bo'lsa albatta bu bilimlar bilan bo'lishaman. Toki u yoshligidan avvalo o'zini tanasni eshitishni tushinishni bilib ulg'aysin. Biz bekorga bu bilimlarni o'rganmadik jamiyatdagi ayollarning noto'g'ri streotiplarni o'zgartirishga o'z hissamizni qo'shsakkina albatta bunday noxush hollar kam bo'ladi.",
     },
     {
       name: "Xadicha Jo'rayeva",
       handle: "@zxadicha",
+      photo: 4,
       initial: "X",
       text: "Hayz haqida ma'lumotlar, ayniqsa uni kasallik emas, ona bo'lish qobilyati ekanini eslatganiz yoqdi. Man birinchi hayzimni ko'rganimda qo'rqib ketganman, nimaligini bilmaganman. Buni yomon ish dib o'ylaganman. Hammadan yashirganman. Shu bilan 18-20 yoshimgacha siklim umuman buzilib ketgan. Endi tartibga keldi. Mana shu travmacham esimga tushdi. Hayz haqida shar'iy va tibbiy bilimga birinchi o'rinda ega bo'lishimiz kerak boshqa bilimladan oldin. Mana shu narsani tushundim. Karta yuritish esa qiyin emas qiziqarli tuyildi manga. Organizmimdagi ruhiy, jismoniy holatni chizma varianti desa bo'larkan. Bizani hissiy holatimiz, sog'ligimiz kartamizda aks etarkan. Karta faqat homiladorlikdan saqlanish uchun emas salomatlikni nazorat qilish uchun ham kerak ekan",
     },
     {
       name: "Robiya Muhammedova",
       handle: "@uxti_ra",
+      photo: 5,
       initial: "R",
       text: "Ассаламу алейкум ва рахматуллоҳи ва барокатух✍ Нозимапа ман сизга шунчеки курсмас, балки ўз ҳаётимми, саломатлигимми ва аёллик ҳақида чуқурроқ тушунишимми таъминлаган, ҳақиқий билим манбаига айланган котта имконият учун миннатдорлик билдирмоқчиман. Бу курсга қатнашиш довомида аёлларни овуляция бўлиш ва бўлмаслиги вақти, естроген ва прогестерон даврлари ҳақида кенг ва асосли билимлани ўргандим. Бу билимла ман учун шунчеки маълумотмас, балки ўзимми ички органларимми янада яхши чуниш, ўз саломатлигимми назорат қилиш ва аёллик қадримми оширишга ёрдам берди. Бу курс асосан хомиладан сақланишчун мўлжалланган бўлса-да, хомиладор бўла олмаяпкан аёллар учун ҳам, жуда фойдали бўлади. Ман учун курсси энг қимматли томонларидан биттаси, Yoni Stim номи билан бонус дарсларини қўлга киритиш бўлди. Бу усул аёл организми учун нафақат рохатбахш, балки соғлиқ учун ҳам жуда муҳимдир. Чунки, бу стимуляция айолнинг ички органларини қувватлайди, қон айланишини яхшилайди, ва айниқса, аёл жинсий фаолиятини ошишда муҳим роль ўйнайди. Билиб олдим: Yoni Stim методининг асосий тамойиллари - бу табиий ва хавфсиз усул бўлиб, у шифобахш ва айниқса, аёлнинг нафақат жисмоний балки руҳий жиҳатдан холатини яхшилашга ёрдам беради, стрессни нормаллаштиради. Бу усул аёлнинг эҳтироси ва роҳат каби ҳис-туйғуларини оширади, уларнинг жинсий фаолиятидан кўнгли тўлади ва шахсий ҳаётига янги маънo ва қувват қўшади. Бундан ташқари, ман муслима аёллага жуда муҳим бўган, икки дунйосига манфаатли, фиқхий масалалага чуқур ва жиддий ёндашган илм сохибаси Сумаййа исмли Устоза билан олиб борилган дарслардан ҳам манфаат олдим. Бу ўзларидеги ажойиб билимлани бир жойга тўплаб, бошқа муслима аёллар билан бўлишган азиз Нозимапанинг бу курсини чин дилдан Аллоҳ улани илмларини бунданда зиёда қисин. Уларнинг меҳнати, дарсларни сокин ҳаммага бирдай тушунарли қилиб йозилгани, видео дарсликларни жуда сифатли ишлангани ва илмга бўлган муҳаббатлари учун самимий ташаккурлар айтаман. Ҳурматли аёллар, агар сиз ҳаётида янгича ёндашув, соғлом турмуш тарзини ва айоллик сирларини ўрганишни истасангиз, бу курс сиз учун ҳақиқий топилма. Бу курс, нархидан ҳам юқори қийматда, жуда бой ва қимматли маълумотларни ўз ичига олади. Мен ундан олган билимларим ҳаётимда катта ўзгаришлар келтирди ва шуни айтмоқчиманки бошқаларга ҳам ана шу курсни тавсия қиламан, чунки бу ажойиб имконини қўлдан бой бермаган яхши) Билим — энг катта бойликдир📚",
     },
     {
       name: "Ummu Muhsin",
       handle: "@toolibah_",
+      photo: 6,
       initial: "U",
       text: "Har bitta darssi ko'rganimda ko'zimdan yulduzchala chiqadi, taassurotlarim judayam ko'p. Qisqa qib etadigan bo'sam, stm darsi har bitta ayol kishi bilishi kere bo'gan ilmligiga amin bo'ldim, bu faqatgina homiladorlidan saqlanishshi o'zimas, ayollaga tanasi bn aloqa o'rnatish, o'ziga ahamiyatli bo'lish, sog'lig'i haqida qayg'urishshi o'rgatarkan va homilador bo'moqchi bo'ganla uchunam ayni muddao. Darsla qiziqarli va oson qib chuntirilgan, ayniqsa animatsiyala mavzuni yanayam aniqro chunishga yordam berdi. Vaaa gap ayollik haqida ketvotkanakan, kursda faqatgina stm ni o'zimas, fiqh, seksologiya, yoni steam va qo'shimcha ayollar salomatligi mavzulariniyam qamragani bomba bo'ldi ❤️‍🔥 Fiqh darsidan bilganlarimmi takrorlab, bilmaganlarimmi o'rgandim, Sumayya Hanafi mavzulani misolla bilan aniq tiniq qib, hamma mayda detallarigacha sodda qib chuntirib berdila. Yoni steam darsiniyam mazza qib ko'zlarim quvnab ko'rdim, Sohibapani o'z ishini ustasi ekanlilari shundo bilinib turipti. Ummu Umayr alohida shedevr 💕 Sizziyam samimiyligiz, guruhda har bitta ayol-qiz bn individual ishlashiz, savollarimizaga erinmiy bittalab javob berishiz judayam judayam yoqdi, bu kotta vaqt va energiya oladi. Hamma hammaga tavsiya qigan bo'lardim bu kursda o'qishshi Alloh siladan rozi bo'sin, ikki dunyo ajrilani ko'paytirib bersin",
     },
     {
       name: "Muhammad's wife",
       handle: "@zavjatuM",
+      photo: 7,
       initial: "M",
       text: "Assalamu alaykum Nozima opa darsliklar juda sifatli tayyorlangan ozimni anchagina angladim ozimni kuzatishni organdim tahlil qilishni ham. Avvalgi homiladorlik vaqtimda bolgan muammolarni sababini bilmasdim tabiiyki vrachlar ham tushuntirib bermagan edi har bir darslikda man homilador vaqtimda bolgan muammolarni ildizini ham topdim va keyingi homilada albatta buni oz nazoratimga olaman deb niyat qildim. Kurs faqat saqlanish emas balki ongli ravishda farzandli bolish va tugruqqa tayarlov desa ham boladi. Bu kursdan song avval ozimda va birga oqigan qizlarda ham kutilgan farzand boladi deya olaman. 💯 sodda chuntirgansiz guruhda ham activsiz Nozima opa ochiq samimiy ekansiz ozizni hecham katta tutib gapirmadiz bizaga oson bolishi chunarli va qollashimizga oson qilib berdiz hammasini astoydil harakat qildiz va qilib kevos rahmat kottakon tolagan pulimga hecham afsuslanmadim",
     },
     {
       name: "Aisha Shoakmalova",
       handle: "@shoakmalova_a",
+      photo: 8,
       initial: "A",
       text: "Kursda qatnashishdan maqsad stm haqidagi bilimlarni qaytarish, yangilash va puxtalash edi... Lekin aslida bundan avvalgi kursim stmga progrev bo'lgandek tuyylib qoldi to'g'risi. Savollarimga aqlim qoniqadigan darajada javob ololyotganimdan judayam hursand bo'vomman, darslarga alohida mehr berib o'tilishi shundoq sezilib turibdi, mazza qilib ko'raman. Qo'shimcha materiallarni aytmasam xato qilgan bölaman. Faqatgina stmning özi bilan cheklanib qolinmaganligi bu kursni yanada sayqallagan. Ummu Umayrning darslari erimga qanday tushuntiraman, qanaqasiga ma'lum muddat j.a. bo'lmaydi deyman, va h.k. deydiganlar uchun to'liq javob bo'la oladi. Sohiba opaning yoni steam haqidagi videolari (webinar desa ham bo'ladi) sog'lig'iga befarq bo'lmasdan stm kursini sotib olganlar uchun tabiiy tiklanish haqidagi savollarini yopib ketdi. Man hozir qilolmiman, homiladorman lekin tug'ganimdan keyin tiklanish uchun inshaAlloh albatta qilaman, shoshib ketyapman. Shoshganimdan onamlarga qilib ko'rmoqchi edim hozir issiqda parlamoqchimisan mani didila ^^ Uyam otmen böldi hullas. Ruvayha opa как всегда в своём репертуаре: ko'p eslatmalar oldim, masalan toksik narsalardan organizmni himoyalash, bizning salomatligimizga bizning nabirayu evaralarimizni ham salomatligi bog'lik ekanligi... Ora orada shunaqa qayta qayta eslatma olib turish juda foydalide özi. Yangiliklar ham böldi, masalan kökrak salomatligiga oid ba'zi ma'lumotlar, hususan lyugol yodni ishlatish. Miyyam mazza qivvottide hullas informatsiyaladan. E'tirof etmasa bo'midigan silsilaviy darslar (alohida kurs): ayollarga oid fiqhiy masalalar-hanafiy fiqhi.... Вишенка на торте. Huddi kursni nomidek, stm darslari va fiqh darslari bir biri bilan shunaqangi uyg'unki, endi stmni ayollar fiqhi bilan ko'rish majburiydek tuyulib qoldi... Kursda ayol/qizlar (ha-ha, qizlar ham) o'qishini juddayam qattiq tavsiya qilgan bölar edim. Hattoki shu darajadaki, berilayotgan ma'lumotlar maktablarda örgatilinsa vashshe ideal bölardi. Ya'ni shu darajada kerakli, tushunyapsizmi, huddi masalan ПДД fanini muhim deb örgatishadiku, shu kabi, juda muhim ya'ni.",
     },
@@ -387,7 +388,7 @@ const ReviewsCarousel = () => {
                   <div className="w-20 h-20 bg-gray-200 rounded-full overflow-hidden mr-4 flex items-center justify-center">
                     <img
                       className="w-full h-full object-cover"
-                      src={`/images/sharh/${index + 1}.jpg`}
+                      src={`/images/sharh/${review.photo}.jpg`}
                       alt=""
                     />
                   </div>
@@ -607,7 +608,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const sectionIds = ["main", "courses", "author", "faq", "pricing", "reviews"];
+    const sectionIds = ["main", "paths", "author", "faq", "pricing", "reviews"];
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -640,7 +641,7 @@ export default function HomePage() {
 
   const navLinks = [
     { href: "#main", label: "Bosh sahifa", shortLabel: "Asosiy", icon: Home, id: "main" },
-    { href: "#courses", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "courses" },
+    { href: "#paths", label: "Kurs haqida", shortLabel: "Kurs", icon: BookOpen, id: "paths" },
     { href: "#author", label: "Muallif haqida", shortLabel: "Muallif", icon: UserCircle, id: "author" },
     { href: "#faq", label: "FAQ", shortLabel: "FAQ", icon: HelpCircle, id: "faq" },
     { href: "#pricing", label: "Tariflar", shortLabel: "Tarif", icon: Tags, id: "pricing" },
@@ -1130,7 +1131,7 @@ export default function HomePage() {
                   <CardContent>
                     <div className="mb-4">
                       <h4 className="font-semibold text-red-800 mb-2">
-                        Videodarslar (20-30 daq.):
+                        Videodarslar (50-60 daq.):
                       </h4>
                       <ul className="space-y-1">
                         <li className="flex items-start">
@@ -1714,15 +1715,21 @@ export default function HomePage() {
 
                 <div className="space-y-4 lg:space-y-6 text-gray-800">
                   <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
-                    Buyuk Britaniya "Natural Family Planning Teachers'
-                    Association" uyushmasining sertifikatli treneri.
-                  </p>
-                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     O'zbekistonda ilk marotaba ayollar uchun ko'p martalik
                     matoli tagliklarni tanishtirgan ayol.
                   </p>
                   <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
                     2 ta farzandini tibbiy xodimlar va aralashuvlarsiz, ongli yondashib, oʻz uyida dunyoga keltirgan ona.
+                  </p>
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    Buyuk Britaniya "Natural Family Planning Teachers'
+                    Association" uyushmasining sertifikatli treneri.
+                  </p>
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    Irina Manso Akademiyasi — STM konsultantlarini kasbiy tayyorlash va rivojlantirish markazi (Rossiya) — 1-daraja konsultanti.
+                  </p>
+                  <p className="text-base sm:text-lg lg:text-xl leading-relaxed lg:leading-loose">
+                    «Открытые Сердца» hayot va oilani muhofaza qilish xayriya jamg'armasi (Belarus), Yevropa Oilaviy Ta'lim Instituti (EIFLE) bilan hamkorlikda — 2-daraja konsultanti.
                   </p>
                 </div>
               </motion.div>

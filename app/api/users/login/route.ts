@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const isPasswordValid = await bcrypt.compare(password, user.password);
     console.log(`Login attempt for ${email}: password valid = ${isPasswordValid}`);
     if (!isPasswordValid) {
-      console.log(`Password mismatch for ${email}. Provided: [${password}]`);
+      console.log(`Password mismatch for ${email}.`);
       return NextResponse.json(
         { error: 'Noto\'g\'ri email yoki parol' },
         { status: 401 }
