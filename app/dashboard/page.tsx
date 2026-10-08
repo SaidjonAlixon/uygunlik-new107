@@ -15,13 +15,14 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, MessageSquareText, ArrowLeft, ChevronRight, ChevronDown, Lock, Layers, Eye, EyeOff } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, MessageSquareText, ArrowLeft, ChevronRight, ChevronDown, Lock, Layers, Eye, EyeOff, CheckCircle2, ClipboardCheck, Trophy, RotateCcw } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
 import { useToast } from "@/components/ui/use-toast";
 import { LessonSection } from "@/types/section";
 import type { Lesson } from "@/types/lesson";
+import { lessonStep, sectionPercent, type LessonStep } from "@/lib/section-progress";
 import DashboardRatingTab from "@/components/dashboard-rating-tab";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -144,26 +145,33 @@ export default function DashboardPage() {
     }
   }, []);
 
-  const getSectionProgress = (section: LessonSection) => {
-    const lessons = section.lessons || [];
-    if (lessons.length === 0) return 0;
-    const total = lessons.reduce((sum, lesson) => sum + (lessonProgress[lesson.id] ?? 0), 0);
-    return Math.floor(total / lessons.length);
-  };
-
   const needsFeedback = (lesson: Lesson) =>
     lesson.feedback_mode !== 'optional' && !feedbackGiven.has(lesson.id);
 
-  const getSectionRemaining = (section: LessonSection) =>
-    (section.lessons || [])
-      .map((lesson) => ({
-        lesson,
-        percent: lessonProgress[lesson.id] ?? 0,
-        feedbackMissing: needsFeedback(lesson),
-      }))
-      .filter((item) => item.percent < 100 || item.feedbackMissing);
+  const lessonHref = (lessonId: number, step: LessonStep) =>
+    step === 'feedback' ? `/watch/${lessonId}#lesson-izoh` : `/watch/${lessonId}`;
 
-  const getSectionLessonsLeft = (section: LessonSection) => getSectionRemaining(section).length;
+  const getLessonState = (lesson: Lesson) => {
+    const percent = Math.min(100, Math.max(0, lessonProgress[lesson.id] ?? 0));
+    const feedbackOk = !needsFeedback(lesson);
+    return { lesson, percent, feedbackOk, step: lessonStep(percent, feedbackOk) };
+  };
+
+  const getSectionSummary = (section: LessonSection) => {
+    const states = (section.lessons || []).map(getLessonState);
+    const remaining = states.filter((s) => s.step !== 'done');
+    return {
+      states,
+      remaining,
+      total: states.length,
+      watched: states.filter((s) => s.percent >= 100).length,
+      feedbackDone: states.filter((s) => s.lesson.feedback_mode !== 'optional' && feedbackGiven.has(s.lesson.id)).length,
+      feedbackTotal: states.filter((s) => s.lesson.feedback_mode !== 'optional').length,
+      done: states.length - remaining.length,
+      percent: sectionPercent(states),
+      complete: states.length > 0 && remaining.length === 0,
+    };
+  };
 
   const selectedSection = tariffSections.find((section) => section.id === selectedSectionId) ?? null;
 
@@ -306,43 +314,73 @@ export default function DashboardPage() {
                         </div>
                       ) : tariffSections.length > 0 ? (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                          {tariffSections.map((section, sectionIndex) => (
+                          {tariffSections.map((section, sectionIndex) => {
+                            const summary = getSectionSummary(section);
+                            const hasTest = Array.isArray(section.test_questions) && section.test_questions.length > 0;
+                            return (
                             <button
                               key={section.id}
                               type="button"
                               onClick={() => setSelectedSectionId(section.id)}
                               className="text-left bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg overflow-hidden hover:shadow-xl hover:border-red-200 transition-all"
                             >
-                              <div className="px-6 py-5">
-                                <div className="flex items-start gap-4">
-                                  <span className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600 text-white text-sm font-bold shrink-0 shadow-md shadow-red-600/20">
-                                    {sectionIndex + 1}
+                              <div className="px-4 py-4 sm:px-6 sm:py-5">
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                  <span
+                                    className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white text-sm font-bold shrink-0 shadow-md ${
+                                      summary.complete ? "bg-green-600 shadow-green-600/20" : "bg-red-600 shadow-red-600/20"
+                                    }`}
+                                  >
+                                    {summary.complete ? <CheckCircle2 className="h-5 w-5" /> : sectionIndex + 1}
                                   </span>
                                   <div className="flex-1 min-w-0">
-                                    <h3 className="text-xl font-bold text-gray-900 tracking-tight">
+                                    <h3 className="text-lg sm:text-xl font-bold text-gray-900 tracking-tight">
                                       {section.name}
                                     </h3>
                                     {section.description && (
-                                      <p className="text-sm text-gray-600 mt-2 leading-relaxed line-clamp-2">
+                                      <p className="text-sm text-gray-600 mt-1.5 leading-relaxed line-clamp-2">
                                         {section.description}
                                       </p>
                                     )}
-                                    <p className="text-xs text-gray-400 mt-2 font-medium">
-                                      {section.lessons?.length || 0} ta dars
-                                    </p>
-                                    <div className="mt-4 space-y-1.5">
+                                    <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-medium">
+                                      <span className="rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
+                                        {summary.total} ta dars
+                                      </span>
+                                      <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
+                                        <Eye className="h-3 w-3" /> {summary.watched}/{summary.total}
+                                      </span>
+                                      {summary.feedbackTotal > 0 && (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-2 py-0.5 text-gray-600">
+                                          <MessageSquareText className="h-3 w-3" /> {summary.feedbackDone}/{summary.feedbackTotal}
+                                        </span>
+                                      )}
+                                      {hasTest && (
+                                        <span
+                                          className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 ${
+                                            summary.complete ? "bg-green-100 text-green-700" : "bg-red-50 text-red-600"
+                                          }`}
+                                        >
+                                          {summary.complete ? <ClipboardCheck className="h-3 w-3" /> : <Lock className="h-3 w-3" />}
+                                          {summary.complete ? "Test ochiq" : "Test yopiq"}
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="mt-3 space-y-1.5">
                                       <div className="flex justify-between text-xs text-gray-500">
                                         <span>Umumiy progress</span>
-                                        <span className="font-medium text-gray-700">{getSectionProgress(section)}%</span>
+                                        <span className={`font-semibold ${summary.complete ? "text-green-600" : "text-gray-700"}`}>
+                                          {summary.percent}%
+                                        </span>
                                       </div>
-                                      <Progress value={getSectionProgress(section)} className="h-2" />
+                                      <Progress value={summary.percent} className="h-2" />
                                     </div>
                                   </div>
                                   <ChevronRight className="h-5 w-5 text-red-600 shrink-0 mt-1" />
                                 </div>
                               </div>
                             </button>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <div className="text-center py-8 bg-gray-50 rounded-lg">
@@ -368,102 +406,249 @@ export default function DashboardPage() {
                           <ArrowLeft className="h-4 w-4 mr-2" />
                           Bo'limlarga qaytish
                         </Button>
-                        <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg px-6 py-5">
-                          <div className="flex items-start gap-4">
-                            <span className="flex items-center justify-center w-10 h-10 rounded-full bg-red-600 text-white text-sm font-bold shrink-0 shadow-md shadow-red-600/20">
-                              {tariffSections.findIndex((s) => s.id === selectedSection.id) + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <h2 className="text-2xl font-bold text-gray-900">{selectedSection.name}</h2>
-                              {selectedSection.description && (
-                                <p className="text-sm text-gray-600 mt-2 leading-relaxed whitespace-pre-line">
-                                  {selectedSection.description}
-                                </p>
-                              )}
-                              <p className="text-xs text-gray-400 mt-2 font-medium">
-                                {selectedSection.lessons?.length || 0} ta dars
-                                {" · "}Progress: {getSectionProgress(selectedSection)}%
-                              </p>
-                              {Array.isArray(selectedSection.test_questions) &&
-                                selectedSection.test_questions.length > 0 && (
-                                  <div className="mt-4 space-y-2">
-                                    {getSectionLessonsLeft(selectedSection) === 0 ? (
-                                      <Button
-                                        className="bg-red-600 hover:bg-red-700"
-                                        onClick={() => router.push(`/quiz/section/${selectedSection.id}`)}
-                                      >
-                                        <PlayCircle className="mr-2 h-4 w-4" />
-                                        Bo'lim testini ishlash
-                                      </Button>
+                        {(() => {
+                          const summary = getSectionSummary(selectedSection);
+                          const hasTest =
+                            Array.isArray(selectedSection.test_questions) && selectedSection.test_questions.length > 0;
+                          const next = summary.remaining[0];
+                          const unwatched = summary.remaining.filter((s) => s.step === "watch").length;
+                          const noFeedback = summary.remaining.filter((s) => s.step === "feedback").length;
+                          const reasons = [
+                            unwatched > 0 ? `${unwatched} ta dars hali to'liq ko'rilmagan` : null,
+                            noFeedback > 0 ? `${noFeedback} ta darsga izoh yozilmagan` : null,
+                          ].filter(Boolean);
+                          return (
+                            <div className="bg-white/95 backdrop-blur-sm rounded-2xl border border-gray-200/90 shadow-lg overflow-hidden">
+                              <div className="px-4 py-4 sm:px-6 sm:py-5">
+                                <div className="flex items-start gap-3 sm:gap-4">
+                                  <span
+                                    className={`flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full text-white text-sm font-bold shrink-0 shadow-md ${
+                                      summary.complete ? "bg-green-600 shadow-green-600/20" : "bg-red-600 shadow-red-600/20"
+                                    }`}
+                                  >
+                                    {summary.complete ? (
+                                      <CheckCircle2 className="h-5 w-5" />
                                     ) : (
-                                      <Button
-                                        variant="outline"
-                                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                                        aria-expanded={showRemaining}
-                                        onClick={() => setShowRemaining((v) => !v)}
-                                      >
-                                        <Lock className="mr-2 h-4 w-4" />
-                                        Test ochilishiga {getSectionLessonsLeft(selectedSection)} ta dars qoldi
-                                        <ChevronDown
-                                          className={`ml-2 h-4 w-4 transition-transform ${showRemaining ? "rotate-180" : ""}`}
-                                        />
-                                      </Button>
+                                      tariffSections.findIndex((s) => s.id === selectedSection.id) + 1
                                     )}
-                                    {getSectionLessonsLeft(selectedSection) > 0 && !showRemaining && (
-                                      <p className="text-xs text-gray-500">
-                                        Nima qolganini ko'rish uchun tugmani bosing.
+                                  </span>
+                                  <div className="flex-1 min-w-0">
+                                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">
+                                      {selectedSection.name}
+                                    </h2>
+                                    {selectedSection.description && (
+                                      <p className="text-sm text-gray-600 mt-1.5 leading-relaxed whitespace-pre-line">
+                                        {selectedSection.description}
                                       </p>
                                     )}
-                                    {getSectionLessonsLeft(selectedSection) > 0 && showRemaining && (
-                                      <div className="rounded-xl border border-red-100 bg-red-50/50 p-3 space-y-2">
-                                        <p className="text-xs font-semibold text-gray-700">
-                                          Bo'lim testi ochilishi uchun qolganlar:
-                                        </p>
-                                        {getSectionRemaining(selectedSection).map(({ lesson, percent, feedbackMissing }) => (
-                                          <div
-                                            key={lesson.id}
-                                            className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 shadow-sm"
-                                          >
-                                            <div className="min-w-0 flex-1">
-                                              <p className="truncate text-sm font-medium text-gray-900">{lesson.title}</p>
-                                              <p className="text-xs text-gray-500">
-                                                {percent < 100
-                                                  ? `Ko'rildi: ${percent}% — yana ${100 - percent}% ko'rish kerak`
-                                                  : "Ko'rildi: 100% — izoh qoldirish kerak"}
-                                              </p>
-                                              {percent < 100 && <Progress value={percent} className="mt-1.5 h-1.5" />}
-                                            </div>
-                                            {lesson.video_url && (
-                                              <Link href={`/watch/${lesson.id}`} className="shrink-0">
-                                                <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700">
-                                                  {percent < 100 ? "Ko'rish" : "Izoh qoldirish"}
-                                                </Button>
-                                              </Link>
-                                            )}
-                                          </div>
-                                        ))}
-                                      </div>
-                                    )}
                                   </div>
-                                )}
+                                </div>
+
+                                <div className="mt-4 rounded-xl bg-gray-50 p-3 sm:p-4">
+                                  <div className="flex items-end justify-between gap-3">
+                                    <span className="text-sm font-semibold text-gray-700">Bo'lim progressi</span>
+                                    <span
+                                      className={`text-2xl font-bold tabular-nums leading-none ${
+                                        summary.complete ? "text-green-600" : "text-gray-900"
+                                      }`}
+                                    >
+                                      {summary.percent}%
+                                    </span>
+                                  </div>
+                                  <Progress value={summary.percent} className="mt-2 h-2.5" />
+                                  <div className="mt-3 grid grid-cols-3 gap-2 text-center">
+                                    {[
+                                      { label: "Ko'rildi", value: summary.watched, total: summary.total, icon: Eye },
+                                      { label: "Izoh", value: summary.feedbackDone, total: summary.feedbackTotal, icon: MessageSquareText },
+                                      { label: "Yakunlandi", value: summary.done, total: summary.total, icon: CheckCircle2 },
+                                    ].map(({ label, value, total, icon: Icon }) => (
+                                      <div key={label} className="rounded-lg bg-white px-1.5 py-2 shadow-sm ring-1 ring-gray-100">
+                                        <p
+                                          className={`text-base font-bold tabular-nums ${
+                                            total > 0 && value >= total ? "text-green-600" : "text-gray-900"
+                                          }`}
+                                        >
+                                          {value}/{total}
+                                        </p>
+                                        <p className="mt-0.5 flex items-center justify-center gap-1 text-[11px] text-gray-500">
+                                          <Icon className="h-3 w-3 shrink-0" /> {label}
+                                        </p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {summary.total === 0 ? null : summary.complete ? (
+                                <div className="border-t border-green-100 bg-green-50 px-4 py-4 sm:px-6">
+                                  <p className="flex items-center gap-2 font-semibold text-green-800">
+                                    <Trophy className="h-5 w-5 shrink-0" /> Barcha darslar yakunlandi
+                                  </p>
+                                  <p className="mt-1 text-sm text-green-700">
+                                    {hasTest
+                                      ? "Bo'lim testi ochiq — bilimingizni sinab ko'ring."
+                                      : "Ajoyib! Bu bo'limni to'liq tugatdingiz."}
+                                  </p>
+                                  {hasTest && (
+                                    <Button
+                                      className="mt-3 h-11 w-full bg-red-600 text-base hover:bg-red-700 sm:w-auto"
+                                      onClick={() => router.push(`/quiz/section/${selectedSection.id}`)}
+                                    >
+                                      <PlayCircle className="mr-2 h-5 w-5" />
+                                      Bo'lim testini ishlash
+                                    </Button>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="border-t border-amber-100 bg-amber-50/60 px-4 py-4 sm:px-6">
+                                  <p className="flex items-center gap-2 font-semibold text-gray-900">
+                                    <Lock className="h-4 w-4 shrink-0 text-amber-600" />
+                                    {hasTest ? "Bo'lim testi hali yopiq" : "Bo'lim hali yakunlanmagan"}
+                                  </p>
+                                  <p className="mt-1 text-sm text-gray-600">
+                                    {reasons.join(", ")}.
+                                    {hasTest ? " Hammasi bajarilgach test ochiladi." : ""}
+                                  </p>
+
+                                  {next && (
+                                    <div className="mt-3 rounded-xl bg-white p-3 shadow-sm ring-1 ring-amber-200">
+                                      <p className="text-[11px] font-semibold uppercase tracking-wide text-amber-700">
+                                        Keyingi qadam
+                                      </p>
+                                      <p className="mt-0.5 font-semibold text-gray-900 line-clamp-2">{next.lesson.title}</p>
+                                      <p className="mt-0.5 text-xs text-gray-500">
+                                        {next.step === "watch"
+                                          ? `Ko'rildi: ${next.percent}% — darsni oxirigacha ko'ring`
+                                          : "Dars ko'rildi — endi izoh yozing"}
+                                      </p>
+                                      {next.lesson.video_url && (
+                                        <Link href={lessonHref(next.lesson.id, next.step)} className="mt-2.5 block sm:inline-block">
+                                          <Button
+                                            className={`h-10 w-full sm:w-auto ${
+                                              next.step === "feedback"
+                                                ? "bg-amber-500 text-white hover:bg-amber-600"
+                                                : "bg-red-600 hover:bg-red-700"
+                                            }`}
+                                          >
+                                            {next.step === "feedback" ? (
+                                              <MessageSquareText className="mr-2 h-4 w-4" />
+                                            ) : (
+                                              <PlayCircle className="mr-2 h-4 w-4" />
+                                            )}
+                                            {next.step === "feedback"
+                                              ? "Izoh yozish"
+                                              : next.percent > 0
+                                                ? "Ko'rishni davom ettirish"
+                                                : "Darsni ko'rish"}
+                                          </Button>
+                                        </Link>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {summary.remaining.length > 1 && (
+                                    <button
+                                      type="button"
+                                      aria-expanded={showRemaining}
+                                      onClick={() => setShowRemaining((v) => !v)}
+                                      className="mt-3 flex w-full items-center justify-between rounded-lg px-1 py-1.5 text-sm font-semibold text-red-700 hover:text-red-800"
+                                    >
+                                      <span>Barcha qolgan darslar ({summary.remaining.length})</span>
+                                      <ChevronDown className={`h-4 w-4 transition-transform ${showRemaining ? "rotate-180" : ""}`} />
+                                    </button>
+                                  )}
+                                  {summary.remaining.length > 1 && showRemaining && (
+                                    <div className="mt-2 space-y-2">
+                                      {summary.remaining.map(({ lesson, percent, step }) => (
+                                        <div
+                                          key={lesson.id}
+                                          className="flex flex-col gap-2 rounded-lg bg-white p-3 shadow-sm sm:flex-row sm:items-center sm:gap-3"
+                                        >
+                                          <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-medium text-gray-900 line-clamp-2">{lesson.title}</p>
+                                            <p
+                                              className={`mt-0.5 flex items-center gap-1 text-xs ${
+                                                step === "feedback" ? "text-amber-700" : "text-gray-500"
+                                              }`}
+                                            >
+                                              {step === "feedback" ? (
+                                                <>
+                                                  <MessageSquareText className="h-3.5 w-3.5 shrink-0" /> Ko'rildi — izoh yozilmagan
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Eye className="h-3.5 w-3.5 shrink-0" /> Ko'rildi: {percent}% — yana {100 - percent}% qoldi
+                                                </>
+                                              )}
+                                            </p>
+                                            {step === "watch" && <Progress value={percent} className="mt-1.5 h-1.5" />}
+                                          </div>
+                                          {lesson.video_url ? (
+                                            <Link href={lessonHref(lesson.id, step)} className="sm:shrink-0">
+                                              <Button
+                                                size="sm"
+                                                className={`h-9 w-full sm:w-auto ${
+                                                  step === "feedback"
+                                                    ? "bg-amber-500 text-white hover:bg-amber-600"
+                                                    : "bg-red-600 hover:bg-red-700"
+                                                }`}
+                                              >
+                                                {step === "feedback" ? "Izoh yozish" : "Ko'rish"}
+                                              </Button>
+                                            </Link>
+                                          ) : (
+                                            <span className="text-xs text-gray-400">Video mavjud emas</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
                             </div>
-                          </div>
-                        </div>
+                          );
+                        })()}
                       </div>
 
                       {selectedSection.lessons && selectedSection.lessons.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {selectedSection.lessons.map((lesson) => (
-                            <Card key={lesson.id} className="flex flex-col shadow-md border-gray-100">
-                              <CardHeader className="pb-2">
-                                <CardTitle className="text-xl font-semibold text-gray-900 leading-tight">
-                                  {lesson.title}
-                                </CardTitle>
-                                <CardDescription className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-3 min-h-[3.75rem]">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+                          {selectedSection.lessons.map((lesson) => {
+                            const state = getLessonState(lesson);
+                            return (
+                            <Card
+                              key={lesson.id}
+                              className={`flex flex-col shadow-md ${
+                                state.step === "done"
+                                  ? "border-green-200"
+                                  : state.step === "feedback"
+                                    ? "border-amber-300"
+                                    : "border-gray-100"
+                              }`}
+                            >
+                              <CardHeader className="p-4 pb-2 sm:p-6 sm:pb-2">
+                                <div className="flex items-start justify-between gap-2">
+                                  <CardTitle className="text-lg sm:text-xl font-semibold text-gray-900 leading-tight">
+                                    {lesson.title}
+                                  </CardTitle>
+                                  {state.step === "done" ? (
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-green-100 px-2 py-0.5 text-[11px] font-semibold text-green-700">
+                                      <CheckCircle2 className="h-3.5 w-3.5" /> Yakunlandi
+                                    </span>
+                                  ) : state.step === "feedback" ? (
+                                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">
+                                      <MessageSquareText className="h-3.5 w-3.5" /> Izoh kerak
+                                    </span>
+                                  ) : state.percent > 0 ? (
+                                    <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600">
+                                      Jarayonda
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <CardDescription className="text-gray-600 text-sm leading-relaxed mt-1.5 line-clamp-3 sm:min-h-[3.75rem]">
                                   {lesson.description || 'Tavsif mavjud emas'}
                                 </CardDescription>
                               </CardHeader>
-                              <CardContent className="flex-grow py-2 space-y-3">
+                              <CardContent className="flex-grow px-4 py-2 sm:px-6 space-y-3">
                                 <div className="flex flex-wrap items-center gap-3 text-sm">
                                   {lesson.video_url && (
                                     <span className="inline-flex items-center gap-1.5 text-gray-700">
@@ -488,36 +673,50 @@ export default function DashboardPage() {
                                 </div>
                                 <div className="space-y-1.5">
                                   <div className="flex justify-between text-xs text-gray-500">
-                                    <span>
-                                      {(lessonProgress[lesson.id] ?? 0) >= 100 ? "To'liq ko'rildi ✓" : "Ko'rilgan"}
-                                    </span>
-                                    <span
-                                      className={`font-medium ${(lessonProgress[lesson.id] ?? 0) >= 100 ? "text-green-600" : "text-gray-700"}`}
-                                    >
-                                      {lessonProgress[lesson.id] ?? 0}%
+                                    <span>{state.percent >= 100 ? "To'liq ko'rildi ✓" : "Ko'rildi"}</span>
+                                    <span className={`font-medium ${state.percent >= 100 ? "text-green-600" : "text-gray-700"}`}>
+                                      {state.percent}%
                                     </span>
                                   </div>
-                                  <Progress value={lessonProgress[lesson.id] ?? 0} className="h-2" />
+                                  <Progress value={state.percent} className="h-2" />
                                 </div>
+                                {state.step === "feedback" && (
+                                  <p className="rounded-lg bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-800 ring-1 ring-amber-200">
+                                    Dars ko'rildi. Izoh yozing — shundan so'ng dars yakunlanadi va testi ochiladi.
+                                  </p>
+                                )}
                               </CardContent>
-                              <CardFooter className="pt-2">
-                                {lesson.video_url ? (
-                                  <Link href={`/watch/${lesson.id}`} className="w-full">
-                                    <Button className="w-full bg-red-600 hover:bg-red-700">
-                                      <PlayCircle className="mr-2 h-4 w-4" />
-                                      {(lessonProgress[lesson.id] ?? 0) >= 100
-                                        ? "Qayta ko'rish"
-                                        : "Darsni ko'rish"}
-                                    </Button>
-                                  </Link>
-                                ) : (
+                              <CardFooter className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
+                                {!lesson.video_url ? (
                                   <Button className="w-full" disabled>
                                     Video mavjud emas
                                   </Button>
+                                ) : state.step === "feedback" ? (
+                                  <Link href={lessonHref(lesson.id, state.step)} className="w-full">
+                                    <Button className="h-11 w-full bg-amber-500 text-white hover:bg-amber-600">
+                                      <MessageSquareText className="mr-2 h-4 w-4" />
+                                      Izoh yozish
+                                    </Button>
+                                  </Link>
+                                ) : state.step === "done" ? (
+                                  <Link href={`/watch/${lesson.id}`} className="w-full">
+                                    <Button variant="outline" className="h-11 w-full border-red-200 text-red-700 hover:bg-red-50">
+                                      <RotateCcw className="mr-2 h-4 w-4" />
+                                      Qayta ko'rish
+                                    </Button>
+                                  </Link>
+                                ) : (
+                                  <Link href={`/watch/${lesson.id}`} className="w-full">
+                                    <Button className="h-11 w-full bg-red-600 hover:bg-red-700">
+                                      <PlayCircle className="mr-2 h-4 w-4" />
+                                      {state.percent > 0 ? "Ko'rishni davom ettirish" : "Darsni ko'rish"}
+                                    </Button>
+                                  </Link>
                                 )}
                               </CardFooter>
                             </Card>
-                          ))}
+                            );
+                          })}
                         </div>
                       ) : (
                         <p className="text-sm text-gray-500 italic text-center py-8 bg-white/80 rounded-xl border border-gray-100">

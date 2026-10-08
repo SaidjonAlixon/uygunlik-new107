@@ -273,6 +273,16 @@ export default function WatchPage() {
   const watch = useLessonWatch(lesson?.id ?? null);
   const feedback = useLessonFeedback(lesson?.id ?? null);
 
+  const scrolledToIzohRef = useRef(false);
+  useEffect(() => {
+    if (scrolledToIzohRef.current || feedback.loading || !watch.ready) return;
+    if (typeof window === "undefined" || window.location.hash !== "#lesson-izoh") return;
+    const el = document.getElementById("lesson-izoh");
+    if (!el) return;
+    scrolledToIzohRef.current = true;
+    setTimeout(() => el.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  }, [feedback.loading, watch.ready, lesson?.id]);
+
   useEffect(() => {
     if (!lesson?.id) {
       setHasInternalQuiz(false);

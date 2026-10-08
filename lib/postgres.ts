@@ -1,5 +1,6 @@
 import { Pool, types } from 'pg';
 import type { RatingEntry } from '@/types/rating';
+import { sectionPercent } from '@/lib/section-progress';
 import {
   mergeRanges,
   sanitizeRanges,
@@ -1497,7 +1498,7 @@ export class LessonProgressService {
     const total = rows.length;
     const completed = rows.filter((r) => Number(r.percent) >= 100 && r.feedback_ok).length;
     const feedbackMissing = rows.filter((r) => Number(r.percent) >= 100 && !r.feedback_ok).length;
-    const percent = total ? Math.round(rows.reduce((s, r) => s + Number(r.percent), 0) / total) : 0;
+    const percent = sectionPercent(rows.map((r) => ({ percent: Number(r.percent), feedbackOk: r.feedback_ok })));
     return { total, completed, remaining: total - completed, feedbackMissing, percent };
   }
 }
