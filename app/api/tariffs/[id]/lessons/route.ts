@@ -58,7 +58,7 @@ export async function POST(
       video_url,
       pdf_url,
       test_url,
-      feedback_mode: feedback_mode === 'required' ? 'required' : 'optional',
+      feedback_mode: feedback_mode === 'optional' ? 'optional' : 'required',
       order_number: order_number || 0,
       additional_resources: additional_resources || [],
     });

@@ -201,8 +201,9 @@ async function runDatabaseInitialization() {
       )
     `);
     await pool.query(`
-      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS feedback_mode VARCHAR(16) DEFAULT 'optional'
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS feedback_mode VARCHAR(16) DEFAULT 'required'
     `);
+    await pool.query(`ALTER TABLE lessons ALTER COLUMN feedback_mode SET DEFAULT 'required'`);
     await pool.query(`
       CREATE TABLE IF NOT EXISTS lesson_feedback (
         id SERIAL PRIMARY KEY,
@@ -224,6 +225,13 @@ async function runDatabaseInitialization() {
         ADD COLUMN IF NOT EXISTS watched_ranges JSONB DEFAULT '[]'::jsonb,
         ADD COLUMN IF NOT EXISTS duration_seconds REAL,
         ADD COLUMN IF NOT EXISTS last_position REAL DEFAULT 0
+    `);
+    // Eski tizim foizni pozitsiyadan yaxlitlab olgan: 99% = video oxirigacha ko‘rilgan
+    await pool.query(`
+      UPDATE lesson_progress SET progress_percent = 100, updated_at = CURRENT_TIMESTAMP
+      WHERE progress_percent >= 99 AND progress_percent < 100
+        AND duration_seconds IS NULL
+        AND jsonb_array_length(COALESCE(watched_ranges, '[]'::jsonb)) = 0
     `);
 
     // Add test_questions to lessons
@@ -384,7 +392,7 @@ async function runDatabaseInitialization() {
 }
 
 export async function initializeDatabase() {
-  const SCHEMA_VERSION = 5; // bump when adding columns so HMR/restart re-runs migrations
+  const SCHEMA_VERSION = 6; // bump when adding columns so HMR/restart re-runs migrations
   if (
     globalForDb.__uygunlikDbReady &&
     globalForDb.__uygunlikSchemaVersion === SCHEMA_VERSION
@@ -1062,7 +1070,7 @@ export class LessonService {
       JSON.stringify(lessonData.test_questions || []),
       lessonData.order_number || 0,
       JSON.stringify(lessonData.additional_resources || []),
-      lessonData.feedback_mode === 'required' ? 'required' : 'optional',
+      lessonData.feedback_mode === 'optional' ? 'optional' : 'required',
     ]);
     return result.rows[0];
   }
@@ -1090,7 +1098,7 @@ export class LessonService {
 
     Object.entries(updates).forEach(([key, value]) => {
       if (!allowed.has(key)) return;
-      if (key === 'feedback_mode') value = value === 'required' ? 'required' : 'optional';
+      if (key === 'feedback_mode') value = value === 'optional' ? 'optional' : 'required';
       if (value !== undefined) {
         if (key === 'additional_resources' || key === 'test_questions') {
           fields.push(`${key} = $${paramCount}`);
@@ -1202,7 +1210,7 @@ export class LessonFeedbackService {
     );
     const row = result.rows[0];
     if (!row) return true;
-    return row.feedback_mode !== 'required' || row.given === true;
+    return row.feedback_mode === 'optional' || row.given === true;
   }
 
   static async remove(id: number) {
@@ -1254,7 +1262,7 @@ export class LessonFeedbackService {
       pool.query(
         `SELECT f.id, f.rating, f.comment, f.created_at, f.updated_at,
                 u.id AS user_id, u.first_name, u.last_name, u.email, t.name AS tariff_name,
-                l.id AS lesson_id, l.title AS lesson_title, COALESCE(l.feedback_mode, 'optional') AS feedback_mode,
+                l.id AS lesson_id, l.title AS lesson_title, COALESCE(l.feedback_mode, 'required') AS feedback_mode,
                 s.id AS section_id, s.name AS section_name
          ${joins} ${whereSql}
          ORDER BY ${order}
@@ -1297,7 +1305,7 @@ export class LessonFeedbackService {
   /** Har bir dars bo‘yicha: rejim, fikrlar soni, o‘rtacha baho, ko‘rib bo‘lganlar soni */
   static async lessonSummary() {
     const result = await pool.query(`
-      SELECT l.id, l.title, l.order_number, COALESCE(l.feedback_mode, 'optional') AS feedback_mode,
+      SELECT l.id, l.title, l.order_number, COALESCE(l.feedback_mode, 'required') AS feedback_mode,
              s.id AS section_id, s.name AS section_name, s.order_number AS section_order,
              COUNT(f.id)::int AS feedback_count,
              COALESCE(ROUND(AVG(f.rating)::numeric, 2), 0)::float AS average,
@@ -1465,7 +1473,7 @@ export class LessonProgressService {
            SELECT unnest(COALESCE(test_visible_lesson_ids, '{}')) FROM lessons WHERE id = $2
          )
          AND (
-           COALESCE(l.feedback_mode, 'optional') <> 'required'
+           COALESCE(l.feedback_mode, 'required') = 'optional'
            OR EXISTS (SELECT 1 FROM lesson_feedback f WHERE f.lesson_id = l.id AND f.user_id = $1)
          )
        LIMIT 1`,
@@ -1477,7 +1485,7 @@ export class LessonProgressService {
   static async getSectionStatus(userId: number, sectionId: number) {
     const result = await pool.query(
       `SELECT l.id, COALESCE(lp.progress_percent, 0) AS percent,
-              (COALESCE(l.feedback_mode, 'optional') <> 'required' OR f.id IS NOT NULL) AS feedback_ok
+              (COALESCE(l.feedback_mode, 'required') = 'optional' OR f.id IS NOT NULL) AS feedback_ok
        FROM lessons l
        LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $1
        LEFT JOIN lesson_feedback f ON f.lesson_id = l.id AND f.user_id = $1

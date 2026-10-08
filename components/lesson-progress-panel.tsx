@@ -17,7 +17,7 @@ type Props = {
   watchedSeconds: number;
   durationSeconds: number | null;
   hasQuiz: boolean;
-  /** Fikr majburiy va hali qoldirilmagan — test fikrdan keyin ochiladi */
+  /** Izoh majburiy va hali qoldirilmagan — test izohdan keyin ochiladi */
   feedbackPending?: boolean;
   onStartQuiz: () => void;
 };
@@ -69,7 +69,7 @@ export function LessonProgressPanel({
               <CheckCircle2 className="h-4 w-4 shrink-0 text-green-400" />
               <span className="text-green-300">
                 Dars to‘liq ko‘rildi
-                {hasQuiz ? (feedbackPending ? " — testni ochish uchun quyida fikr qoldiring" : " — test ochildi") : ""}
+                {hasQuiz ? (feedbackPending ? " — testni ochish uchun quyida izoh qoldiring" : " — test ochildi") : ""}
               </span>
             </>
           ) : (
@@ -103,7 +103,7 @@ export function LessonProgressPanel({
             {quizOpen
               ? "Testni boshlash"
               : done
-                ? "Test ochilishi uchun fikr qoldiring"
+                ? "Test ochilishi uchun izoh qoldiring"
                 : `Test ochilishiga ${remainingText} qoldi`}
           </button>
         )}

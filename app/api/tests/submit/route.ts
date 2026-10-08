@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
         : await LessonProgressService.canTakeLessonQuiz(uid, Number(lesson_id));
       if (!unlocked) {
         return NextResponse.json(
-          { error: "Test hali ochilmagan: avval darslarni 100% ko'ring va majburiy fikrlarni qoldiring" },
+          { error: "Test hali ochilmagan: avval darslarni 100% ko'ring va har bir darsga izoh qoldiring" },
           { status: 403 }
         );
       }

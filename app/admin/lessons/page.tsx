@@ -58,7 +58,7 @@ export default function AdminLessonsPage() {
     description: '',
     video_url: '',
     pdf_url: '',
-    feedback_mode: 'optional' as FeedbackMode,
+    feedback_mode: 'required' as FeedbackMode,
     test_url: '',
     order_number: '1',
     section_id: '',
@@ -109,7 +109,7 @@ export default function AdminLessonsPage() {
       description: '',
       video_url: '',
       pdf_url: '',
-      feedback_mode: 'optional',
+      feedback_mode: 'required',
       test_url: '',
       order_number: String(nextOrder),
       section_id: String(sectionId),
@@ -245,7 +245,7 @@ export default function AdminLessonsPage() {
   };
 
   const toggleFeedbackMode = async (lesson: Lesson) => {
-    const next: FeedbackMode = lesson.feedback_mode === 'required' ? 'optional' : 'required';
+    const next: FeedbackMode = lesson.feedback_mode === 'optional' ? 'required' : 'optional';
     setModeSaving(lesson.id);
     try {
       await api.patch('/admin/feedback', { lesson_id: lesson.id, feedback_mode: next });
@@ -432,13 +432,13 @@ export default function AdminLessonsPage() {
                                 onClick={() => toggleFeedbackMode(l)}
                                 title="Bosib almashtiring"
                                 className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-60 ${
-                                  l.feedback_mode === 'required'
+                                  l.feedback_mode !== 'optional'
                                     ? 'bg-[#5D1111] text-white border-[#5D1111] hover:bg-[#7A2E2E]'
                                     : 'bg-[#FEFBEE] text-[#7A2E2E] border-[#7A2E2E]/20 hover:border-[#5D1111]/50'
                                 }`}
                               >
                                 <MessageSquareText className="h-3.5 w-3.5" />
-                                {l.feedback_mode === 'required' ? 'Majburiy' : 'Ixtiyoriy'}
+                                {l.feedback_mode !== 'optional' ? 'Majburiy' : 'Ixtiyoriy'}
                               </button>
                             </td>
                             <td className="py-3 px-6 text-[#5D1111]/80">{l.order_number}</td>

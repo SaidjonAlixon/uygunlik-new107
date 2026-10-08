@@ -143,10 +143,10 @@ export default function SectionQuizPage() {
         percent={locked.percent}
         message={
           locked.remaining > 0 && locked.feedbackMissing === locked.remaining
-            ? `Darslar ko'rildi, lekin ${locked.feedbackMissing} ta darsda majburiy fikr qoldirilmagan. Fikr qoldiring — shundan so'ng test ochiladi.`
+            ? `Darslar ko'rildi, lekin ${locked.feedbackMissing} ta darsga izoh qoldirilmagan. Izoh qoldiring — shundan so'ng test ochiladi.`
             : locked.remaining > 0
               ? `Test ochilishiga ${locked.remaining} ta dars qoldi. Bo'limdagi barcha darslarni 100% ko'ring${
-                  locked.feedbackMissing > 0 ? " va majburiy fikrlarni qoldiring" : ""
+                  locked.feedbackMissing > 0 ? " va har biriga izoh qoldiring" : ""
                 } — shundan so'ng test ochiladi.`
               : "Bo'limdagi barcha darslarni 100% ko'ring — shundan so'ng test ochiladi."
         }

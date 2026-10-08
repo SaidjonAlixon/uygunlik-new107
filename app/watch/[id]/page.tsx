@@ -495,7 +495,7 @@ export default function WatchPage() {
   const youtubeVideoId = getYouTubeVideoId(videoUrl);
   const isYouTubeEmbed = Boolean(youtubeVideoId);
   const hasQuiz = Boolean(lesson?.test_url || hasInternalQuiz);
-  const feedbackMode = lesson?.feedback_mode === "required" ? "required" : "optional";
+  const feedbackMode = lesson?.feedback_mode === "optional" ? "optional" : "required";
   const feedbackPending =
     feedbackMode === "required" && user.role !== "admin" && !feedback.loading && !feedback.data;
 
@@ -527,6 +527,8 @@ export default function WatchPage() {
       feedback={feedback.data}
       loading={feedback.loading}
       onSaved={feedback.setData}
+      hasQuiz={hasQuiz}
+      onStartQuiz={startQuiz}
     />
   ) : null;
 

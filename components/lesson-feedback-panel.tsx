@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, Loader2, Lock, MessageSquareText, Pencil, Send, Star } from "lucide-react";
+import { CheckCircle2, Loader2, Lock, MessageSquareText, Pencil, PlayCircle, Send, Star } from "lucide-react";
 import { toast } from "sonner";
 import api from "@/lib/api";
 import { formatTashkentDateTime } from "@/lib/datetime";
@@ -22,6 +22,8 @@ type Props = {
   feedback: LessonFeedback | null;
   loading: boolean;
   onSaved: (feedback: LessonFeedback) => void;
+  hasQuiz?: boolean;
+  onStartQuiz?: () => void;
 };
 
 function Stars({
@@ -56,7 +58,16 @@ function Stars({
   );
 }
 
-export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loading, onSaved }: Props) {
+export function LessonFeedbackPanel({
+  lessonId,
+  mode,
+  unlocked,
+  feedback,
+  loading,
+  onSaved,
+  hasQuiz = false,
+  onStartQuiz,
+}: Props) {
   const [editing, setEditing] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
@@ -75,7 +86,7 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
 
   const submit = async () => {
     if (!canSubmit) {
-      toast.error(rating < 1 ? "Iltimos, darsni yulduzlar bilan baholang" : "Fikringizni yozing (kamida 3 ta belgi)");
+      toast.error(rating < 1 ? "Iltimos, darsni yulduzlar bilan baholang" : "Izohingizni yozing (kamida 3 ta belgi)");
       return;
     }
     setSaving(true);
@@ -83,9 +94,11 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
       const res = await api.post("/lesson-feedback", { lesson_id: lessonId, rating, comment: trimmed });
       const saved = res.data?.feedback;
       onSaved({ rating: saved.rating, comment: saved.comment, updated_at: saved.updated_at });
-      toast.success(feedback ? "Fikringiz yangilandi" : "Rahmat! Fikringiz qabul qilindi");
+      toast.success(
+        feedback ? "Izohingiz yangilandi" : hasQuiz ? "Rahmat! Izoh qabul qilindi — test ochildi" : "Rahmat! Izoh qabul qilindi"
+      );
     } catch (err: any) {
-      toast.error(err?.response?.data?.error || "Fikrni yuborib bo‘lmadi");
+      toast.error(err?.response?.data?.error || "Izohni yuborib bo‘lmadi");
     } finally {
       setSaving(false);
     }
@@ -100,11 +113,13 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
               <MessageSquareText className="h-5 w-5" />
             </span>
             <div>
-              <p className="text-sm font-semibold text-white">Dars bo‘yicha fikringiz</p>
+              <p className="text-sm font-semibold text-white">Dars bo‘yicha izoh</p>
               <p className="mt-0.5 text-xs text-white/55">
                 {required
-                  ? "Bu dars uchun fikr qoldirish majburiy — testdan oldin baholang"
-                  : "Fikringiz darslarni yanada yaxshilashimizga yordam beradi"}
+                  ? hasQuiz
+                    ? "Izoh qoldirish majburiy — izohdan so‘ng shu darsning testi ochiladi"
+                    : "Bu dars uchun izoh qoldirish majburiy"
+                  : "Izohingiz darslarni yanada yaxshilashimizga yordam beradi"}
               </p>
             </div>
           </div>
@@ -124,7 +139,7 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
         ) : !unlocked ? (
           <p className="mt-4 flex items-center gap-2 rounded-xl bg-white/[0.04] px-3 py-3 text-sm text-white/60">
             <Lock className="h-4 w-4 shrink-0" />
-            Darsni oxirigacha ko‘rganingizdan so‘ng fikr qoldirishingiz mumkin bo‘ladi.
+            Darsni oxirigacha ko‘rganingizdan so‘ng izoh qoldirishingiz mumkin bo‘ladi.
           </p>
         ) : showForm ? (
           <div className="mt-4 space-y-4">
@@ -136,7 +151,7 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
               </div>
             </div>
             <div>
-              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-white/45">Fikringiz</p>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-white/45">Izohingiz</p>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT))}
@@ -158,7 +173,7 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
                 }`}
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                {feedback ? "Saqlash" : "Fikrni yuborish"}
+                {feedback ? "Saqlash" : "Izohni yuborish"}
               </button>
               {feedback && (
                 <button
@@ -175,7 +190,7 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
           <div className="mt-4 rounded-xl border border-green-500/20 bg-green-500/[0.06] p-4">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <p className="flex items-center gap-2 text-sm font-semibold text-green-300">
-                <CheckCircle2 className="h-4 w-4" /> Fikringiz qabul qilindi
+                <CheckCircle2 className="h-4 w-4" /> Izohingiz qabul qilindi
               </p>
               <button
                 type="button"
@@ -193,6 +208,16 @@ export function LessonFeedbackPanel({ lessonId, mode, unlocked, feedback, loadin
             </p>
             {feedback.updated_at && (
               <p className="mt-2 text-[11px] text-white/40">{formatTashkentDateTime(feedback.updated_at)}</p>
+            )}
+            {hasQuiz && onStartQuiz && (
+              <button
+                type="button"
+                onClick={onStartQuiz}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-red-600 px-6 py-3.5 text-base font-bold text-white shadow-lg transition-all hover:bg-red-700 sm:w-auto"
+              >
+                <PlayCircle className="h-5 w-5" />
+                Testni boshlash
+              </button>
             )}
           </div>
         ) : null}

@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, MessageSquareText, ArrowLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, MessageSquareText, ArrowLeft, ChevronRight, ChevronDown, Lock, Layers, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
@@ -61,6 +61,11 @@ export default function DashboardPage() {
   const [feedbackGiven, setFeedbackGiven] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState('courses');
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
+  const [showRemaining, setShowRemaining] = useState(false);
+
+  useEffect(() => {
+    setShowRemaining(false);
+  }, [selectedSectionId]);
   const [showPassword, setShowPassword] = useState(false);
 
   const handleLogout = () => {
@@ -143,21 +148,22 @@ export default function DashboardPage() {
     const lessons = section.lessons || [];
     if (lessons.length === 0) return 0;
     const total = lessons.reduce((sum, lesson) => sum + (lessonProgress[lesson.id] ?? 0), 0);
-    return Math.round(total / lessons.length);
+    return Math.floor(total / lessons.length);
   };
 
   const needsFeedback = (lesson: Lesson) =>
-    lesson.feedback_mode === 'required' && !feedbackGiven.has(lesson.id);
+    lesson.feedback_mode !== 'optional' && !feedbackGiven.has(lesson.id);
 
-  const getSectionLessonsLeft = (section: LessonSection) =>
-    (section.lessons || []).filter(
-      (lesson) => (lessonProgress[lesson.id] ?? 0) < 100 || needsFeedback(lesson)
-    ).length;
+  const getSectionRemaining = (section: LessonSection) =>
+    (section.lessons || [])
+      .map((lesson) => ({
+        lesson,
+        percent: lessonProgress[lesson.id] ?? 0,
+        feedbackMissing: needsFeedback(lesson),
+      }))
+      .filter((item) => item.percent < 100 || item.feedbackMissing);
 
-  const getSectionFeedbackMissing = (section: LessonSection) =>
-    (section.lessons || []).filter(
-      (lesson) => (lessonProgress[lesson.id] ?? 0) >= 100 && needsFeedback(lesson)
-    ).length;
+  const getSectionLessonsLeft = (section: LessonSection) => getSectionRemaining(section).length;
 
   const selectedSection = tariffSections.find((section) => section.id === selectedSectionId) ?? null;
 
@@ -380,24 +386,63 @@ export default function DashboardPage() {
                               </p>
                               {Array.isArray(selectedSection.test_questions) &&
                                 selectedSection.test_questions.length > 0 && (
-                                  <div className="mt-4 space-y-1.5">
-                                    <Button
-                                      className="bg-red-600 hover:bg-red-700"
-                                      disabled={getSectionLessonsLeft(selectedSection) > 0}
-                                      onClick={() => {
-                                        window.open(`/quiz/section/${selectedSection.id}`, "_blank");
-                                      }}
-                                    >
-                                      {getSectionLessonsLeft(selectedSection) === 0
-                                        ? "Bo'lim yakuniy testini boshlash"
-                                        : `Test ochilishiga ${getSectionLessonsLeft(selectedSection)} ta dars qoldi`}
-                                    </Button>
-                                    {getSectionLessonsLeft(selectedSection) > 0 && (
+                                  <div className="mt-4 space-y-2">
+                                    {getSectionLessonsLeft(selectedSection) === 0 ? (
+                                      <Button
+                                        className="bg-red-600 hover:bg-red-700"
+                                        onClick={() => router.push(`/quiz/section/${selectedSection.id}`)}
+                                      >
+                                        <PlayCircle className="mr-2 h-4 w-4" />
+                                        Bo'lim testini ishlash
+                                      </Button>
+                                    ) : (
+                                      <Button
+                                        variant="outline"
+                                        className="border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                                        aria-expanded={showRemaining}
+                                        onClick={() => setShowRemaining((v) => !v)}
+                                      >
+                                        <Lock className="mr-2 h-4 w-4" />
+                                        Test ochilishiga {getSectionLessonsLeft(selectedSection)} ta dars qoldi
+                                        <ChevronDown
+                                          className={`ml-2 h-4 w-4 transition-transform ${showRemaining ? "rotate-180" : ""}`}
+                                        />
+                                      </Button>
+                                    )}
+                                    {getSectionLessonsLeft(selectedSection) > 0 && !showRemaining && (
                                       <p className="text-xs text-gray-500">
-                                        {getSectionFeedbackMissing(selectedSection) > 0
-                                          ? `Bo'limdagi barcha darslar 100% ko'rilib, majburiy fikrlar qoldirilgach test ochiladi (${getSectionFeedbackMissing(selectedSection)} ta darsda fikr kutilmoqda).`
-                                          : "Bo'limdagi barcha darslar 100% ko'rilgach test ochiladi."}
+                                        Nima qolganini ko'rish uchun tugmani bosing.
                                       </p>
+                                    )}
+                                    {getSectionLessonsLeft(selectedSection) > 0 && showRemaining && (
+                                      <div className="rounded-xl border border-red-100 bg-red-50/50 p-3 space-y-2">
+                                        <p className="text-xs font-semibold text-gray-700">
+                                          Bo'lim testi ochilishi uchun qolganlar:
+                                        </p>
+                                        {getSectionRemaining(selectedSection).map(({ lesson, percent, feedbackMissing }) => (
+                                          <div
+                                            key={lesson.id}
+                                            className="flex items-center gap-3 rounded-lg bg-white px-3 py-2 shadow-sm"
+                                          >
+                                            <div className="min-w-0 flex-1">
+                                              <p className="truncate text-sm font-medium text-gray-900">{lesson.title}</p>
+                                              <p className="text-xs text-gray-500">
+                                                {percent < 100
+                                                  ? `Ko'rildi: ${percent}% — yana ${100 - percent}% ko'rish kerak`
+                                                  : "Ko'rildi: 100% — izoh qoldirish kerak"}
+                                              </p>
+                                              {percent < 100 && <Progress value={percent} className="mt-1.5 h-1.5" />}
+                                            </div>
+                                            {lesson.video_url && (
+                                              <Link href={`/watch/${lesson.id}`} className="shrink-0">
+                                                <Button size="sm" className="h-8 bg-red-600 hover:bg-red-700">
+                                                  {percent < 100 ? "Ko'rish" : "Izoh qoldirish"}
+                                                </Button>
+                                              </Link>
+                                            )}
+                                          </div>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 )}
@@ -432,12 +477,12 @@ export default function DashboardPage() {
                                   {feedbackGiven.has(lesson.id) ? (
                                     <span className="inline-flex items-center gap-1.5 text-green-700">
                                       <MessageSquareText className="h-4 w-4 shrink-0" />
-                                      Fikr qoldirilgan
+                                      Izoh qoldirilgan
                                     </span>
-                                  ) : lesson.feedback_mode === 'required' ? (
+                                  ) : lesson.feedback_mode !== 'optional' ? (
                                     <span className="inline-flex items-center gap-1.5 text-amber-700">
                                       <MessageSquareText className="h-4 w-4 shrink-0" />
-                                      Fikr majburiy
+                                      Izoh majburiy
                                     </span>
                                   ) : null}
                                 </div>

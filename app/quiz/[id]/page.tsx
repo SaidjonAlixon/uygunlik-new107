@@ -158,10 +158,10 @@ export default function QuizPage() {
         percent={lockedPercent}
         message={
           lockedForFeedback
-            ? "Dars to'liq ko'rildi. Test ochilishi uchun dars sahifasida shu dars bo'yicha fikringizni qoldiring."
+            ? "Dars to'liq ko'rildi. Test ochilishi uchun dars sahifasida shu darsga izoh qoldiring."
             : `Test ochilishiga ${100 - lockedPercent}% qoldi. Darsni oxirigacha ko'ring — shundan so'ng test ochiladi.`
         }
-        actionLabel={lockedForFeedback ? "Fikr qoldirish" : "Darsni ko'rish"}
+        actionLabel={lockedForFeedback ? "Izoh qoldirish" : "Darsni ko'rish"}
         onAction={() => router.push(`/watch/${id}`)}
       />
     );

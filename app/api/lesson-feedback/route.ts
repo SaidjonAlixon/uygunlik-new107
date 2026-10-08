@@ -50,10 +50,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Bahoni 1 dan 5 gacha yulduz bilan belgilang' }, { status: 400 });
     }
     if (comment.length < MIN_COMMENT) {
-      return NextResponse.json({ error: 'Fikringizni yozing (kamida 3 ta belgi)' }, { status: 400 });
+      return NextResponse.json({ error: 'Izohingizni yozing (kamida 3 ta belgi)' }, { status: 400 });
     }
     if (comment.length > MAX_COMMENT) {
-      return NextResponse.json({ error: `Fikr ${MAX_COMMENT} belgidan oshmasin` }, { status: 400 });
+      return NextResponse.json({ error: `Izoh ${MAX_COMMENT} belgidan oshmasin` }, { status: 400 });
     }
 
     const lesson = await LessonService.findById(lessonId);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       const percent = await LessonProgressService.getPercent(user.id, lessonId);
       if (percent < 100) {
         return NextResponse.json(
-          { error: "Fikr qoldirish uchun avval darsni oxirigacha ko'ring" },
+          { error: "Izoh qoldirish uchun avval darsni oxirigacha ko'ring" },
           { status: 403 }
         );
       }

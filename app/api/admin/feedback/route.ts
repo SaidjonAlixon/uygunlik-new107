@@ -60,7 +60,7 @@ export async function PATCH(request: NextRequest) {
     if (Number.isNaN(lessonId)) {
       return NextResponse.json({ error: "Noto'g'ri dars" }, { status: 400 });
     }
-    const mode = body.feedback_mode === 'required' ? 'required' : 'optional';
+    const mode = body.feedback_mode === 'optional' ? 'optional' : 'required';
     const updated = await LessonFeedbackService.setMode(lessonId, mode);
     if (!updated) {
       return NextResponse.json({ error: 'Dars topilmadi' }, { status: 404 });
