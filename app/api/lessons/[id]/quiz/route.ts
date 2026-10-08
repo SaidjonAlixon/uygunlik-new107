@@ -1,7 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LessonService, TestSubmissionService, initializeDatabase } from '@/lib/postgres';
+import {
+  LessonFeedbackService,
+  LessonProgressService,
+  LessonService,
+  TestSubmissionService,
+  initializeDatabase,
+} from '@/lib/postgres';
+import { getTokenUser } from '@/lib/admin-auth';
 
-/** Dars uchun test manbasi (o'zi yoki ulangan dars) */
+export const dynamic = 'force-dynamic';
+
+/** Dars uchun test manbasi (o'zi yoki ulangan dars). Savollar faqat dars 100% ko'rilgach beriladi. */
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -19,22 +28,45 @@ export async function GET(
       return NextResponse.json({ error: 'Test topilmadi' }, { status: 404 });
     }
 
-    const userId = Number(new URL(request.url).searchParams.get('user_id'));
-    let attempt = null;
-    if (userId) {
-      attempt = await TestSubmissionService.getAttemptStatus({
-        user_id: userId,
-        lesson_id: quiz.sourceLesson.id,
+    const tokenUser = getTokenUser(request);
+    const isAdmin = tokenUser?.role === 'admin';
+    const userId = tokenUser?.id ?? null;
+
+    const progressPercent = userId ? await LessonProgressService.getPercent(userId, lessonId) : 0;
+    const watched = progressPercent >= 100;
+    const unlocked =
+      isAdmin ||
+      (userId != null &&
+        ((watched && (await LessonFeedbackService.isSatisfied(userId, lessonId))) ||
+          (await LessonProgressService.canTakeLessonQuiz(userId, quiz.sourceLesson.id))));
+
+    const base = {
+      lesson_id: quiz.sourceLesson.id,
+      watch_lesson_id: lessonId,
+      title: quiz.sourceLesson.title,
+      section_id: quiz.sourceLesson.section_id,
+      question_count: quiz.questions.length,
+      progress_percent: isAdmin ? 100 : progressPercent,
+    };
+
+    if (!unlocked) {
+      return NextResponse.json({
+        ...base,
+        locked: true,
+        locked_reason: watched ? 'feedback' : 'progress',
+        questions: [],
+        attempt: null,
       });
     }
 
-    return NextResponse.json({
-      lesson_id: quiz.sourceLesson.id,
-      title: quiz.sourceLesson.title,
-      section_id: quiz.sourceLesson.section_id,
-      questions: quiz.questions,
-      attempt,
-    });
+    const attempt = userId
+      ? await TestSubmissionService.getAttemptStatus({
+          user_id: userId,
+          lesson_id: quiz.sourceLesson.id,
+        })
+      : null;
+
+    return NextResponse.json({ ...base, locked: false, questions: quiz.questions, attempt });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
   }

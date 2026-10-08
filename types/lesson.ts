@@ -9,6 +9,8 @@ export interface Lesson {
   video_url?: string;
   pdf_url?: string;
   test_url?: string;
+  /** Dars bo‘yicha fikr: majburiy bo‘lsa, fikr qoldirilmaguncha test ochilmaydi */
+  feedback_mode?: 'optional' | 'required';
   order_number: number;
   additional_resources?: any[];
   test_questions?: any[];

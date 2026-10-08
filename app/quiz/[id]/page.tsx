@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Trophy, ClipboardList, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { QuizLockedCard } from "@/components/quiz-locked-card";
 
 type QuizQuestion = {
   question: string;
@@ -29,6 +30,8 @@ export default function QuizPage() {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [lockedPercent, setLockedPercent] = useState<number | null>(null);
+  const [lockedForFeedback, setLockedForFeedback] = useState(false);
 
   useEffect(() => {
     if (userLoading) return;
@@ -45,6 +48,12 @@ export default function QuizPage() {
           params: { user_id: user.id },
         });
         const data = quizRes.data;
+        if (data.locked) {
+          setTitle(data.title);
+          setLockedPercent(Number(data.progress_percent) || 0);
+          setLockedForFeedback(data.locked_reason === "feedback");
+          return;
+        }
         const qs = data.questions || [];
         if (!qs.length) {
           toast.error("Ushbu dars uchun test mavjud emas.");
@@ -139,6 +148,22 @@ export default function QuizPage() {
           <p className="text-[#5D1111] font-medium">Test tayyorlanmoqda...</p>
         </div>
       </div>
+    );
+  }
+
+  if (lockedPercent !== null) {
+    return (
+      <QuizLockedCard
+        title={title}
+        percent={lockedPercent}
+        message={
+          lockedForFeedback
+            ? "Dars to'liq ko'rildi. Test ochilishi uchun dars sahifasida shu dars bo'yicha fikringizni qoldiring."
+            : `Test ochilishiga ${100 - lockedPercent}% qoldi. Darsni oxirigacha ko'ring — shundan so'ng test ochiladi.`
+        }
+        actionLabel={lockedForFeedback ? "Fikr qoldirish" : "Darsni ko'rish"}
+        onAction={() => router.push(`/watch/${id}`)}
+      />
     );
   }
 

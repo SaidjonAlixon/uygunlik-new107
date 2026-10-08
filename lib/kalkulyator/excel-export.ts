@@ -3,6 +3,7 @@ import path from "path";
 import { inflateRawSync } from "zlib";
 import {
   applyStartDate,
+  cardSheetName,
   createEmptyCard,
   DAY_COUNT,
   deriveStats,
@@ -68,18 +69,6 @@ function cellPattern(ref: string): RegExp {
   return new RegExp(`<c r="${ref}"([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`);
 }
 
-function setFormula(xml: string, ref: string, formula: string): string {
-  const match = xml.match(new RegExp(`<c r="${ref}"(?![0-9])([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`));
-  const style = match?.[1]?.match(/\ss="(\d+)"/);
-  const styleAttr = style ? ` s="${style[1]}"` : "";
-  const next = `<c r="${ref}"${styleAttr}><f>${formula}</f></c>`;
-  if (match) return xml.replace(match[0], next);
-  return setCell(xml, ref, { kind: "text", value: "" }).replace(
-    new RegExp(`<c r="${ref}"(?![0-9])([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`),
-    next
-  );
-}
-
 function setCell(xml: string, ref: string, value: CellValue): string {
   const match = xml.match(cellPattern(ref));
   if (match && /<f[\s>]/.test(match[2] || "")) return xml;
@@ -133,10 +122,24 @@ function numberOrBlank(value: string): CellValue {
   return { kind: "num", value: parsed };
 }
 
-function excelDateText(iso: string): string | null {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
-  if (!match) return null;
-  return `${match[3]}.${match[2]}.${match[1]}`;
+function dayOfMonth(iso: string): number | null {
+  const match = /^\d{4}-\d{2}-(\d{2})$/.exec(iso);
+  return match ? Number(match[1]) : null;
+}
+
+/** 2- va 39-qatordagi sana kataklari AR ustunida tanlangan kunni ko‘rsatadi */
+function setDateMirror(xml: string, ref: string, sourceRow: number, day: number | null): string {
+  const pattern = new RegExp(`<c r="${ref}"(?![0-9])([^>]*?)(?:/>|>([\\s\\S]*?)</c>)`);
+  const match = xml.match(pattern);
+  if (!match) return xml;
+  const style = match[1].match(/\ss="(\d+)"/);
+  const styleAttr = style ? ` s="${style[1]}"` : "";
+  const formula = `<f>IF(AR${sourceRow}=0," ",AR${sourceRow})</f>`;
+  const next =
+    day == null
+      ? `<c r="${ref}"${styleAttr} t="str">${formula}<v xml:space="preserve"> </v></c>`
+      : `<c r="${ref}"${styleAttr}>${formula}<v>${day}</v></c>`;
+  return xml.replace(match[0], next);
 }
 
 function noteText(day: DayEntry): string {
@@ -276,17 +279,10 @@ function renderObservation(parts: TemplateParts, card: ObservationCard, sheetNam
       saved: false,
     };
     const inputRow = day + 1;
-    const shownDate = excelDateText(entry.date);
-    if (day === 1) {
-      sheet = setCell(sheet, `AR${inputRow}`, shownDate ? { kind: "text", value: shownDate } : { kind: "num", value: 0 });
-    } else {
-      const prev = `AR${inputRow - 1}`;
-      sheet = setFormula(
-        sheet,
-        `AR${inputRow}`,
-        `IF(OR(${prev}="",${prev}=0),"",TEXT(DATE(VALUE(RIGHT(${prev},4)),VALUE(MID(${prev},4,2)),VALUE(LEFT(${prev},2)))+1,"dd.mm.yyyy"))`
-      );
-    }
+    const calendarDay = dayOfMonth(entry.date);
+    sheet = setCell(sheet, `AR${inputRow}`, calendarDay ? { kind: "num", value: calendarDay } : { kind: "blank" });
+    sheet = setDateMirror(sheet, `${dayColumn(day)}2`, inputRow, calendarDay);
+    sheet = setDateMirror(sheet, `${dayColumn(day)}39`, inputRow, calendarDay);
     sheet = setCell(
       sheet,
       `AS${inputRow}`,
@@ -453,7 +449,7 @@ function emptyObservationDay(): DayEntry {
 export function buildPersonYearWorkbook(card: ObservationCard): Buffer {
   const saved = rememberMonth(card);
   return buildYearWorkbook(
-    MONTHS.map((month) => ({ name: month.name, card: monthSlice(saved, month.key) }))
+    MONTHS.map((month) => ({ name: cardSheetName(month.key), card: monthSlice(saved, month.key) }))
   );
 }
 
@@ -462,8 +458,9 @@ export function buildAdminTemplate(startDate: string): Buffer {
   return buildYearWorkbook(
     MONTHS.map((month) => {
       const card = createEmptyCard("shablon");
-      if (month.key !== startMonth) return { name: month.name, card };
-      return { name: month.name, card: applyStartDate(card, startDate) };
+      const name = cardSheetName(month.key);
+      if (month.key !== startMonth) return { name, card };
+      return { name, card: applyStartDate(card, startDate) };
     })
   );
 }
@@ -538,16 +535,12 @@ function buildYearWorkbook(sheets: Array<{ name: string; card: ObservationCard }
   return patchZip(parts.template, replacements, extras);
 }
 
+/** AR2:AR41 — har bir katakda 1–31 kun ro‘yxati, boshqa qiymat kiritilmaydi */
 function applyDateDisplay(sheet: string): string {
-  const withoutList = sheet.replace(
-    /<dataValidation type="list"[^>]*sqref="AR2:AR41"[^>]*>\s*<formula1>\$BO\$2:\$BO\$32<\/formula1>\s*<\/dataValidation>/,
-    ""
-  );
-  const counted = withoutList.replace(/<dataValidations count="16"/, '<dataValidations count="15"');
-  const dated = counted.replace(/IF\((AR\d+)=0," ",AR\d+\)/g, '" "');
-  return dated.replace(
-    '<col min="43" max="46" width="10.85546875" style="1" customWidth="1"/>',
-    '<col min="43" max="43" width="10.85546875" style="1" customWidth="1"/><col min="44" max="44" width="14" style="1" customWidth="1"/><col min="45" max="46" width="10.85546875" style="1" customWidth="1"/>'
+  return sheet.replace(
+    /<dataValidation type="list"[^>]*sqref="AR2:AR41"([^>]*)>\s*<formula1>\$BO\$2:\$BO\$32<\/formula1>/,
+    (_match, rest: string) =>
+      `<dataValidation type="list" allowBlank="1" showInputMessage="1" showErrorMessage="1" errorTitle="Sana" error="1 dan 31 gacha kunni ro\u2018yxatdan tanlang" sqref="AR2:AR41"${rest}><formula1>$BO$2:$BO$32</formula1>`
   );
 }
 

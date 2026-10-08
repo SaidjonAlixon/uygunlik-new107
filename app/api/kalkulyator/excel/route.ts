@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken } from "@/lib/jwt";
 import { buildObservationWorkbook } from "@/lib/kalkulyator/excel-export";
-import { monthName, normalizeCard } from "@/lib/kalkulyator/model";
+import { cardSheetName, normalizeCard } from "@/lib/kalkulyator/model";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Ma’lumot topilmadi" }, { status: 400 });
   }
   try {
-    const file = buildObservationWorkbook(card, monthName(card.activeMonth));
+    const file = buildObservationWorkbook(card, cardSheetName(card.activeMonth));
     const filename = "kuzatuv-karta.xlsx";
     return new NextResponse(new Uint8Array(file), {
       status: 200,

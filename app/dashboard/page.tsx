@@ -15,12 +15,13 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, PlayCircle, LogOut, Video, FileText, ArrowLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
+import { BookOpen, PlayCircle, LogOut, Video, MessageSquareText, ArrowLeft, ChevronRight, Layers, Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import api from "@/lib/api";
 import UserService from "@/services/user.service";
 import { useToast } from "@/components/ui/use-toast";
 import { LessonSection } from "@/types/section";
+import type { Lesson } from "@/types/lesson";
 import DashboardRatingTab from "@/components/dashboard-rating-tab";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const [tariffSections, setTariffSections] = useState<LessonSection[]>([]);
   const [loadingLessons, setLoadingLessons] = useState(false);
   const [lessonProgress, setLessonProgress] = useState<Record<number, number>>({});
+  const [feedbackGiven, setFeedbackGiven] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState('courses');
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [showPassword, setShowPassword] = useState(false);
@@ -102,10 +104,12 @@ export default function DashboardPage() {
   const loadTariffLessons = useCallback(async (tariffId: number) => {
     try {
       setLoadingLessons(true);
-      const [sectionsRes, progressRes] = await Promise.all([
+      const [sectionsRes, progressRes, feedbackRes] = await Promise.all([
         api.get<LessonSection[]>(`/tariffs/${tariffId}/sections`),
         api.get<Record<string, number>>('/lesson-progress?tariffId=' + tariffId).catch(() => ({ data: {} })),
+        api.get<Record<string, unknown>>('/lesson-feedback').catch(() => ({ data: {} })),
       ]);
+      setFeedbackGiven(new Set(Object.keys(feedbackRes.data || {}).map(Number)));
       setTariffSections(Array.isArray(sectionsRes.data) ? sectionsRes.data : []);
       const progress: Record<number, number> = {};
       Object.entries(progressRes.data || {}).forEach(([k, v]) => {
@@ -141,6 +145,19 @@ export default function DashboardPage() {
     const total = lessons.reduce((sum, lesson) => sum + (lessonProgress[lesson.id] ?? 0), 0);
     return Math.round(total / lessons.length);
   };
+
+  const needsFeedback = (lesson: Lesson) =>
+    lesson.feedback_mode === 'required' && !feedbackGiven.has(lesson.id);
+
+  const getSectionLessonsLeft = (section: LessonSection) =>
+    (section.lessons || []).filter(
+      (lesson) => (lessonProgress[lesson.id] ?? 0) < 100 || needsFeedback(lesson)
+    ).length;
+
+  const getSectionFeedbackMissing = (section: LessonSection) =>
+    (section.lessons || []).filter(
+      (lesson) => (lessonProgress[lesson.id] ?? 0) >= 100 && needsFeedback(lesson)
+    ).length;
 
   const selectedSection = tariffSections.find((section) => section.id === selectedSectionId) ?? null;
 
@@ -363,18 +380,25 @@ export default function DashboardPage() {
                               </p>
                               {Array.isArray(selectedSection.test_questions) &&
                                 selectedSection.test_questions.length > 0 && (
-                                  <div className="mt-4">
+                                  <div className="mt-4 space-y-1.5">
                                     <Button
                                       className="bg-red-600 hover:bg-red-700"
-                                      disabled={getSectionProgress(selectedSection) < 100}
+                                      disabled={getSectionLessonsLeft(selectedSection) > 0}
                                       onClick={() => {
                                         window.open(`/quiz/section/${selectedSection.id}`, "_blank");
                                       }}
                                     >
-                                      {getSectionProgress(selectedSection) >= 100
+                                      {getSectionLessonsLeft(selectedSection) === 0
                                         ? "Bo'lim yakuniy testini boshlash"
-                                        : `Bo'lim testi (barcha darslarni ko'ring: ${getSectionProgress(selectedSection)}%)`}
+                                        : `Test ochilishiga ${getSectionLessonsLeft(selectedSection)} ta dars qoldi`}
                                     </Button>
+                                    {getSectionLessonsLeft(selectedSection) > 0 && (
+                                      <p className="text-xs text-gray-500">
+                                        {getSectionFeedbackMissing(selectedSection) > 0
+                                          ? `Bo'limdagi barcha darslar 100% ko'rilib, majburiy fikrlar qoldirilgach test ochiladi (${getSectionFeedbackMissing(selectedSection)} ta darsda fikr kutilmoqda).`
+                                          : "Bo'limdagi barcha darslar 100% ko'rilgach test ochiladi."}
+                                      </p>
+                                    )}
                                   </div>
                                 )}
                             </div>
@@ -402,20 +426,31 @@ export default function DashboardPage() {
                                       Video
                                     </span>
                                   )}
-                                  {lesson.pdf_url && (
-                                    <span className="inline-flex items-center gap-1.5 text-gray-700">
-                                      <FileText className="h-4 w-4 text-red-600 shrink-0" />
-                                      PDF
-                                    </span>
-                                  )}
-                                  {!lesson.video_url && !lesson.pdf_url && (
+                                  {!lesson.video_url && (
                                     <span className="text-gray-500">Material yo'q</span>
                                   )}
+                                  {feedbackGiven.has(lesson.id) ? (
+                                    <span className="inline-flex items-center gap-1.5 text-green-700">
+                                      <MessageSquareText className="h-4 w-4 shrink-0" />
+                                      Fikr qoldirilgan
+                                    </span>
+                                  ) : lesson.feedback_mode === 'required' ? (
+                                    <span className="inline-flex items-center gap-1.5 text-amber-700">
+                                      <MessageSquareText className="h-4 w-4 shrink-0" />
+                                      Fikr majburiy
+                                    </span>
+                                  ) : null}
                                 </div>
                                 <div className="space-y-1.5">
                                   <div className="flex justify-between text-xs text-gray-500">
-                                    <span>Ko'rilgan</span>
-                                    <span className="font-medium text-gray-700">{lessonProgress[lesson.id] ?? 0}%</span>
+                                    <span>
+                                      {(lessonProgress[lesson.id] ?? 0) >= 100 ? "To'liq ko'rildi ✓" : "Ko'rilgan"}
+                                    </span>
+                                    <span
+                                      className={`font-medium ${(lessonProgress[lesson.id] ?? 0) >= 100 ? "text-green-600" : "text-gray-700"}`}
+                                    >
+                                      {lessonProgress[lesson.id] ?? 0}%
+                                    </span>
                                   </div>
                                   <Progress value={lessonProgress[lesson.id] ?? 0} className="h-2" />
                                 </div>

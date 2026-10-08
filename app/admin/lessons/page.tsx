@@ -27,7 +27,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Plus, Eye, Trash2, FolderPlus, Pencil } from 'lucide-react';
+import { Plus, Eye, Trash2, FolderPlus, Pencil, MessageSquareText } from 'lucide-react';
+import { FeedbackModeField, type FeedbackMode } from '@/components/feedback-mode-field';
 import { toast } from 'sonner';
 import { Lesson } from '@/types/lesson';
 import { LessonSection } from '@/types/section';
@@ -57,10 +58,12 @@ export default function AdminLessonsPage() {
     description: '',
     video_url: '',
     pdf_url: '',
+    feedback_mode: 'optional' as FeedbackMode,
     test_url: '',
     order_number: '1',
     section_id: '',
   });
+  const [modeSaving, setModeSaving] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deleteLesson, setDeleteLesson] = useState<Lesson | null>(null);
   const [deleteSection, setDeleteSection] = useState<LessonSection | null>(null);
@@ -106,6 +109,7 @@ export default function AdminLessonsPage() {
       description: '',
       video_url: '',
       pdf_url: '',
+      feedback_mode: 'optional',
       test_url: '',
       order_number: String(nextOrder),
       section_id: String(sectionId),
@@ -215,6 +219,7 @@ export default function AdminLessonsPage() {
         description: lessonForm.description.trim() || undefined,
         video_url: lessonForm.video_url.trim() || undefined,
         pdf_url: lessonForm.pdf_url.trim() || undefined,
+        feedback_mode: lessonForm.feedback_mode,
         test_url: lessonForm.test_url.trim() || undefined,
         order_number: parseInt(lessonForm.order_number, 10) || 1,
       });
@@ -236,6 +241,25 @@ export default function AdminLessonsPage() {
       if (selectedTariffId) await loadSections(selectedTariffId);
     } catch (err: any) {
       toast.error(err?.response?.data?.error || 'Xato');
+    }
+  };
+
+  const toggleFeedbackMode = async (lesson: Lesson) => {
+    const next: FeedbackMode = lesson.feedback_mode === 'required' ? 'optional' : 'required';
+    setModeSaving(lesson.id);
+    try {
+      await api.patch('/admin/feedback', { lesson_id: lesson.id, feedback_mode: next });
+      setSections((prev) =>
+        prev.map((s) => ({
+          ...s,
+          lessons: s.lessons?.map((l) => (l.id === lesson.id ? { ...l, feedback_mode: next } : l)),
+        }))
+      );
+      toast.success(next === 'required' ? 'Fikr majburiy qilindi' : 'Fikr ixtiyoriy qilindi');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.error || 'Xato');
+    } finally {
+      setModeSaving(null);
     }
   };
 
@@ -384,6 +408,7 @@ export default function AdminLessonsPage() {
                           <th className="py-3 px-6 font-medium w-16">T/R</th>
                           <th className="py-3 px-6 font-medium">Dars nomi</th>
                           <th className="py-3 px-6 font-medium">Video</th>
+                          <th className="py-3 px-6 font-medium">Fikr</th>
                           <th className="py-3 px-6 font-medium">Tartib</th>
                           <th className="py-3 px-6 font-medium text-right">Amallar</th>
                         </tr>
@@ -399,6 +424,22 @@ export default function AdminLessonsPage() {
                                   Mavjud
                                 </span>
                               ) : '—'}
+                            </td>
+                            <td className="py-3 px-6">
+                              <button
+                                type="button"
+                                disabled={modeSaving === l.id}
+                                onClick={() => toggleFeedbackMode(l)}
+                                title="Bosib almashtiring"
+                                className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border transition-colors disabled:opacity-60 ${
+                                  l.feedback_mode === 'required'
+                                    ? 'bg-[#5D1111] text-white border-[#5D1111] hover:bg-[#7A2E2E]'
+                                    : 'bg-[#FEFBEE] text-[#7A2E2E] border-[#7A2E2E]/20 hover:border-[#5D1111]/50'
+                                }`}
+                              >
+                                <MessageSquareText className="h-3.5 w-3.5" />
+                                {l.feedback_mode === 'required' ? 'Majburiy' : 'Ixtiyoriy'}
+                              </button>
                             </td>
                             <td className="py-3 px-6 text-[#5D1111]/80">{l.order_number}</td>
                             <td className="py-3 px-6 text-right">
@@ -631,6 +672,10 @@ export default function AdminLessonsPage() {
                 placeholder="https://drive.google.com/..."
               />
             </div>
+            <FeedbackModeField
+              value={lessonForm.feedback_mode}
+              onChange={(feedback_mode) => setLessonForm((f) => ({ ...f, feedback_mode }))}
+            />
             <div className="space-y-2">
               <Label className="text-[#5D1111] font-semibold">Tartib raqami</Label>
               <Input

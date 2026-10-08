@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type SyntheticEvent } from "react";
 import { Maximize, Minimize, Pause, Play, RotateCcw, RotateCw } from "lucide-react";
+import type { WatchRange } from "@/lib/watch-progress";
 
 declare global {
   interface Window {
@@ -19,6 +20,7 @@ type YTPlayer = {
   seekTo: (seconds: number, allowSeekAhead: boolean) => void;
   getCurrentTime: () => number;
   getDuration: () => number;
+  getPlayerState?: () => number;
   destroy: () => void;
   setSize?: (width: number, height: number) => void;
   loadModule?: (module: string) => void;
@@ -152,15 +154,31 @@ function unlockOrientation() {
 type Props = {
   videoId: string;
   startLabel?: string;
-  onWatchProgress?: (percent: number) => void;
+  /** Video tabiiy o‘ynagan oraliq (oldinga sakrash kirmaydi) */
+  onWatchedSpan?: (start: number, end: number, duration: number) => void;
+  /** Pauza, tugash yoki sahifadan chiqishda — saqlash uchun */
+  onCheckpoint?: (position: number, duration: number) => void;
+  watchedRanges?: WatchRange[];
+  resumeAt?: number;
 };
+
+/** Video vaqti real vaqtdan shuncha martadan ko‘p o‘zgarsa — bu sakrash, ko‘rish emas */
+const NATURAL_PLAYBACK_RATE = 1.25;
+const NATURAL_PLAYBACK_SLACK = 0.75;
 
 /**
  * Maximize → butun ekran, video to‘liq ko‘rinadi.
  * Minimize → vertikal oddiy oyna.
  * Rotate YO‘Q — burchakda yonboshi bo‘lib qolmasin.
  */
-export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Props) {
+export function LockedYouTubePlayer({
+  videoId,
+  startLabel,
+  onWatchedSpan,
+  onCheckpoint,
+  watchedRanges,
+  resumeAt,
+}: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const hostRef = useRef<HTMLDivElement>(null);
@@ -169,12 +187,28 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
   const hideTimerRef = useRef<number | null>(null);
   const touchFsRef = useRef(false);
   const fsRef = useRef(false);
-  const onProgressRef = useRef(onWatchProgress);
+  const onSpanRef = useRef(onWatchedSpan);
+  const onCheckpointRef = useRef(onCheckpoint);
+  const lastTickRef = useRef<{ t: number; at: number } | null>(null);
   const lastTapRef = useRef(0);
   const lastZoneRef = useRef<"left" | "right" | "center">("center");
   const seekHintTimerRef = useRef<number | null>(null);
   const touchHandledRef = useRef(false);
-  onProgressRef.current = onWatchProgress;
+  onSpanRef.current = onWatchedSpan;
+  onCheckpointRef.current = onCheckpoint;
+
+  /** Oldingi o‘lchovdan beri video real vaqtga mos o‘ynagan bo‘lsa — shu oraliq ko‘rilgan */
+  const recordTick = useCallback((t: number, d: number) => {
+    const now = performance.now();
+    const prev = lastTickRef.current;
+    lastTickRef.current = { t, at: now };
+    if (!prev || !(d > 0)) return;
+    const advanced = t - prev.t;
+    const wall = (now - prev.at) / 1000;
+    if (advanced > 0 && advanced <= wall * NATURAL_PLAYBACK_RATE + NATURAL_PLAYBACK_SLACK) {
+      onSpanRef.current?.(prev.t, Math.min(t, d), d);
+    }
+  }, []);
 
   const [ready, setReady] = useState(false);
   const [started, setStarted] = useState(false);
@@ -415,12 +449,33 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
               setPlaying(false);
               clearHideTimer();
               setControlsVisible(true);
+              const p = playerRef.current;
+              if (p) {
+                try {
+                  const t = p.getCurrentTime() || 0;
+                  const d = p.getDuration() || 0;
+                  recordTick(t, d);
+                  onCheckpointRef.current?.(t, d);
+                } catch {
+                  /* ignore */
+                }
+              }
             }
             if (event.data === ENDED) {
               setPlaying(false);
               clearHideTimer();
               setControlsVisible(true);
-              onProgressRef.current?.(100);
+              const p = playerRef.current;
+              if (p) {
+                try {
+                  const d = p.getDuration() || 0;
+                  recordTick(d, d);
+                  setCurrent(d);
+                  onCheckpointRef.current?.(d, d);
+                } catch {
+                  /* ignore */
+                }
+              }
             }
           },
         },
@@ -432,44 +487,82 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       destroyed = true;
       clearHideTimer();
       try {
+        const p = playerRef.current;
+        if (p) onCheckpointRef.current?.(p.getCurrentTime() || 0, p.getDuration() || 0);
+      } catch {
+        /* ignore */
+      }
+      try {
         playerRef.current?.destroy();
       } catch {
         /* ignore */
       }
       playerRef.current = null;
     };
-  }, [videoId, clearHideTimer, scheduleHideControls, sizeToContainer]);
+  }, [videoId, clearHideTimer, scheduleHideControls, sizeToContainer, recordTick]);
 
   useEffect(() => {
     if (!started || !ready) return;
+    lastTickRef.current = null;
     const timer = window.setInterval(() => {
       const p = playerRef.current;
-      if (!p || seekingRef.current) return;
+      if (!p) return;
+      if (seekingRef.current) {
+        lastTickRef.current = null;
+        return;
+      }
       try {
         const t = p.getCurrentTime() || 0;
         const d = p.getDuration() || 0;
         setCurrent(t);
-        if (d > 0) {
-          setDuration(d);
-          onProgressRef.current?.(Math.min(100, Math.round((t / d) * 100)));
-        }
+        if (d > 0) setDuration(d);
+        recordTick(t, d);
       } catch {
         /* ignore */
       }
     }, 500);
     return () => window.clearInterval(timer);
-  }, [started, ready]);
+  }, [started, ready, recordTick]);
+
+  useEffect(() => {
+    const flush = () => {
+      const p = playerRef.current;
+      if (!p) return;
+      try {
+        onCheckpointRef.current?.(p.getCurrentTime() || 0, p.getDuration() || 0);
+      } catch {
+        /* ignore */
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
 
   const handleStart = useCallback(() => {
     setStarted(true);
+    const p = playerRef.current;
+    if (!p) return;
     try {
-      playerRef.current?.playVideo();
+      const d = p.getDuration() || 0;
+      if (resumeAt && resumeAt > 3 && (!d || resumeAt < d - 5)) {
+        p.seekTo(resumeAt, true);
+        setCurrent(resumeAt);
+      }
+      lastTickRef.current = null;
+      p.playVideo();
       setPlaying(true);
       revealControls();
     } catch {
       /* ignore */
     }
-  }, [revealControls]);
+  }, [resumeAt, revealControls]);
 
   const togglePlay = useCallback(() => {
     const p = playerRef.current;
@@ -497,6 +590,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
 
       const next = Math.max(0, Math.min(duration, t + delta));
       seekingRef.current = true;
+      lastTickRef.current = null;
       setCurrent(next);
       try {
         p.seekTo(next, true);
@@ -591,6 +685,7 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
       if (!p || duration <= 0) return;
       const t = (pct / 100) * duration;
       seekingRef.current = true;
+      lastTickRef.current = null;
       setCurrent(t);
       try {
         p.seekTo(t, true);
@@ -740,27 +835,48 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
                   >
                     <RotateCw className="h-5 w-5" />
                   </button>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    step={0.1}
-                    value={progressPct}
-                    onChange={(e) => onSeek(Number(e.target.value))}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      seekingRef.current = true;
-                      clearHideTimer();
-                      setControlsVisible(true);
-                    }}
-                    onPointerUp={() => {
-                      seekingRef.current = false;
-                      scheduleHideControls();
-                    }}
-                    className="yt-seek-locked flex-1 cursor-pointer"
-                    style={{ touchAction: "none" }}
-                    aria-label="Video progress"
-                  />
+                  <div className="relative flex flex-1 items-center">
+                    <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
+                      {duration > 0 &&
+                        watchedRanges?.map(([a, b]) => (
+                          <span
+                            key={`${a}-${b}`}
+                            className="absolute inset-y-0 bg-white/60"
+                            style={{
+                              left: `${(a / duration) * 100}%`,
+                              width: `${((Math.min(b, duration) - a) / duration) * 100}%`,
+                            }}
+                          />
+                        ))}
+                      <span
+                        className="absolute inset-y-0 left-0 bg-red-600"
+                        style={{ width: `${progressPct}%` }}
+                      />
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      step={0.1}
+                      value={progressPct}
+                      onChange={(e) => onSeek(Number(e.target.value))}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        seekingRef.current = true;
+                        lastTickRef.current = null;
+                        clearHideTimer();
+                        setControlsVisible(true);
+                      }}
+                      onPointerUp={() => {
+                        seekingRef.current = false;
+                        lastTickRef.current = null;
+                        scheduleHideControls();
+                      }}
+                      className="yt-seek-locked relative w-full cursor-pointer"
+                      style={{ touchAction: "none" }}
+                      aria-label="Video progress"
+                    />
+                  </div>
                   <span className="w-[72px] sm:w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
                     {formatTime(current)} / {formatTime(duration)}
                   </span>
@@ -801,9 +917,8 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
         .yt-seek-locked {
           -webkit-appearance: none;
           appearance: none;
-          height: 6px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.28);
+          height: 18px;
+          background: transparent;
           outline: none;
         }
         .yt-seek-locked::-webkit-slider-thumb {
@@ -816,6 +931,9 @@ export function LockedYouTubePlayer({ videoId, startLabel, onWatchProgress }: Pr
           border: 2px solid #fff;
           box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
           cursor: pointer;
+        }
+        .yt-seek-locked::-moz-range-track {
+          background: transparent;
         }
         .yt-seek-locked::-moz-range-thumb {
           width: 18px;

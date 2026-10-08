@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LessonService, initializeDatabase } from '@/lib/postgres';
+import { getAdminFromRequest } from '@/lib/admin-auth';
 
 export async function GET(
   request: NextRequest,
@@ -28,6 +29,9 @@ export async function POST(
 ) {
   try {
     await initializeDatabase();
+    if (!(await getAdminFromRequest(request))) {
+      return NextResponse.json({ error: 'Ruxsat yo‘q' }, { status: 403 });
+    }
     const { id } = await params;
     const tariffId = parseInt(id);
     
@@ -36,7 +40,7 @@ export async function POST(
     }
     
     const body = await request.json();
-    const { title, description, video_url, pdf_url, test_url, order_number, additional_resources, section_id } = body;
+    const { title, description, video_url, pdf_url, test_url, order_number, additional_resources, section_id, feedback_mode } = body;
 
     if (!title) {
       return NextResponse.json({ error: 'title kerak' }, { status: 400 });
@@ -54,6 +58,7 @@ export async function POST(
       video_url,
       pdf_url,
       test_url,
+      feedback_mode: feedback_mode === 'required' ? 'required' : 'optional',
       order_number: order_number || 0,
       additional_resources: additional_resources || [],
     });

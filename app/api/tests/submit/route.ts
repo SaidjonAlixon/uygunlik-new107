@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TestSubmissionService, initializeDatabase } from '@/lib/postgres';
+import { LessonProgressService, TestSubmissionService, initializeDatabase } from '@/lib/postgres';
+import { getTokenUser } from '@/lib/admin-auth';
 import { notifyTelegramTestSubmission } from '@/lib/telegram';
 
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,20 @@ export async function POST(request: NextRequest) {
     }
     if (!lesson_id && !section_id) {
       return NextResponse.json({ error: 'lesson_id yoki section_id kerak' }, { status: 400 });
+    }
+
+    const tokenUser = getTokenUser(request);
+    if (tokenUser?.role !== 'admin') {
+      const uid = Number(user_id);
+      const unlocked = section_id
+        ? (await LessonProgressService.getSectionStatus(uid, Number(section_id))).remaining === 0
+        : await LessonProgressService.canTakeLessonQuiz(uid, Number(lesson_id));
+      if (!unlocked) {
+        return NextResponse.json(
+          { error: "Test hali ochilmagan: avval darslarni 100% ko'ring va majburiy fikrlarni qoldiring" },
+          { status: 403 }
+        );
+      }
     }
 
     const submission = await TestSubmissionService.create({

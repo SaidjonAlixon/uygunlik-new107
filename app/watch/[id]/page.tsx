@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
@@ -9,6 +9,8 @@ import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
 import { Lesson } from "@/types/lesson";
 import { LockedYouTubePlayer } from "@/components/locked-youtube-player";
+import { LessonProgressPanel } from "@/components/lesson-progress-panel";
+import { LessonFeedbackPanel, type LessonFeedback } from "@/components/lesson-feedback-panel";
 import {
   isGoogleDriveUrl,
   convertGoogleDriveUrl,
@@ -16,8 +18,25 @@ import {
   getYouTubeEmbedUrl,
   getYouTubeVideoId,
 } from "@/lib/utils";
+import {
+  addWatchedSpan,
+  mergeRanges,
+  watchPercent,
+  watchedSeconds,
+  type WatchRange,
+} from "@/lib/watch-progress";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
+const SAVE_INTERVAL_MS = 5000;
+
+type WatchState = {
+  percent: number;
+  ranges: WatchRange[];
+  duration: number | null;
+  lastPosition: number;
+};
+
+const EMPTY_WATCH: WatchState = { percent: 0, ranges: [], duration: null, lastPosition: 0 };
 
 function WatchExitButton({ sectionId }: { sectionId?: number | null }) {
   const href = sectionId ? `/dashboard?section=${sectionId}` : "/dashboard";
@@ -52,6 +71,193 @@ function WatchLayout({
   );
 }
 
+/**
+ * Darsning haqiqiy ko‘rilgan soniyalarini yig‘adi va serverga saqlaydi.
+ * Foiz = ko‘rilgan soniyalar / video davomiyligi (server ham qayta hisoblaydi).
+ */
+function useLessonWatch(lessonId: number | null) {
+  const [state, setState] = useState<WatchState>(EMPTY_WATCH);
+  const [ready, setReady] = useState(false);
+  const rangesRef = useRef<WatchRange[]>([]);
+  const durationRef = useRef(0);
+  const positionRef = useRef(0);
+  const serverPercentRef = useRef(0);
+  const versionRef = useRef(0);
+  const savedVersionRef = useRef(0);
+  const savingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
+  const lastSaveAtRef = useRef(0);
+
+  useEffect(() => {
+    rangesRef.current = [];
+    durationRef.current = 0;
+    positionRef.current = 0;
+    serverPercentRef.current = 0;
+    versionRef.current = 0;
+    savedVersionRef.current = 0;
+    setState(EMPTY_WATCH);
+    setReady(false);
+    if (!lessonId) {
+      setReady(true);
+      return;
+    }
+    let cancelled = false;
+    api
+      .get(`/lesson-progress?lessonId=${lessonId}`)
+      .then((res) => {
+        if (cancelled) return;
+        const d = res.data || {};
+        const ranges = mergeRanges(Array.isArray(d.watched_ranges) ? d.watched_ranges : []);
+        rangesRef.current = ranges;
+        durationRef.current = Number(d.duration_seconds) || 0;
+        positionRef.current = Number(d.last_position) || 0;
+        serverPercentRef.current = Number(d.progress_percent) || 0;
+        setState({
+          percent: serverPercentRef.current,
+          ranges,
+          duration: durationRef.current || null,
+          lastPosition: positionRef.current,
+        });
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId]);
+
+  const save = useCallback(
+    async (keepalive = false) => {
+      if (!lessonId || !(durationRef.current > 0)) return;
+      if (savingRef.current && !keepalive) {
+        pendingSaveRef.current = true;
+        return;
+      }
+      const version = versionRef.current;
+      const body = JSON.stringify({
+        lesson_id: lessonId,
+        watched_ranges: rangesRef.current,
+        duration: durationRef.current,
+        position: positionRef.current,
+      });
+      lastSaveAtRef.current = Date.now();
+
+      if (keepalive) {
+        const token = typeof window !== "undefined" ? localStorage.getItem("auth_token") : null;
+        fetch("/api/lesson-progress", {
+          method: "POST",
+          keepalive: true,
+          headers: {
+            "Content-Type": "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body,
+        }).catch(() => {});
+        return;
+      }
+
+      savingRef.current = true;
+      try {
+        const res = await api.post("/lesson-progress", JSON.parse(body));
+        const d = res.data || {};
+        serverPercentRef.current = Math.max(serverPercentRef.current, Number(d.progress_percent) || 0);
+        if (d.accepted) {
+          savedVersionRef.current = Math.max(savedVersionRef.current, version);
+          if (Array.isArray(d.watched_ranges)) {
+            rangesRef.current = mergeRanges([...rangesRef.current, ...d.watched_ranges]);
+          }
+        }
+        setState((prev) => ({
+          ...prev,
+          ranges: rangesRef.current,
+          percent: Math.max(prev.percent, serverPercentRef.current),
+        }));
+      } catch {
+        /* keyingi saqlashda qayta yuboriladi */
+      } finally {
+        savingRef.current = false;
+        if (pendingSaveRef.current) {
+          pendingSaveRef.current = false;
+          void save();
+        }
+      }
+    },
+    [lessonId]
+  );
+
+  const onWatchedSpan = useCallback(
+    (start: number, end: number, duration: number) => {
+      rangesRef.current = addWatchedSpan(rangesRef.current, start, end);
+      durationRef.current = Math.max(durationRef.current, duration);
+      positionRef.current = end;
+      versionRef.current += 1;
+      const localPercent = watchPercent(rangesRef.current, durationRef.current);
+      const percent = Math.max(serverPercentRef.current, localPercent);
+      setState({
+        percent,
+        ranges: rangesRef.current,
+        duration: durationRef.current,
+        lastPosition: end,
+      });
+      const justCompleted = localPercent >= 100 && serverPercentRef.current < 100;
+      if (justCompleted || Date.now() - lastSaveAtRef.current >= SAVE_INTERVAL_MS) {
+        void save();
+      }
+    },
+    [save]
+  );
+
+  const onCheckpoint = useCallback(
+    (position: number, duration: number) => {
+      if (duration > 0) durationRef.current = Math.max(durationRef.current, duration);
+      if (Number.isFinite(position)) positionRef.current = position;
+      const hidden = typeof document !== "undefined" && document.visibilityState === "hidden";
+      void save(hidden);
+    },
+    [save]
+  );
+
+  // Sahifadan chiqib ketilsa saqlanmay qolgan soniyalar yo‘qolmasin
+  useEffect(() => {
+    return () => {
+      if (versionRef.current > savedVersionRef.current) void save(true);
+    };
+  }, [save]);
+
+  return { ...state, ready, onWatchedSpan, onCheckpoint };
+}
+
+function useLessonFeedback(lessonId: number | null) {
+  const [data, setData] = useState<LessonFeedback | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setData(null);
+    if (!lessonId) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    let cancelled = false;
+    api
+      .get(`/lesson-feedback?lessonId=${lessonId}`)
+      .then((res) => {
+        if (!cancelled) setData(res.data?.feedback ?? null);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [lessonId]);
+
+  return { data, loading, setData };
+}
+
 export default function WatchPage() {
   const { id } = useParams();
   const router = useRouter();
@@ -62,10 +268,10 @@ export default function WatchPage() {
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const lastProgressSaveRef = useRef(0);
-  const [currentProgress, setCurrentProgress] = useState(0);
-  const [progressReady, setProgressReady] = useState(false);
+  const videoTickRef = useRef<{ t: number; at: number } | null>(null);
   const [hasInternalQuiz, setHasInternalQuiz] = useState(false);
+  const watch = useLessonWatch(lesson?.id ?? null);
+  const feedback = useLessonFeedback(lesson?.id ?? null);
 
   useEffect(() => {
     if (!lesson?.id) {
@@ -94,42 +300,6 @@ export default function WatchPage() {
     }
   }, [loading, videoUrl]);
 
-  // PDF progress — faqat hali 100% bo'lmagan darslarda (qayta ko'rishda interval yo'q)
-  useEffect(() => {
-    const pdfUrl = lesson?.pdf_url?.trim() || null;
-    const hasPdf = Boolean(pdfUrl && (isGoogleDriveUrl(pdfUrl) || pdfUrl.startsWith('http')));
-    if (!lesson?.id || !hasPdf || !progressReady || currentProgress >= 100) return;
-
-    let step = Math.floor(currentProgress / 25);
-    const interval = setInterval(() => {
-      step += 1;
-      const percent = Math.min(100, step * 25);
-      setCurrentProgress((prev) => Math.max(prev, percent));
-      api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: percent }).catch(() => { });
-      if (percent >= 100) clearInterval(interval);
-    }, 15000);
-    return () => clearInterval(interval);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lesson?.id, lesson?.pdf_url, progressReady, currentProgress >= 100]);
-
-  // Dastlabki progressni yuklash
-  useEffect(() => {
-    setProgressReady(false);
-    setCurrentProgress(0);
-    if (!lesson?.id || !lesson?.tariff_id) {
-      setProgressReady(true);
-      return;
-    }
-    api.get(`/lesson-progress?tariffId=${lesson.tariff_id}`)
-      .then(res => {
-        if (res.data && res.data[lesson.id] !== undefined) {
-          setCurrentProgress(Number(res.data[lesson.id]) || 0);
-        }
-      })
-      .catch(() => { })
-      .finally(() => setProgressReady(true));
-  }, [lesson?.id, lesson?.tariff_id]);
-
   useEffect(() => {
     if (userLoading) return;
 
@@ -144,8 +314,6 @@ export default function WatchPage() {
         setError(null);
         setVideoUrl(null);
         setLesson(null);
-        setCurrentProgress(0);
-        setProgressReady(false);
 
         let idStr = id as string;
 
@@ -250,19 +418,6 @@ export default function WatchPage() {
     fetchVideo();
   }, [user, userLoading, router, id]);
 
-  const bumpWatchProgress = (percent: number) => {
-    if (!lesson?.id) return;
-    const p = Math.min(100, Math.max(0, Math.round(percent)));
-    setCurrentProgress((prev) => {
-      if (p <= prev) return prev;
-      if (Date.now() - lastProgressSaveRef.current >= 4000 || p >= 100) {
-        lastProgressSaveRef.current = Date.now();
-        api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: p }).catch(() => { });
-      }
-      return p;
-    });
-  };
-
   // Faqat video hali yo'q bo'lsa to'liq spinner — qayta ochilganda o'yinchi ochiq qolsin
   if ((loading || userLoading) && !videoUrl) {
     return (
@@ -337,59 +492,67 @@ export default function WatchPage() {
     );
   }
 
-  const pdfUrl = lesson?.pdf_url?.trim() || null;
-  const pdfIframeSrc = pdfUrl
-    ? (isGoogleDriveUrl(pdfUrl) ? convertGoogleDriveUrl(pdfUrl) : pdfUrl)
-    : null;
   const youtubeVideoId = getYouTubeVideoId(videoUrl);
   const isYouTubeEmbed = Boolean(youtubeVideoId);
+  const hasQuiz = Boolean(lesson?.test_url || hasInternalQuiz);
+  const feedbackMode = lesson?.feedback_mode === "required" ? "required" : "optional";
+  const feedbackPending =
+    feedbackMode === "required" && user.role !== "admin" && !feedback.loading && !feedback.data;
+
+  const startQuiz = () => {
+    if (!lesson || watch.percent < 100 || feedbackPending) return;
+    if (hasInternalQuiz) {
+      window.open(`/quiz/${lesson.id}`, '_blank');
+    } else if (lesson.test_url) {
+      window.open(lesson.test_url, '_blank');
+    }
+  };
+
+  const progressPanel = lesson ? (
+    <LessonProgressPanel
+      percent={watch.percent}
+      watchedSeconds={watchedSeconds(watch.ranges)}
+      durationSeconds={watch.duration}
+      hasQuiz={hasQuiz}
+      feedbackPending={feedbackPending}
+      onStartQuiz={startQuiz}
+    />
+  ) : null;
+
+  const feedbackPanel = lesson ? (
+    <LessonFeedbackPanel
+      lessonId={lesson.id}
+      mode={feedbackMode}
+      unlocked={watch.percent >= 100}
+      feedback={feedback.data}
+      loading={feedback.loading}
+      onSaved={feedback.setData}
+    />
+  ) : null;
 
   if (isYouTubeEmbed && youtubeVideoId) {
     return (
       <WatchLayout sectionId={lesson?.section_id}>
         <div className="w-full max-w-5xl aspect-video relative rounded-none sm:rounded-xl overflow-hidden shadow-2xl bg-black mt-0 sm:mt-1">
-          <LockedYouTubePlayer
-            videoId={youtubeVideoId}
-            startLabel={currentProgress >= 100 ? "Qayta ko'rish" : "Darsni boshlash"}
-            onWatchProgress={bumpWatchProgress}
-          />
-        </div>
-        {pdfIframeSrc && (
-          <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
-            <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
-            <iframe
-              src={pdfIframeSrc}
-              width="100%"
-              height={600}
-              style={{ border: '1px solid #ddd', borderRadius: '8px' }}
-              title="O'quv materiali"
+          {watch.ready && (
+            <LockedYouTubePlayer
+              videoId={youtubeVideoId}
+              startLabel={
+                watch.percent >= 100
+                  ? "Qayta ko'rish"
+                  : watch.lastPosition > 3
+                    ? "Davom ettirish"
+                    : "Darsni boshlash"
+              }
+              resumeAt={watch.percent >= 100 ? 0 : watch.lastPosition}
+              watchedRanges={watch.ranges}
+              onWatchedSpan={watch.onWatchedSpan}
+              onCheckpoint={watch.onCheckpoint}
             />
-          </div>
-        )}
-        {(lesson?.test_url || hasInternalQuiz) && (
-          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
-            <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
-            <button
-              onClick={() => {
-                if (hasInternalQuiz) {
-                  window.open(`/quiz/${lesson.id}`, '_blank');
-                } else if (lesson.test_url) {
-                  window.open(lesson.test_url, '_blank');
-                }
-              }}
-              disabled={currentProgress < 100}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${currentProgress >= 100
-                ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-105 cursor-pointer'
-                : 'bg-gray-700 text-gray-400 cursor-not-allowed grayscale'
-                }`}
-            >
-              {currentProgress >= 100 ? 'Testni boshlash' : `Testni boshlash (Videoni ko'ring: ${currentProgress}%)`}
-            </button>
-            {currentProgress < 100 && (
-              <p className="text-gray-500 text-sm">Tugma video 100% ko'rilgandan so'ng faollashadi.</p>
-            )}
-          </div>
-        )}
+          )}
+        </div>
+        {progressPanel}
+        {feedbackPanel}
       </WatchLayout>
     );
   }
@@ -417,54 +580,11 @@ export default function WatchPage() {
             </div>
           )}
         </div>
-        {pdfIframeSrc && (
-          <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
-            <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
-            <iframe
-              src={pdfIframeSrc}
-              width="100%"
-              height={600}
-              style={{ border: '1px solid #ddd', borderRadius: '8px' }}
-              title="O'quv materiali"
-            />
-          </div>
-        )}
-        {(lesson?.test_url || hasInternalQuiz) && (
-          <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
-            <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
-            <button
-              onClick={() => {
-                if (hasInternalQuiz) {
-                  window.open(`/quiz/${lesson.id}`, '_blank');
-                } else if (lesson.test_url) {
-                  window.open(lesson.test_url, '_blank');
-                }
-              }}
-              disabled={currentProgress < 100}
-              className={`px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${currentProgress >= 100
-                ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-105 cursor-pointer'
-                : 'bg-gray-700 text-gray-400 cursor-not-allowed grayscale'
-                }`}
-            >
-              {currentProgress >= 100 ? 'Testni boshlash' : `Testni boshlash (Videoni ko'ring: ${currentProgress}%)`}
-            </button>
-            {currentProgress < 100 && (
-              <p className="text-gray-500 text-sm">Tugma video 100% ko'rilgandan so'ng faollashadi.</p>
-            )}
-          </div>
-        )}
+        {progressPanel}
+        {feedbackPanel}
       </WatchLayout>
     );
   }
-
-  const saveLessonProgress = (percent: number) => {
-    if (!lesson?.id) return;
-    const p = Math.min(100, Math.max(0, Math.round(percent)));
-    if (p > currentProgress) {
-      setCurrentProgress(p);
-      api.post('/lesson-progress', { lesson_id: lesson.id, progress_percent: p }).catch(() => { });
-    }
-  };
 
   // Oddiy video bo'lsa, video tag ko'rsatish
   return (
@@ -479,14 +599,30 @@ export default function WatchPage() {
           disablePictureInPicture
           playsInline
           onLoadedData={() => setLoading(false)}
+          onSeeking={() => {
+            videoTickRef.current = null;
+          }}
           onTimeUpdate={() => {
             const v = videoRef.current;
             if (!v?.duration || !lesson?.id) return;
-            if (Date.now() - lastProgressSaveRef.current < 5000) return;
-            lastProgressSaveRef.current = Date.now();
-            saveLessonProgress((v.currentTime / v.duration) * 100);
+            const now = performance.now();
+            const prev = videoTickRef.current;
+            videoTickRef.current = { t: v.currentTime, at: now };
+            if (!prev || v.seeking) return;
+            const advanced = v.currentTime - prev.t;
+            const wall = (now - prev.at) / 1000;
+            if (advanced > 0 && advanced <= wall * 1.25 + 0.75) {
+              watch.onWatchedSpan(prev.t, v.currentTime, v.duration);
+            }
           }}
-          onEnded={() => saveLessonProgress(100)}
+          onPause={() => {
+            const v = videoRef.current;
+            if (v) watch.onCheckpoint(v.currentTime, v.duration || 0);
+          }}
+          onEnded={() => {
+            const v = videoRef.current;
+            if (v) watch.onCheckpoint(v.duration, v.duration);
+          }}
           onError={() => {
             setError("Videoni o'ynatishda xatolik yuz berdi.");
             setLoading(false);
@@ -498,42 +634,8 @@ export default function WatchPage() {
           onContextMenu={(e) => e.preventDefault()}
         />
       </div>
-      {pdfIframeSrc && (
-        <div className="w-full max-w-5xl px-4 sm:px-0" style={{ marginTop: '30px' }}>
-          <h3 className="text-white font-semibold mb-3">O'quv materiali</h3>
-          <iframe
-            src={pdfIframeSrc}
-            width="100%"
-            height={600}
-            style={{ border: '1px solid #ddd', borderRadius: '8px' }}
-            title="O'quv materiali"
-          />
-        </div>
-      )}
-      {(lesson?.test_url || hasInternalQuiz) && (
-        <div className="w-full max-w-5xl flex flex-col items-center gap-4 py-8 border-t border-gray-800 px-4 sm:px-0" style={{ marginTop: '20px' }}>
-          <h3 className="text-white text-xl font-semibold">Dars yakunida testni topshiring</h3>
-          <button
-            onClick={() => {
-              if (hasInternalQuiz) {
-                window.open(`/quiz/${lesson.id}`, '_blank');
-              } else if (lesson.test_url) {
-                window.open(lesson.test_url, '_blank');
-              }
-            }}
-            disabled={currentProgress < 100}
-            className={`px-8 py-4 rounded-xl font-bold text-lg transition-all shadow-lg ${currentProgress >= 100
-              ? 'bg-red-600 text-white hover:bg-red-700 hover:scale-105 cursor-pointer'
-              : 'bg-gray-700 text-gray-400 cursor-not-allowed grayscale'
-              }`}
-          >
-            {currentProgress >= 100 ? 'Testni boshlash' : `Testni boshlash (Videoni ko'ring: ${currentProgress}%)`}
-          </button>
-          {currentProgress < 100 && (
-            <p className="text-gray-500 text-sm">Tugma video 100% ko'rilgandan so'ng faollashadi.</p>
-          )}
-        </div>
-      )}
+      {progressPanel}
+      {feedbackPanel}
     </WatchLayout>
   );
 }

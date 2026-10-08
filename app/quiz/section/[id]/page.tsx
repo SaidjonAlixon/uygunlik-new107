@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardTitle } from "@/components/ui/card";
 import { Trophy, ClipboardList, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { QuizLockedCard } from "@/components/quiz-locked-card";
 
 type QuizQuestion = {
   question: string;
@@ -29,6 +30,9 @@ export default function SectionQuizPage() {
   const [showResults, setShowResults] = useState(false);
   const [score, setScore] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [locked, setLocked] = useState<{ percent: number; remaining: number; feedbackMissing: number } | null>(
+    null
+  );
 
   useEffect(() => {
     if (userLoading) return;
@@ -45,6 +49,16 @@ export default function SectionQuizPage() {
           params: { user_id: user.id },
         });
         const data = res.data;
+        if (data.locked) {
+          setTitle(data.title);
+          setSectionId(data.section_id);
+          setLocked({
+            percent: Number(data.progress_percent) || 0,
+            remaining: Number(data.lessons_remaining) || 0,
+            feedbackMissing: Number(data.feedback_missing) || 0,
+          });
+          return;
+        }
         const qs = data.questions || [];
         if (!qs.length) {
           toast.error("Bo'lim testi mavjud emas.");
@@ -119,6 +133,26 @@ export default function SectionQuizPage() {
       <div className="min-h-screen bg-[#FEFBEE] flex items-center justify-center">
         <Loader2 className="h-12 w-12 animate-spin text-[#5D1111]" />
       </div>
+    );
+  }
+
+  if (locked) {
+    return (
+      <QuizLockedCard
+        title={title}
+        percent={locked.percent}
+        message={
+          locked.remaining > 0 && locked.feedbackMissing === locked.remaining
+            ? `Darslar ko'rildi, lekin ${locked.feedbackMissing} ta darsda majburiy fikr qoldirilmagan. Fikr qoldiring — shundan so'ng test ochiladi.`
+            : locked.remaining > 0
+              ? `Test ochilishiga ${locked.remaining} ta dars qoldi. Bo'limdagi barcha darslarni 100% ko'ring${
+                  locked.feedbackMissing > 0 ? " va majburiy fikrlarni qoldiring" : ""
+                } — shundan so'ng test ochiladi.`
+              : "Bo'limdagi barcha darslarni 100% ko'ring — shundan so'ng test ochiladi."
+        }
+        actionLabel="Darslarga qaytish"
+        onAction={() => router.push(sectionId ? `/dashboard?section=${sectionId}` : "/dashboard")}
+      />
     );
   }
 

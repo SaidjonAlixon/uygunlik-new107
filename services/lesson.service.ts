@@ -8,6 +8,7 @@ export interface CreateLessonDto {
   video_url?: string;
   pdf_url?: string;
   test_url?: string;
+  feedback_mode?: 'optional' | 'required';
   order_number?: number;
   additional_resources?: any[];
 }
@@ -18,6 +19,7 @@ export interface UpdateLessonDto {
   video_url?: string;
   pdf_url?: string;
   test_url?: string;
+  feedback_mode?: 'optional' | 'required';
   order_number?: number;
   additional_resources?: any[];
 }

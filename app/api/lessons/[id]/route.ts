@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { LessonService, initializeDatabase } from '@/lib/postgres';
+import { getAdminFromRequest } from '@/lib/admin-auth';
 
 export async function GET(
   request: NextRequest,
@@ -24,6 +25,9 @@ export async function PATCH(
 ) {
   try {
     await initializeDatabase();
+    if (!(await getAdminFromRequest(request))) {
+      return NextResponse.json({ error: 'Ruxsat yo‘q' }, { status: 403 });
+    }
     const { id } = await params;
     const body = await request.json();
     const lesson = await LessonService.update(parseInt(id), body);
@@ -42,6 +46,9 @@ export async function DELETE(
 ) {
   try {
     await initializeDatabase();
+    if (!(await getAdminFromRequest(request))) {
+      return NextResponse.json({ error: 'Ruxsat yo‘q' }, { status: 403 });
+    }
     const { id } = await params;
     const lesson = await LessonService.delete(parseInt(id));
     if (!lesson) {
@@ -52,4 +59,3 @@ export async function DELETE(
     return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
   }
 }
-

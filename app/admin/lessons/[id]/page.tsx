@@ -11,6 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ArrowLeft, Save, Plus, Trash2, ClipboardList, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { FeedbackModeField, type FeedbackMode } from '@/components/feedback-mode-field';
 
 export default function AdminLessonEditPage() {
   const params = useParams();
@@ -23,6 +24,7 @@ export default function AdminLessonEditPage() {
     description: '',
     video_url: '',
     pdf_url: '',
+    feedback_mode: 'optional' as FeedbackMode,
     test_url: '',
     order_number: '1',
     test_questions: [] as any[],
@@ -41,6 +43,7 @@ export default function AdminLessonEditPage() {
           description: l.description || '',
           video_url: l.video_url || '',
           pdf_url: l.pdf_url || '',
+          feedback_mode: l.feedback_mode === 'required' ? 'required' : 'optional',
           test_url: l.test_url || '',
           order_number: String(l.order_number ?? 1),
           test_questions: Array.isArray(l.test_questions) ? l.test_questions : [],
@@ -69,6 +72,7 @@ export default function AdminLessonEditPage() {
         description: form.description || undefined,
         video_url: form.video_url || undefined,
         pdf_url: form.pdf_url || undefined,
+        feedback_mode: form.feedback_mode,
         test_url: form.test_url || undefined,
         order_number: parseInt(form.order_number, 10) || 1,
         test_questions: form.test_questions,
@@ -200,6 +204,10 @@ export default function AdminLessonEditPage() {
                     placeholder="Google Drive..."
                   />
                 </div>
+                <FeedbackModeField
+                  value={form.feedback_mode}
+                  onChange={(feedback_mode) => setForm((f) => ({ ...f, feedback_mode }))}
+                />
                 <div className="space-y-2">
                   <Label className="text-[#5D1111] font-semibold">Tartib raqami</Label>
                   <Input

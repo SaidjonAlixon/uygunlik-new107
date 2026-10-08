@@ -21,6 +21,12 @@ export function monthName(key: string): string {
   return MONTHS.find((month) => month.key === key)?.name || "Yanvar";
 }
 
+/** Excel varaq nomi: oy nomi o‘rniga tartib raqami (Yanvar → Karta 1) */
+export function cardSheetName(key: string): string {
+  const index = MONTHS.findIndex((month) => month.key === key);
+  return `Karta ${index >= 0 ? index + 1 : 1}`;
+}
+
 export function monthKeyFromIso(iso: string): MonthKey {
   const match = /^(\d{4})-(\d{2})-\d{2}$/.exec(iso);
   const key = match?.[2];

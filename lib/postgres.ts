@@ -1,5 +1,12 @@
 import { Pool, types } from 'pg';
 import type { RatingEntry } from '@/types/rating';
+import {
+  mergeRanges,
+  sanitizeRanges,
+  watchPercent,
+  watchedSeconds,
+  type WatchRange,
+} from '@/lib/watch-progress';
 
 // TIMESTAMP WITHOUT TIME ZONE — Railway UTC saqlaydi; lokal TZ (+5) qo'shib o'qimaslik
 types.setTypeParser(types.builtins.TIMESTAMP, (value: string) => {
@@ -193,6 +200,31 @@ async function runDatabaseInitialization() {
         PRIMARY KEY (user_id, lesson_id)
       )
     `);
+    await pool.query(`
+      ALTER TABLE lessons ADD COLUMN IF NOT EXISTS feedback_mode VARCHAR(16) DEFAULT 'optional'
+    `);
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS lesson_feedback (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        lesson_id INTEGER NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
+        rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+        comment TEXT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (user_id, lesson_id)
+      )
+    `);
+    await pool.query(`
+      CREATE INDEX IF NOT EXISTS lesson_feedback_lesson_idx ON lesson_feedback (lesson_id, created_at DESC)
+    `);
+
+    await pool.query(`
+      ALTER TABLE lesson_progress
+        ADD COLUMN IF NOT EXISTS watched_ranges JSONB DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS duration_seconds REAL,
+        ADD COLUMN IF NOT EXISTS last_position REAL DEFAULT 0
+    `);
 
     // Add test_questions to lessons
     await pool.query(`
@@ -352,7 +384,7 @@ async function runDatabaseInitialization() {
 }
 
 export async function initializeDatabase() {
-  const SCHEMA_VERSION = 3; // bump when adding columns so HMR/restart re-runs migrations
+  const SCHEMA_VERSION = 5; // bump when adding columns so HMR/restart re-runs migrations
   if (
     globalForDb.__uygunlikDbReady &&
     globalForDb.__uygunlikSchemaVersion === SCHEMA_VERSION
@@ -1013,10 +1045,11 @@ export class LessonService {
     test_questions?: any[];
     order_number?: number;
     additional_resources?: any[];
+    feedback_mode?: FeedbackMode;
   }) {
     const result = await pool.query(`
-      INSERT INTO lessons (tariff_id, section_id, title, description, video_url, pdf_url, test_url, test_questions, order_number, additional_resources)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      INSERT INTO lessons (tariff_id, section_id, title, description, video_url, pdf_url, test_url, test_questions, order_number, additional_resources, feedback_mode)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *
     `, [
       lessonData.tariff_id,
@@ -1028,7 +1061,8 @@ export class LessonService {
       lessonData.test_url || '',
       JSON.stringify(lessonData.test_questions || []),
       lessonData.order_number || 0,
-      JSON.stringify(lessonData.additional_resources || [])
+      JSON.stringify(lessonData.additional_resources || []),
+      lessonData.feedback_mode === 'required' ? 'required' : 'optional',
     ]);
     return result.rows[0];
   }
@@ -1039,6 +1073,7 @@ export class LessonService {
     video_url?: string;
     pdf_url?: string;
     test_url?: string;
+    feedback_mode?: FeedbackMode;
     test_questions?: any[];
     test_visible_lesson_ids?: number[];
     order_number?: number;
@@ -1048,8 +1083,14 @@ export class LessonService {
     const fields = [];
     const values = [];
     let paramCount = 1;
+    const allowed = new Set([
+      'title', 'description', 'video_url', 'pdf_url', 'test_url', 'feedback_mode', 'test_questions',
+      'test_visible_lesson_ids', 'order_number', 'section_id', 'additional_resources',
+    ]);
 
     Object.entries(updates).forEach(([key, value]) => {
+      if (!allowed.has(key)) return;
+      if (key === 'feedback_mode') value = value === 'required' ? 'required' : 'optional';
       if (value !== undefined) {
         if (key === 'additional_resources' || key === 'test_questions') {
           fields.push(`${key} = $${paramCount}`);
@@ -1091,14 +1132,221 @@ export class LessonService {
   }
 }
 
-export class LessonProgressService {
-  static async getByUserAndTariff(userId: number, tariffId: number) {
+export type FeedbackMode = 'optional' | 'required';
+
+export type LessonFeedbackRow = {
+  id: number;
+  user_id: number;
+  lesson_id: number;
+  rating: number;
+  comment: string;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type AdminFeedbackFilters = {
+  lessonId?: number;
+  sectionId?: number;
+  rating?: number;
+  search?: string;
+  from?: string;
+  to?: string;
+  sort?: 'newest' | 'oldest' | 'rating_desc' | 'rating_asc';
+  page?: number;
+  pageSize?: number;
+  /** CSV eksport uchun — sahifalashsiz hammasi */
+  all?: boolean;
+};
+
+export class LessonFeedbackService {
+  static async getMine(userId: number, lessonId: number): Promise<LessonFeedbackRow | null> {
+    const result = await pool.query(
+      `SELECT * FROM lesson_feedback WHERE user_id = $1 AND lesson_id = $2`,
+      [userId, lessonId]
+    );
+    return result.rows[0] || null;
+  }
+
+  static async listMine(userId: number) {
+    const result = await pool.query(
+      `SELECT lesson_id, rating, comment, updated_at FROM lesson_feedback WHERE user_id = $1`,
+      [userId]
+    );
+    const map: Record<number, { rating: number; comment: string; updated_at: Date }> = {};
+    result.rows.forEach((r: { lesson_id: number; rating: number; comment: string; updated_at: Date }) => {
+      map[r.lesson_id] = { rating: r.rating, comment: r.comment, updated_at: r.updated_at };
+    });
+    return map;
+  }
+
+  static async upsert(userId: number, lessonId: number, rating: number, comment: string) {
+    const result = await pool.query(
+      `INSERT INTO lesson_feedback (user_id, lesson_id, rating, comment)
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (user_id, lesson_id)
+       DO UPDATE SET rating = EXCLUDED.rating, comment = EXCLUDED.comment, updated_at = CURRENT_TIMESTAMP
+       RETURNING *`,
+      [userId, lessonId, rating, comment]
+    );
+    return result.rows[0] as LessonFeedbackRow;
+  }
+
+  /** Majburiy fikr talab qilinadigan dars uchun fikr berilganmi */
+  static async isSatisfied(userId: number, lessonId: number): Promise<boolean> {
+    const result = await pool.query(
+      `SELECT l.feedback_mode, EXISTS (
+         SELECT 1 FROM lesson_feedback f WHERE f.lesson_id = l.id AND f.user_id = $1
+       ) AS given
+       FROM lessons l WHERE l.id = $2`,
+      [userId, lessonId]
+    );
+    const row = result.rows[0];
+    if (!row) return true;
+    return row.feedback_mode !== 'required' || row.given === true;
+  }
+
+  static async remove(id: number) {
+    const result = await pool.query(`DELETE FROM lesson_feedback WHERE id = $1 RETURNING id`, [id]);
+    return result.rows[0] || null;
+  }
+
+  static async adminList(filters: AdminFeedbackFilters) {
+    const where: string[] = [];
+    const values: unknown[] = [];
+    const add = (sql: string, value: unknown) => {
+      values.push(value);
+      where.push(sql.replace('?', `$${values.length}`));
+    };
+    if (filters.lessonId) add('f.lesson_id = ?', filters.lessonId);
+    if (filters.sectionId) add('l.section_id = ?', filters.sectionId);
+    if (filters.from) add("f.created_at >= (?::date - INTERVAL '5 hours')", filters.from);
+    if (filters.to) add("f.created_at < (?::date + INTERVAL '1 day' - INTERVAL '5 hours')", filters.to);
+    if (filters.search?.trim()) {
+      values.push(`%${filters.search.trim()}%`);
+      const p = `$${values.length}`;
+      where.push(
+        `(u.first_name ILIKE ${p} OR u.last_name ILIKE ${p} OR u.email ILIKE ${p} OR f.comment ILIKE ${p} OR (u.first_name || ' ' || u.last_name) ILIKE ${p})`
+      );
+    }
+    // Statistika bahodan tashqari filtrlar bo‘yicha — baho tanlansa ham taqsimot to‘liq ko‘rinadi
+    const statsValues = [...values];
+    const statsWhereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    if (filters.rating) add('f.rating = ?', filters.rating);
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+    const order =
+      filters.sort === 'oldest'
+        ? 'f.created_at ASC'
+        : filters.sort === 'rating_desc'
+          ? 'f.rating DESC, f.created_at DESC'
+          : filters.sort === 'rating_asc'
+            ? 'f.rating ASC, f.created_at DESC'
+            : 'f.created_at DESC';
+    const pageSize = filters.all ? 10000 : Math.min(100, Math.max(5, filters.pageSize || 20));
+    const page = filters.all ? 1 : Math.max(1, filters.page || 1);
+    const joins = `
+      FROM lesson_feedback f
+      JOIN users u ON u.id = f.user_id
+      JOIN lessons l ON l.id = f.lesson_id
+      LEFT JOIN lesson_sections s ON s.id = l.section_id
+      LEFT JOIN tariffs t ON t.id = u.tariff_id`;
+
+    const [rows, count, summary, distribution] = await Promise.all([
+      pool.query(
+        `SELECT f.id, f.rating, f.comment, f.created_at, f.updated_at,
+                u.id AS user_id, u.first_name, u.last_name, u.email, t.name AS tariff_name,
+                l.id AS lesson_id, l.title AS lesson_title, COALESCE(l.feedback_mode, 'optional') AS feedback_mode,
+                s.id AS section_id, s.name AS section_name
+         ${joins} ${whereSql}
+         ORDER BY ${order}
+         LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
+        values
+      ),
+      pool.query(`SELECT COUNT(*)::int AS total ${joins} ${whereSql}`, values),
+      pool.query(
+        `SELECT COUNT(*)::int AS total, COALESCE(ROUND(AVG(f.rating)::numeric, 2), 0)::float AS average,
+                COUNT(*) FILTER (WHERE f.created_at >= LOCALTIMESTAMP - INTERVAL '7 days')::int AS last7,
+                COUNT(DISTINCT f.user_id)::int AS authors,
+                COUNT(DISTINCT f.lesson_id)::int AS lessons
+         ${joins} ${statsWhereSql}`,
+        statsValues
+      ),
+      pool.query(`SELECT f.rating, COUNT(*)::int AS count ${joins} ${statsWhereSql} GROUP BY f.rating`, statsValues),
+    ]);
+
+    const counts: Record<number, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    distribution.rows.forEach((r: { rating: number; count: number }) => {
+      counts[r.rating] = r.count;
+    });
+
+    return {
+      items: rows.rows,
+      total: count.rows[0].total as number,
+      page,
+      pageSize,
+      stats: {
+        total: summary.rows[0].total as number,
+        average: summary.rows[0].average as number,
+        last7: summary.rows[0].last7 as number,
+        authors: summary.rows[0].authors as number,
+        lessons: summary.rows[0].lessons as number,
+        distribution: counts,
+      },
+    };
+  }
+
+  /** Har bir dars bo‘yicha: rejim, fikrlar soni, o‘rtacha baho, ko‘rib bo‘lganlar soni */
+  static async lessonSummary() {
     const result = await pool.query(`
-      SELECT lesson_id, progress_percent
-      FROM lesson_progress lp
-      JOIN lessons l ON l.id = lp.lesson_id
-      WHERE lp.user_id = $1 AND l.tariff_id = $2
-    `, [userId, tariffId]);
+      SELECT l.id, l.title, l.order_number, COALESCE(l.feedback_mode, 'optional') AS feedback_mode,
+             s.id AS section_id, s.name AS section_name, s.order_number AS section_order,
+             COUNT(f.id)::int AS feedback_count,
+             COALESCE(ROUND(AVG(f.rating)::numeric, 2), 0)::float AS average,
+             MAX(f.created_at) AS last_feedback_at,
+             (SELECT COUNT(*)::int FROM lesson_progress lp
+                WHERE lp.lesson_id = l.id AND lp.progress_percent >= 100) AS completed_count
+      FROM lessons l
+      LEFT JOIN lesson_sections s ON s.id = l.section_id
+      LEFT JOIN lesson_feedback f ON f.lesson_id = l.id
+      GROUP BY l.id, s.id
+      ORDER BY s.order_number ASC NULLS LAST, s.id, l.order_number ASC, l.id
+    `);
+    return result.rows;
+  }
+
+  static async setMode(lessonId: number, mode: FeedbackMode) {
+    const result = await pool.query(
+      `UPDATE lessons SET feedback_mode = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING id, feedback_mode`,
+      [lessonId, mode]
+    );
+    return result.rows[0] || null;
+  }
+}
+
+export type LessonWatchState = {
+  lesson_id: number;
+  progress_percent: number;
+  watched_ranges: WatchRange[];
+  duration_seconds: number | null;
+  last_position: number;
+};
+
+/** Bir saqlashda qo‘shiladigan yangi soniyalar o‘tgan real vaqtdan oshmasligi kerak */
+const WATCH_RATE_ALLOWANCE = 1.5;
+const WATCH_SLACK_SECONDS = 20;
+const MAX_VIDEO_SECONDS = 6 * 3600;
+
+function parseRanges(value: unknown): WatchRange[] {
+  const raw = typeof value === 'string' ? JSON.parse(value || '[]') : value;
+  return sanitizeRanges(raw, 0);
+}
+
+export class LessonProgressService {
+  /** Foydalanuvchining barcha darslari bo‘yicha foizlar (bo‘lim boshqa tarifga ulangan bo‘lsa ham) */
+  static async getByUserAndTariff(userId: number, _tariffId: number) {
+    const result = await pool.query(
+      `SELECT lesson_id, progress_percent FROM lesson_progress WHERE user_id = $1`,
+      [userId]
+    );
     const map: Record<number, number> = {};
     result.rows.forEach((r: { lesson_id: number; progress_percent: number }) => {
       map[r.lesson_id] = r.progress_percent;
@@ -1106,15 +1354,143 @@ export class LessonProgressService {
     return map;
   }
 
-  static async upsert(userId: number, lessonId: number, progressPercent: number) {
-    const p = Math.min(100, Math.max(0, Math.round(progressPercent)));
-    await pool.query(`
-      INSERT INTO lesson_progress (user_id, lesson_id, progress_percent, updated_at)
-      VALUES ($1, $2, $3, CURRENT_TIMESTAMP)
-      ON CONFLICT (user_id, lesson_id)
-      DO UPDATE SET progress_percent = GREATEST(lesson_progress.progress_percent, $3), updated_at = CURRENT_TIMESTAMP
-    `, [userId, lessonId, p]);
-    return { lesson_id: lessonId, progress_percent: p };
+  static async getState(userId: number, lessonId: number): Promise<LessonWatchState> {
+    const result = await pool.query(
+      `SELECT progress_percent, watched_ranges, duration_seconds, last_position
+       FROM lesson_progress WHERE user_id = $1 AND lesson_id = $2`,
+      [userId, lessonId]
+    );
+    const row = result.rows[0];
+    return {
+      lesson_id: lessonId,
+      progress_percent: row?.progress_percent ?? 0,
+      watched_ranges: row ? parseRanges(row.watched_ranges) : [],
+      duration_seconds: row?.duration_seconds ?? null,
+      last_position: row?.last_position ?? 0,
+    };
+  }
+
+  /**
+   * Haqiqatda ko‘rilgan oraliqlarni birlashtirib saqlaydi va foizni serverda hisoblaydi.
+   * Real vaqtdan tez "ko‘rilgan" bo‘lib qolgan soniyalar qabul qilinmaydi.
+   */
+  static async saveWatch(
+    userId: number,
+    lessonId: number,
+    rangesInput: unknown,
+    durationInput: number,
+    positionInput: number
+  ): Promise<LessonWatchState & { accepted: boolean }> {
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+      await client.query(
+        `INSERT INTO lesson_progress (user_id, lesson_id, progress_percent, watched_ranges, updated_at)
+         VALUES ($1, $2, 0, '[]'::jsonb, LOCALTIMESTAMP - INTERVAL '30 seconds')
+         ON CONFLICT (user_id, lesson_id) DO NOTHING`,
+        [userId, lessonId]
+      );
+      const existing = await client.query(
+        `SELECT progress_percent, watched_ranges, duration_seconds, last_position,
+                EXTRACT(EPOCH FROM (LOCALTIMESTAMP - updated_at)) AS elapsed
+         FROM lesson_progress WHERE user_id = $1 AND lesson_id = $2 FOR UPDATE`,
+        [userId, lessonId]
+      );
+      const row = existing.rows[0];
+      const storedDuration = Number(row.duration_seconds) || 0;
+      const clientDuration = Math.min(MAX_VIDEO_SECONDS, Math.max(0, Number(durationInput) || 0));
+      const duration = Math.max(storedDuration, clientDuration);
+      const oldRanges = parseRanges(row.watched_ranges);
+      const incoming = sanitizeRanges(rangesInput, duration);
+      const merged = mergeRanges([...oldRanges, ...incoming]);
+      const added = watchedSeconds(merged) - watchedSeconds(oldRanges);
+      const elapsed = Math.max(0, Number(row.elapsed) || 0);
+      const accepted = added <= elapsed * WATCH_RATE_ALLOWANCE + WATCH_SLACK_SECONDS;
+
+      const ranges = accepted ? merged : oldRanges;
+      const percent = Math.max(Number(row.progress_percent) || 0, watchPercent(ranges, duration));
+      const position = Number.isFinite(positionInput)
+        ? Math.min(duration || positionInput, Math.max(0, positionInput))
+        : Number(row.last_position) || 0;
+
+      if (accepted) {
+        await client.query(
+          `UPDATE lesson_progress
+           SET watched_ranges = $3::jsonb, duration_seconds = $4, last_position = $5,
+               progress_percent = $6, updated_at = LOCALTIMESTAMP
+           WHERE user_id = $1 AND lesson_id = $2`,
+          [userId, lessonId, JSON.stringify(ranges), duration || null, position, percent]
+        );
+      } else {
+        await client.query(
+          `UPDATE lesson_progress SET duration_seconds = $3, last_position = $4
+           WHERE user_id = $1 AND lesson_id = $2`,
+          [userId, lessonId, duration || null, position]
+        );
+      }
+      await client.query('COMMIT');
+      return {
+        lesson_id: lessonId,
+        progress_percent: percent,
+        watched_ranges: ranges,
+        duration_seconds: duration || null,
+        last_position: position,
+        accepted,
+      };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  static async getPercent(userId: number, lessonId: number): Promise<number> {
+    const result = await pool.query(
+      `SELECT progress_percent FROM lesson_progress WHERE user_id = $1 AND lesson_id = $2`,
+      [userId, lessonId]
+    );
+    return Number(result.rows[0]?.progress_percent) || 0;
+  }
+
+  /** Test manbasi bo‘lgan dars yoki u ulangan darslardan biri 100% ko‘rilganmi */
+  static async canTakeLessonQuiz(userId: number, sourceLessonId: number): Promise<boolean> {
+    const result = await pool.query(
+      `SELECT 1 FROM lesson_progress lp
+       JOIN lessons l ON l.id = lp.lesson_id
+       WHERE lp.user_id = $1 AND lp.progress_percent >= 100
+         AND lp.lesson_id IN (
+           SELECT $2::int
+           UNION
+           SELECT unnest(COALESCE(test_visible_lesson_ids, '{}')) FROM lessons WHERE id = $2
+         )
+         AND (
+           COALESCE(l.feedback_mode, 'optional') <> 'required'
+           OR EXISTS (SELECT 1 FROM lesson_feedback f WHERE f.lesson_id = l.id AND f.user_id = $1)
+         )
+       LIMIT 1`,
+      [userId, sourceLessonId]
+    );
+    return result.rows.length > 0;
+  }
+
+  static async getSectionStatus(userId: number, sectionId: number) {
+    const result = await pool.query(
+      `SELECT l.id, COALESCE(lp.progress_percent, 0) AS percent,
+              (COALESCE(l.feedback_mode, 'optional') <> 'required' OR f.id IS NOT NULL) AS feedback_ok
+       FROM lessons l
+       LEFT JOIN lesson_progress lp ON lp.lesson_id = l.id AND lp.user_id = $1
+       LEFT JOIN lesson_feedback f ON f.lesson_id = l.id AND f.user_id = $1
+       WHERE l.section_id = $2`,
+      [userId, sectionId]
+    );
+    type Row = { percent: number; feedback_ok: boolean };
+    const rows = result.rows as Row[];
+    const total = rows.length;
+    const completed = rows.filter((r) => Number(r.percent) >= 100 && r.feedback_ok).length;
+    const feedbackMissing = rows.filter((r) => Number(r.percent) >= 100 && !r.feedback_ok).length;
+    const percent = total ? Math.round(rows.reduce((s, r) => s + Number(r.percent), 0) / total) : 0;
+    return { total, completed, remaining: total - completed, feedbackMissing, percent };
   }
 }
 
