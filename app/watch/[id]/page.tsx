@@ -496,11 +496,11 @@ export default function WatchPage() {
   const isYouTubeEmbed = Boolean(youtubeVideoId);
   const hasQuiz = Boolean(lesson?.test_url || hasInternalQuiz);
   const feedbackMode = lesson?.feedback_mode === "optional" ? "optional" : "required";
-  const feedbackPending =
-    feedbackMode === "required" && user.role !== "admin" && !feedback.loading && !feedback.data;
+  const feedbackRequired = feedbackMode === "required";
+  const feedbackGiven = Boolean(feedback.data);
 
   const startQuiz = () => {
-    if (!lesson || watch.percent < 100 || feedbackPending) return;
+    if (!lesson || watch.percent < 100 || (feedbackRequired && !feedbackGiven)) return;
     if (hasInternalQuiz) {
       window.open(`/quiz/${lesson.id}`, '_blank');
     } else if (lesson.test_url) {
@@ -514,8 +514,12 @@ export default function WatchPage() {
       watchedSeconds={watchedSeconds(watch.ranges)}
       durationSeconds={watch.duration}
       hasQuiz={hasQuiz}
-      feedbackPending={feedbackPending}
+      feedbackRequired={feedbackRequired}
+      feedbackGiven={feedbackGiven}
       onStartQuiz={startQuiz}
+      onWriteFeedback={() =>
+        document.getElementById("lesson-izoh")?.scrollIntoView({ behavior: "smooth", block: "start" })
+      }
     />
   ) : null;
 

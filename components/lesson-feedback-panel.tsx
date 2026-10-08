@@ -105,8 +105,14 @@ export function LessonFeedbackPanel({
   };
 
   return (
-    <div className="w-full max-w-5xl px-4 sm:px-0 pb-6">
-      <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 sm:p-5">
+    <div id="lesson-izoh" className="w-full max-w-5xl scroll-mt-4 px-4 sm:px-0 pb-6">
+      <div
+        className={`rounded-2xl border p-4 sm:p-5 ${
+          required && unlocked && !feedback && !loading
+            ? "border-amber-400/40 bg-amber-400/[0.05]"
+            : "border-white/10 bg-white/[0.04]"
+        }`}
+      >
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-start gap-3">
             <span className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-400/15 text-amber-300">
@@ -163,7 +169,7 @@ export function LessonFeedbackPanel({
                 {comment.length} / {MAX_COMMENT}
               </div>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={submit}
@@ -175,6 +181,11 @@ export function LessonFeedbackPanel({
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                 {feedback ? "Saqlash" : "Izohni yuborish"}
               </button>
+              {!feedback && required && hasQuiz && (
+                <span className="flex items-center gap-1.5 text-xs text-white/50">
+                  <Lock className="h-3.5 w-3.5" /> Izoh yuborilgach test ochiladi
+                </span>
+              )}
               {feedback && (
                 <button
                   type="button"
