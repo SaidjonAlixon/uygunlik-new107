@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, RotateCcw, RotateCw } from "lucide-react";
 import { useUserStore } from "@/store/user.store";
 import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
@@ -518,6 +518,14 @@ export default function WatchPage() {
     }
   };
 
+  const seekNativeVideoBy = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.duration) || video.duration <= 0) return;
+    videoTickRef.current = null;
+    video.currentTime = Math.max(0, Math.min(video.duration, video.currentTime + seconds));
+    watch.onCheckpoint(video.currentTime, video.duration);
+  };
+
   const progressPanel = lesson ? (
     <LessonProgressPanel
       percent={watch.percent}
@@ -618,6 +626,11 @@ export default function WatchPage() {
           onSeeking={() => {
             videoTickRef.current = null;
           }}
+          onSeeked={() => {
+            const v = videoRef.current;
+            videoTickRef.current = null;
+            if (v && Number.isFinite(v.duration)) watch.onCheckpoint(v.currentTime, v.duration);
+          }}
           onTimeUpdate={() => {
             const v = videoRef.current;
             if (!v?.duration || !lesson?.id) return;
@@ -644,6 +657,28 @@ export default function WatchPage() {
             setLoading(false);
           }}
         />
+        <div className="pointer-events-none absolute inset-x-3 top-1/2 z-20 flex -translate-y-1/2 items-center justify-between sm:inset-x-5">
+          <button
+            type="button"
+            onClick={() => seekNativeVideoBy(-10)}
+            className="pointer-events-auto flex h-11 items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-black/80 active:scale-95"
+            aria-label="10 soniya orqaga"
+            title="10 soniya orqaga"
+          >
+            <RotateCcw className="h-5 w-5" />
+            <span>10s</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => seekNativeVideoBy(10)}
+            className="pointer-events-auto flex h-11 items-center gap-1.5 rounded-full border border-white/20 bg-black/60 px-3 text-sm font-semibold text-white shadow-lg backdrop-blur-sm transition hover:bg-black/80 active:scale-95"
+            aria-label="10 soniya oldinga"
+            title="10 soniya oldinga"
+          >
+            <span>10s</span>
+            <RotateCw className="h-5 w-5" />
+          </button>
+        </div>
         {/* O'ng-bosishni bloklash */}
         <div
           className="absolute inset-0 pointer-events-none"

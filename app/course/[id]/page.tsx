@@ -143,6 +143,13 @@ export default function CoursePage() {
     ? isGoogleDriveUrl(course.videos[currentVideoIndex]?.url || '')
     : false;
 
+  const seekVideoBy = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video || !Number.isFinite(video.currentTime)) return;
+    const upperBound = Number.isFinite(video.duration) ? video.duration : Number.POSITIVE_INFINITY;
+    video.currentTime = Math.max(0, Math.min(upperBound, video.currentTime + seconds));
+  };
+
   const switchVideo = (index: number) => {
     if (course.videos && index >= 0 && index < course.videos.length) {
       setCurrentVideoIndex(index);
@@ -265,17 +272,16 @@ export default function CoursePage() {
                   {/* Video Controls */}
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4">
                     <div className="flex items-center space-x-4 text-white">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-white hover:bg-white/20"
-                        onClick={() => {
-                          if (videoRef.current) {
-                            videoRef.current.currentTime = Math.max(0, videoRef.current.currentTime - 10);
-                          }
-                        }}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 gap-1 px-2 text-white hover:bg-white/20"
+                        onClick={() => seekVideoBy(-10)}
+                        aria-label="10 soniya orqaga"
+                        title="10 soniya orqaga"
                       >
                         <SkipBack className="h-4 w-4" />
+                        <span className="text-[11px] font-semibold">10s</span>
                       </Button>
                       <Button
                         size="sm"
@@ -293,16 +299,15 @@ export default function CoursePage() {
                       >
                         {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
                       </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="text-white hover:bg-white/20"
-                        onClick={() => {
-                          if (videoRef.current) {
-                            videoRef.current.currentTime = Math.min(videoRef.current.duration, videoRef.current.currentTime + 10);
-                          }
-                        }}
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="h-10 gap-1 px-2 text-white hover:bg-white/20"
+                        onClick={() => seekVideoBy(10)}
+                        aria-label="10 soniya oldinga"
+                        title="10 soniya oldinga"
                       >
+                        <span className="text-[11px] font-semibold">10s</span>
                         <SkipForward className="h-4 w-4" />
                       </Button>
 

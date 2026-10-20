@@ -579,16 +579,20 @@ export function LockedYouTubePlayer({
   const skipBySeconds = useCallback(
     (delta: number) => {
       const p = playerRef.current;
-      if (!p || duration <= 0) return;
+      if (!p) return;
 
       let t = current;
+      let total = duration;
       try {
         t = p.getCurrentTime() || current;
+        total = p.getDuration() || total;
       } catch {
         /* ignore */
       }
+      if (!Number.isFinite(total) || total <= 0) return;
+      if (total !== duration) setDuration(total);
 
-      const next = Math.max(0, Math.min(duration, t + delta));
+      const next = Math.max(0, Math.min(total, t + delta));
       seekingRef.current = true;
       lastTickRef.current = null;
       setCurrent(next);
@@ -804,10 +808,14 @@ export function LockedYouTubePlayer({
                       e.stopPropagation();
                       skipBySeconds(-SEEK_STEP_SECONDS);
                     }}
-                    className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
+                    className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/15 active:bg-white/20"
                     aria-label="10 soniya orqaga"
+                    title="10 soniya orqaga"
                   >
-                    <RotateCcw className="h-5 w-5" />
+                    <RotateCcw className="h-6 w-6" />
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-px text-[8px] font-bold leading-none">
+                      10
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -830,10 +838,14 @@ export function LockedYouTubePlayer({
                       e.stopPropagation();
                       skipBySeconds(SEEK_STEP_SECONDS);
                     }}
-                    className="shrink-0 rounded-full p-1.5 text-white hover:bg-white/10"
+                    className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-white transition hover:bg-white/15 active:bg-white/20"
                     aria-label="10 soniya oldinga"
+                    title="10 soniya oldinga"
                   >
-                    <RotateCw className="h-5 w-5" />
+                    <RotateCw className="h-6 w-6" />
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center pt-px text-[8px] font-bold leading-none">
+                      10
+                    </span>
                   </button>
                   <div className="relative flex flex-1 items-center">
                     <div className="pointer-events-none absolute inset-x-0 top-1/2 h-1.5 -translate-y-1/2 overflow-hidden rounded-full bg-white/25">
