@@ -21,6 +21,9 @@ type YTPlayer = {
   getCurrentTime: () => number;
   getDuration: () => number;
   getPlayerState?: () => number;
+  getPlaybackRate?: () => number;
+  setPlaybackRate?: (rate: number) => void;
+  getAvailablePlaybackRates?: () => number[];
   destroy: () => void;
   setSize?: (width: number, height: number) => void;
   loadModule?: (module: string) => void;
@@ -163,8 +166,20 @@ type Props = {
 };
 
 /** Video vaqti real vaqtdan shuncha martadan ko‘p o‘zgarsa — bu sakrash, ko‘rish emas */
-const NATURAL_PLAYBACK_RATE = 1.25;
-const NATURAL_PLAYBACK_SLACK = 0.75;
+const PLAYBACK_SLACK = 0.85;
+export const PLAYBACK_RATES = [1, 1.5, 1.7, 2, 2.2, 2.5, 3] as const;
+export type PlaybackRate = (typeof PLAYBACK_RATES)[number];
+
+export function formatPlaybackRate(rate: number) {
+  return `${String(rate).replace(".", ",")}x`;
+}
+
+function closestPlaybackRate(wanted: number, available: number[]) {
+  if (!available.length) return wanted;
+  return available.reduce((best, rate) =>
+    Math.abs(rate - wanted) < Math.abs(best - wanted) ? rate : best
+  );
+}
 
 /**
  * Maximize → butun ekran, video to‘liq ko‘rinadi.
@@ -194,6 +209,7 @@ export function LockedYouTubePlayer({
   const lastZoneRef = useRef<"left" | "right" | "center">("center");
   const seekHintTimerRef = useRef<number | null>(null);
   const touchHandledRef = useRef(false);
+  const playbackRateRef = useRef(1);
   onSpanRef.current = onWatchedSpan;
   onCheckpointRef.current = onCheckpoint;
 
@@ -205,7 +221,8 @@ export function LockedYouTubePlayer({
     if (!prev || !(d > 0)) return;
     const advanced = t - prev.t;
     const wall = (now - prev.at) / 1000;
-    if (advanced > 0 && advanced <= wall * NATURAL_PLAYBACK_RATE + NATURAL_PLAYBACK_SLACK) {
+    const rate = Math.max(1, playbackRateRef.current);
+    if (advanced > 0 && advanced <= wall * rate * 1.15 + PLAYBACK_SLACK) {
       onSpanRef.current?.(prev.t, Math.min(t, d), d);
     }
   }, []);
@@ -216,6 +233,8 @@ export function LockedYouTubePlayer({
   const [duration, setDuration] = useState(0);
   const [current, setCurrent] = useState(0);
   const [controlsVisible, setControlsVisible] = useState(true);
+  const [playbackRate, setPlaybackRate] = useState<PlaybackRate>(1);
+  const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [seekHint, setSeekHint] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsShellStyle, setFsShellStyle] = useState<CSSProperties | undefined>(undefined);
@@ -232,6 +251,7 @@ export function LockedYouTubePlayer({
     clearHideTimer();
     hideTimerRef.current = window.setTimeout(() => {
       setControlsVisible(false);
+      setRateMenuOpen(false);
     }, 2200);
   }, [clearHideTimer]);
 
@@ -400,6 +420,9 @@ export function LockedYouTubePlayer({
     setCurrent(0);
     setDuration(0);
     setControlsVisible(true);
+    setRateMenuOpen(false);
+    playbackRateRef.current = 1;
+    setPlaybackRate(1);
 
     loadYouTubeAPI().then(() => {
       if (destroyed || !hostRef.current || !window.YT?.Player) return;
@@ -441,7 +464,14 @@ export function LockedYouTubePlayer({
             const { PLAYING, PAUSED, ENDED } = window.YT.PlayerState;
             if (event.data === PLAYING) {
               setPlaying(true);
-              if (playerRef.current) disableYouTubeCaptions(playerRef.current);
+              if (playerRef.current) {
+                disableYouTubeCaptions(playerRef.current);
+                try {
+                  playerRef.current.setPlaybackRate?.(playbackRateRef.current);
+                } catch {
+                  /* ignore */
+                }
+              }
               setControlsVisible(true);
               scheduleHideControls();
             }
@@ -545,6 +575,25 @@ export function LockedYouTubePlayer({
     };
   }, []);
 
+  const applyPlaybackRate = useCallback((rate: PlaybackRate) => {
+    const p = playerRef.current;
+    let applied: number = rate;
+    try {
+      const available = p?.getAvailablePlaybackRates?.() ?? [];
+      applied = available.length ? closestPlaybackRate(rate, available) : rate;
+      p?.setPlaybackRate?.(applied);
+      applied = p?.getPlaybackRate?.() ?? applied;
+    } catch {
+      /* ignore */
+    }
+    playbackRateRef.current = applied;
+    lastTickRef.current = null;
+    const matched = PLAYBACK_RATES.find((r) => Math.abs(r - applied) < 0.05) ?? rate;
+    setPlaybackRate(matched);
+    setRateMenuOpen(false);
+    revealControls();
+  }, [revealControls]);
+
   const handleStart = useCallback(() => {
     setStarted(true);
     const p = playerRef.current;
@@ -556,6 +605,11 @@ export function LockedYouTubePlayer({
         setCurrent(resumeAt);
       }
       lastTickRef.current = null;
+      try {
+        p.setPlaybackRate?.(playbackRateRef.current);
+      } catch {
+        /* ignore */
+      }
       p.playVideo();
       setPlaying(true);
       revealControls();
@@ -758,12 +812,23 @@ export function LockedYouTubePlayer({
               className="absolute inset-0"
               onClick={(e) => {
                 if (touchHandledRef.current) return;
+                if (rateMenuOpen) {
+                  setRateMenuOpen(false);
+                  return;
+                }
                 const rect = e.currentTarget.getBoundingClientRect();
                 handleSurfaceTap(e.clientX - rect.left, rect.width);
               }}
               onTouchEnd={(e) => {
                 e.preventDefault();
                 touchHandledRef.current = true;
+                if (rateMenuOpen) {
+                  setRateMenuOpen(false);
+                  window.setTimeout(() => {
+                    touchHandledRef.current = false;
+                  }, 400);
+                  return;
+                }
                 const touch = e.changedTouches[0];
                 if (!touch) return;
                 const rect = e.currentTarget.getBoundingClientRect();
@@ -892,6 +957,44 @@ export function LockedYouTubePlayer({
                   <span className="w-[72px] sm:w-[78px] shrink-0 text-right text-[11px] tabular-nums text-white/90">
                     {formatTime(current)} / {formatTime(duration)}
                   </span>
+                  <div className="relative shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRateMenuOpen((open) => !open);
+                        clearHideTimer();
+                        setControlsVisible(true);
+                      }}
+                      className="min-w-[2.75rem] rounded-full px-2.5 py-1.5 text-xs font-bold tabular-nums text-white hover:bg-white/15 active:bg-white/20"
+                      aria-label="Video tezligi"
+                      aria-expanded={rateMenuOpen}
+                      title="Video tezligi"
+                    >
+                      {formatPlaybackRate(playbackRate)}
+                    </button>
+                    {rateMenuOpen && (
+                      <div
+                        className="absolute bottom-full right-0 mb-2 min-w-[5.5rem] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1 shadow-xl backdrop-blur-md"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {PLAYBACK_RATES.map((rate) => (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => applyPlaybackRate(rate)}
+                            className={`flex w-full items-center justify-between px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
+                              playbackRate === rate
+                                ? "bg-red-600 text-white"
+                                : "text-white/90 hover:bg-white/10"
+                            }`}
+                          >
+                            <span>{formatPlaybackRate(rate)}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <button
                     type="button"
                     onClick={(e) => {
@@ -901,12 +1004,14 @@ export function LockedYouTubePlayer({
                         e.stopPropagation();
                         return;
                       }
+                      setRateMenuOpen(false);
                       toggleFullscreen(e);
                     }}
                     onTouchEnd={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       touchFsRef.current = true;
+                      setRateMenuOpen(false);
                       toggleFullscreen(e);
                     }}
                     className="shrink-0 rounded-full p-2 text-white hover:bg-white/10 active:bg-white/20"

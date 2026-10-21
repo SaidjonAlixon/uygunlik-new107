@@ -8,7 +8,12 @@ import { useUserStore } from "@/store/user.store";
 import LessonService from "@/services/lesson.service";
 import api from "@/lib/api";
 import { Lesson } from "@/types/lesson";
-import { LockedYouTubePlayer } from "@/components/locked-youtube-player";
+import {
+  LockedYouTubePlayer,
+  PLAYBACK_RATES,
+  formatPlaybackRate,
+  type PlaybackRate,
+} from "@/components/locked-youtube-player";
 import { LessonProgressPanel } from "@/components/lesson-progress-panel";
 import { LessonFeedbackPanel, type LessonFeedback } from "@/components/lesson-feedback-panel";
 import {
@@ -269,6 +274,9 @@ export default function WatchPage() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoTickRef = useRef<{ t: number; at: number } | null>(null);
+  const nativeRateRef = useRef(1);
+  const [nativePlaybackRate, setNativePlaybackRate] = useState<PlaybackRate>(1);
+  const [nativeRateMenuOpen, setNativeRateMenuOpen] = useState(false);
   const [hasInternalQuiz, setHasInternalQuiz] = useState(false);
   const watch = useLessonWatch(lesson?.id ?? null);
   const feedback = useLessonFeedback(lesson?.id ?? null);
@@ -526,6 +534,15 @@ export default function WatchPage() {
     watch.onCheckpoint(video.currentTime, video.duration);
   };
 
+  const setNativeVideoRate = (rate: PlaybackRate) => {
+    const video = videoRef.current;
+    nativeRateRef.current = rate;
+    setNativePlaybackRate(rate);
+    setNativeRateMenuOpen(false);
+    videoTickRef.current = null;
+    if (video) video.playbackRate = rate;
+  };
+
   const progressPanel = lesson ? (
     <LessonProgressPanel
       percent={watch.percent}
@@ -622,7 +639,15 @@ export default function WatchPage() {
           controlsList="nodownload"
           disablePictureInPicture
           playsInline
-          onLoadedData={() => setLoading(false)}
+          onLoadedData={() => {
+            setLoading(false);
+            if (videoRef.current) videoRef.current.playbackRate = nativeRateRef.current;
+          }}
+          onRateChange={() => {
+            const v = videoRef.current;
+            if (!v) return;
+            nativeRateRef.current = v.playbackRate || 1;
+          }}
           onSeeking={() => {
             videoTickRef.current = null;
           }}
@@ -640,7 +665,8 @@ export default function WatchPage() {
             if (!prev || v.seeking) return;
             const advanced = v.currentTime - prev.t;
             const wall = (now - prev.at) / 1000;
-            if (advanced > 0 && advanced <= wall * 1.25 + 0.75) {
+            const rate = Math.max(1, nativeRateRef.current || v.playbackRate || 1);
+            if (advanced > 0 && advanced <= wall * rate * 1.15 + 0.85) {
               watch.onWatchedSpan(prev.t, v.currentTime, v.duration);
             }
           }}
@@ -678,6 +704,37 @@ export default function WatchPage() {
             <span>10s</span>
             <RotateCw className="h-5 w-5" />
           </button>
+        </div>
+        <div className="absolute bottom-3 right-3 z-30 sm:bottom-4 sm:right-4">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setNativeRateMenuOpen((open) => !open)}
+              className="min-w-[3rem] rounded-full border border-white/20 bg-black/70 px-3 py-2 text-xs font-bold tabular-nums text-white shadow-lg backdrop-blur-sm transition hover:bg-black/85"
+              aria-label="Video tezligi"
+              aria-expanded={nativeRateMenuOpen}
+            >
+              {formatPlaybackRate(nativePlaybackRate)}
+            </button>
+            {nativeRateMenuOpen && (
+              <div className="absolute bottom-full right-0 mb-2 min-w-[5.5rem] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1 shadow-xl backdrop-blur-md">
+                {PLAYBACK_RATES.map((rate) => (
+                  <button
+                    key={rate}
+                    type="button"
+                    onClick={() => setNativeVideoRate(rate)}
+                    className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
+                      nativePlaybackRate === rate
+                        ? "bg-red-600 text-white"
+                        : "text-white/90 hover:bg-white/10"
+                    }`}
+                  >
+                    {formatPlaybackRate(rate)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
         {/* O'ng-bosishni bloklash */}
         <div
