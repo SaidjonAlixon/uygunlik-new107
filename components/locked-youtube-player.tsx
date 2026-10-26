@@ -595,6 +595,10 @@ export function LockedYouTubePlayer({
     };
   }, []);
 
+  const visiblePlaybackRates = PLAYBACK_RATES.filter((rate) =>
+    isExactPlaybackRate(rate, ytAvailableRates)
+  );
+
   const applyPlaybackRate = useCallback(
     (rate: PlaybackRate) => {
       const p = playerRef.current;
@@ -1012,25 +1016,20 @@ export function LockedYouTubePlayer({
                         className="absolute bottom-full right-0 mb-2 min-w-[5.5rem] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1 shadow-xl backdrop-blur-md"
                         onClick={(e) => e.stopPropagation()}
                       >
-                        {PLAYBACK_RATES.map((rate) => {
-                          const supported = isExactPlaybackRate(rate, ytAvailableRates);
-                          return (
-                            <button
-                              key={rate}
-                              type="button"
-                              onClick={() => applyPlaybackRate(rate)}
-                              className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
-                                playbackRate === rate && supported
-                                  ? "bg-red-600 text-white"
-                                  : supported
-                                    ? "text-white/90 hover:bg-white/10"
-                                    : "cursor-not-allowed text-white/35"
-                              }`}
-                            >
-                              {formatPlaybackRate(rate)}
-                            </button>
-                          );
-                        })}
+                        {visiblePlaybackRates.map((rate) => (
+                          <button
+                            key={rate}
+                            type="button"
+                            onClick={() => applyPlaybackRate(rate)}
+                            className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
+                              playbackRate === rate
+                                ? "bg-red-600 text-white"
+                                : "text-white/90 hover:bg-white/10"
+                            }`}
+                          >
+                            {formatPlaybackRate(rate)}
+                          </button>
+                        ))}
                       </div>
                     )}
                   </div>
