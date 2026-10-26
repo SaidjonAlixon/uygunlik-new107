@@ -235,7 +235,6 @@ export function LockedYouTubePlayer({
   const [playbackRate, setPlaybackRate] = useState<PlaybackRate>(1);
   const [rateMenuOpen, setRateMenuOpen] = useState(false);
   const [ytAvailableRates, setYtAvailableRates] = useState<number[]>([1, 1.5, 2]);
-  const [rateHint, setRateHint] = useState<string | null>(null);
   const [seekHint, setSeekHint] = useState<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [fsShellStyle, setFsShellStyle] = useState<CSSProperties | undefined>(undefined);
@@ -422,7 +421,6 @@ export function LockedYouTubePlayer({
     setDuration(0);
     setControlsVisible(true);
     setRateMenuOpen(false);
-    setRateHint(null);
     playbackRateRef.current = 1;
     setPlaybackRate(1);
     setYtAvailableRates([1, 1.5, 2]);
@@ -597,8 +595,6 @@ export function LockedYouTubePlayer({
     };
   }, []);
 
-  const ytMaxRate = ytAvailableRates.length ? Math.max(...ytAvailableRates) : 2;
-
   const applyPlaybackRate = useCallback(
     (rate: PlaybackRate) => {
       const p = playerRef.current;
@@ -613,15 +609,7 @@ export function LockedYouTubePlayer({
         /* ignore */
       }
 
-      if (!isExactPlaybackRate(rate, available)) {
-        const maxRate = available.length ? Math.max(...available) : 2;
-        setRateHint(
-          `YouTube bu videoda maksimal ${formatPlaybackRate(maxRate)} beradi. ${formatPlaybackRate(rate)} ishlamaydi.`
-        );
-        clearHideTimer();
-        setControlsVisible(true);
-        return;
-      }
+      if (!isExactPlaybackRate(rate, available)) return;
 
       try {
         p?.setPlaybackRate?.(rate);
@@ -629,22 +617,15 @@ export function LockedYouTubePlayer({
         /* ignore */
       }
       const applied = p?.getPlaybackRate?.() ?? rate;
-      if (!isExactPlaybackRate(rate, [applied])) {
-        const maxRate = available.length ? Math.max(...available) : 2;
-        setRateHint(
-          `YouTube bu videoda maksimal ${formatPlaybackRate(maxRate)} beradi. ${formatPlaybackRate(rate)} ishlamaydi.`
-        );
-        return;
-      }
+      if (!isExactPlaybackRate(rate, [applied])) return;
 
       playbackRateRef.current = applied;
       lastTickRef.current = null;
       setPlaybackRate(rate);
-      setRateHint(null);
       setRateMenuOpen(false);
       revealControls();
     },
-    [ytAvailableRates, clearHideTimer, revealControls]
+    [ytAvailableRates, revealControls]
   );
 
   const handleStart = useCallback(() => {
@@ -1028,7 +1009,7 @@ export function LockedYouTubePlayer({
                     </button>
                     {rateMenuOpen && (
                       <div
-                        className="absolute bottom-full right-0 mb-2 w-[11.5rem] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1 shadow-xl backdrop-blur-md"
+                        className="absolute bottom-full right-0 mb-2 min-w-[5.5rem] overflow-hidden rounded-xl border border-white/15 bg-black/90 py-1 shadow-xl backdrop-blur-md"
                         onClick={(e) => e.stopPropagation()}
                       >
                         {PLAYBACK_RATES.map((rate) => {
@@ -1038,7 +1019,7 @@ export function LockedYouTubePlayer({
                               key={rate}
                               type="button"
                               onClick={() => applyPlaybackRate(rate)}
-                              className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
+                              className={`flex w-full items-center px-3 py-2 text-left text-sm font-semibold tabular-nums transition ${
                                 playbackRate === rate && supported
                                   ? "bg-red-600 text-white"
                                   : supported
@@ -1046,26 +1027,10 @@ export function LockedYouTubePlayer({
                                     : "cursor-not-allowed text-white/35"
                               }`}
                             >
-                              <span>{formatPlaybackRate(rate)}</span>
-                              {!supported && (
-                                <span className="text-[10px] font-medium normal-nums tracking-normal text-white/35">
-                                  yo‘q
-                                </span>
-                              )}
+                              {formatPlaybackRate(rate)}
                             </button>
                           );
                         })}
-                        {ytMaxRate < 3 && (
-                          <p className="border-t border-white/10 px-3 py-2 text-[10px] leading-snug text-white/55">
-                            YouTube bu videoda eng yuqori {formatPlaybackRate(ytMaxRate)}. 2,2x–3x faqat oddiy
-                            (fayl) videoda ishlaydi.
-                          </p>
-                        )}
-                        {rateHint && (
-                          <p className="border-t border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[10px] leading-snug text-amber-200">
-                            {rateHint}
-                          </p>
-                        )}
                       </div>
                     )}
                   </div>

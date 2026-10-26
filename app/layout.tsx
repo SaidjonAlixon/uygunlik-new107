@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SessionProvider } from "@/components/session-provider";
+import { ScreenshotShield } from "@/components/screenshot-shield";
 import { Toaster } from "@/components/ui/sonner";
 import { scriptFont } from "@/lib/fonts";
 
@@ -28,7 +29,10 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SessionProvider>{children}</SessionProvider>
+          <SessionProvider>
+            {children}
+            <ScreenshotShield />
+          </SessionProvider>
           <Toaster />
         </ThemeProvider>
       </body>
